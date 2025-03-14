@@ -1,0 +1,57 @@
+name: Sync Upstream and Open PR
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"  # Runs every 6 hours
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history to detect new commits
+
+      - name: Add upstream repository
+        run: |
+          git remote add upstream https://github.com/open-goal/jak-project.git
+          git fetch upstream
+
+      - name: Check for new commits
+        id: check_commits
+        run: |
+          UPSTREAM_BRANCH="master"
+          LOCAL_BRANCH="master"
+          git fetch upstream $UPSTREAM_BRANCH
+          NEW_COMMITS=$(git rev-list HEAD..upstream/$UPSTREAM_BRANCH --count)
+
+          if [ "$NEW_COMMITS" -gt 0 ]; then
+            echo "New commits found: $NEW_COMMITS"
+            echo "new_commits=true" >> $GITHUB_ENV
+          else
+            echo "No new commits."
+            echo "new_commits=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create new branch and merge upstream changes
+        if: env.new_commits == 'true'
+        run: |
+          PR_BRANCH="sync-upstream-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b $PR_BRANCH
+          git merge --no-edit upstream/master
+          git push origin $PR_BRANCH
+          echo "PR_BRANCH=$PR_BRANCH" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        if: env.new_commits == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.PR_BRANCH }}
+          base: master
+          title: "Sync upstream changes"
+          body: "This PR merges updates from the upstream repository."
+          labels: "automated PR"
+          assignees: "Github Actions"
