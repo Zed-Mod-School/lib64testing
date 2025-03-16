@@ -35,8 +35,32 @@ jobs:
             echo "new_commits=false" >> $GITHUB_ENV
           fi
 
-      - name: Create new branch and merge upstream changes
+      - name: Check for existing open PR
         if: env.new_commits == 'true'
+        id: check_pr
+        run: |
+          EXISTING_PR=$(gh pr list --base master --state open --json headRefName --jq '.[].headRefName' | grep 'sync-upstream' || echo "")
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Existing PR found: $EXISTING_PR"
+            echo "existing_pr_branch=$EXISTING_PR" >> $GITHUB_ENV
+            echo "existing_pr=true" >> $GITHUB_ENV
+          else
+            echo "No existing PR."
+            echo "existing_pr=false" >> $GITHUB_ENV
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update existing PR branch
+        if: env.new_commits == 'true' && env.existing_pr == 'true'
+        run: |
+          git checkout ${{ env.existing_pr_branch }}
+          git merge --no-edit upstream/master
+          git push origin ${{ env.existing_pr_branch }}
+
+      - name: Create new branch and merge upstream changes
+        if: env.new_commits == 'true' && env.existing_pr == 'false'
         run: |
           PR_BRANCH="sync-upstream-$(date +%Y%m%d-%H%M%S)"
           git checkout -b $PR_BRANCH
@@ -45,7 +69,7 @@ jobs:
           echo "PR_BRANCH=$PR_BRANCH" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        if: env.new_commits == 'true'
+        if: env.new_commits == 'true' && env.existing_pr == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -54,4 +78,3 @@ jobs:
           title: "Sync upstream changes"
           body: "This PR merges updates from the upstream repository."
           labels: "automated PR"
-          assignees: "Github Actions"
