@@ -1,80 +1,55 @@
-name: Sync Upstream and Open PR
+name: Sync upstream
 
 on:
   schedule:
-    - cron: "0 */6 * * *"  # Runs every 6 hours
-  workflow_dispatch:  # Allows manual trigger
+    - cron: '0 * * * *'  # every hour
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout current repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history to detect new commits
+          fetch-depth: 0
 
-      - name: Add upstream repository
+      - name: Determine upstream source
+        id: upstream
         run: |
-          git remote add upstream https://github.com/open-goal/jak-project.git
+          if [ "${{ github.repository }}" = "Zed-Mod-School/mod-base-test-1" ]; then
+            echo "upstream_url=https://github.com/open-goal/jak-project.git" >> $GITHUB_OUTPUT
+            echo "upstream_name=jak-project" >> $GITHUB_OUTPUT
+          else
+            echo "upstream_url=https://github.com/Zed-Mod-School/mod-base-test-1.git" >> $GITHUB_OUTPUT
+            echo "upstream_name=mod-base" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add upstream remote and fetch
+        run: |
+          git remote add upstream ${{ steps.upstream.outputs.upstream_url }}
           git fetch upstream
 
-      - name: Check for new commits
-        id: check_commits
+      - name: Check if we're behind upstream
+        id: check_diff
         run: |
-          UPSTREAM_BRANCH="master"
-          LOCAL_BRANCH="master"
-          git fetch upstream $UPSTREAM_BRANCH
-          NEW_COMMITS=$(git rev-list HEAD..upstream/$UPSTREAM_BRANCH --count)
+          BEHIND=$(git rev-list HEAD..upstream/main --count)
+          echo "behind_count=$BEHIND" >> $GITHUB_OUTPUT
 
-          if [ "$NEW_COMMITS" -gt 0 ]; then
-            echo "New commits found: $NEW_COMMITS"
-            echo "new_commits=true" >> $GITHUB_ENV
-          else
-            echo "No new commits."
-            echo "new_commits=false" >> $GITHUB_ENV
-          fi
-
-      - name: Check for existing open PR
-        if: env.new_commits == 'true'
-        id: check_pr
+      - name: Create update branch and merge upstream
+        if: steps.check_diff.outputs.behind_count != '0'
         run: |
-          EXISTING_PR=$(gh pr list --base master --state open --json headRefName --jq '.[].headRefName' | grep 'sync-upstream' || echo "")
-
-          if [ -n "$EXISTING_PR" ]; then
-            echo "Existing PR found: $EXISTING_PR"
-            echo "existing_pr_branch=$EXISTING_PR" >> $GITHUB_ENV
-            echo "existing_pr=true" >> $GITHUB_ENV
-          else
-            echo "No existing PR."
-            echo "existing_pr=false" >> $GITHUB_ENV
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update existing PR branch
-        if: env.new_commits == 'true' && env.existing_pr == 'true'
-        run: |
-          git checkout ${{ env.existing_pr_branch }}
-          git merge --no-edit upstream/master
-          git push origin ${{ env.existing_pr_branch }}
-
-      - name: Create new branch and merge upstream changes
-        if: env.new_commits == 'true' && env.existing_pr == 'false'
-        run: |
-          PR_BRANCH="sync-upstream-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b $PR_BRANCH
-          git merge --no-edit upstream/master
-          git push origin $PR_BRANCH
-          echo "PR_BRANCH=$PR_BRANCH" >> $GITHUB_ENV
+          git checkout -b update-from-${{ steps.upstream.outputs.upstream_name }}
+          git merge upstream/main --no-edit
+          git push origin update-from-${{ steps.upstream.outputs.upstream_name }}
 
       - name: Create Pull Request
-        if: env.new_commits == 'true' && env.existing_pr == 'false'
+        if: steps.check_diff.outputs.behind_count != '0'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.PR_BRANCH }}
-          base: master
-          title: "Sync upstream changes"
-          body: "This PR merges updates from the upstream repository."
-          labels: "automated PR"
+          title: "Update from ${{ steps.upstream.outputs.upstream_name }}"
+          body: "This PR merges the latest changes from `${{ steps.upstream.outputs.upstream_name }}`."
+          head: update-from-${{ steps.upstream.outputs.upstream_name }}
+          base: main
