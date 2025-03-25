@@ -53,6 +53,11 @@ jobs:
 
           echo "behind_count=$BEHIND" >> $GITHUB_OUTPUT
 
+      - name: Set Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Create update branch and merge
         if: steps.check_diff.outputs.behind_count != '0'
         run: |
