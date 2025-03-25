@@ -15,34 +15,51 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine upstream source
+      - name: Determine upstream repo and branch
         id: upstream
         run: |
           if [ "${{ github.repository }}" = "Zed-Mod-School/mod-base-test-1" ]; then
             echo "upstream_url=https://github.com/open-goal/jak-project.git" >> $GITHUB_OUTPUT
             echo "upstream_name=jak-project" >> $GITHUB_OUTPUT
+            echo "upstream_branch=master" >> $GITHUB_OUTPUT
           else
             echo "upstream_url=https://github.com/Zed-Mod-School/mod-base-test-1.git" >> $GITHUB_OUTPUT
             echo "upstream_name=mod-base" >> $GITHUB_OUTPUT
+            echo "upstream_branch=main" >> $GITHUB_OUTPUT
           fi
 
-      - name: Add upstream remote and fetch
+      - name: Add upstream and fetch
         run: |
           git remote add upstream ${{ steps.upstream.outputs.upstream_url }}
           git fetch upstream
 
-      - name: Check if we're behind upstream
+      - name: Checkout local base branch
+        run: |
+          git checkout main 2>/dev/null || git checkout master
+
+      - name: Check if behind upstream
         id: check_diff
         run: |
-          BEHIND=$(git rev-list HEAD..upstream/main --count)
+          # Use origin/main or origin/master as base
+          LOCAL_BRANCH=$(git branch --show-current)
+          UPSTREAM_BRANCH=${{ steps.upstream.outputs.upstream_branch }}
+
+          if git show-ref --verify --quiet refs/remotes/upstream/$UPSTREAM_BRANCH; then
+            BEHIND=$(git rev-list origin/$LOCAL_BRANCH..upstream/$UPSTREAM_BRANCH --count)
+          else
+            echo "Upstream branch not found"
+            BEHIND=0
+          fi
+
           echo "behind_count=$BEHIND" >> $GITHUB_OUTPUT
 
-      - name: Create update branch and merge upstream
+      - name: Create update branch and merge
         if: steps.check_diff.outputs.behind_count != '0'
         run: |
-          git checkout -b update-from-${{ steps.upstream.outputs.upstream_name }}
-          git merge upstream/main --no-edit
-          git push origin update-from-${{ steps.upstream.outputs.upstream_name }}
+          BRANCH_NAME=update-from-${{ steps.upstream.outputs.upstream_name }}
+          git checkout -b $BRANCH_NAME
+          git merge upstream/${{ steps.upstream.outputs.upstream_branch }} --no-edit
+          git push origin $BRANCH_NAME
 
       - name: Create Pull Request
         if: steps.check_diff.outputs.behind_count != '0'
@@ -52,4 +69,4 @@ jobs:
           title: "Update from ${{ steps.upstream.outputs.upstream_name }}"
           body: "This PR merges the latest changes from `${{ steps.upstream.outputs.upstream_name }}`."
           head: update-from-${{ steps.upstream.outputs.upstream_name }}
-          base: main
+          base: ${{ github.ref_name }}
