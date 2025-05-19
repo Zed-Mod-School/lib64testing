@@ -17,6 +17,9 @@
 #include "common/util/term_util.h"
 #include "common/util/unicode_util.h"
 #include "common/versions/versions.h"
+#include <libsm64/libsm64.h>
+
+
 
 #include "game/common/game_common_types.h"
 #include "graphics/gfx_test.h"
@@ -86,8 +89,14 @@ std::string game_arg_documentation() {
 /*!
  * Entry point for the game.
  */
+
+
+
 int main(int argc, char** argv) {
   ArgumentGuard u8_guard(argc, argv);
+
+
+
 
   // CLI flags
   bool show_version = false;
@@ -106,6 +115,10 @@ int main(int argc, char** argv) {
   fs::path user_config_dir_override;
   std::vector<std::string> game_args;
   CLI::App app{"OpenGOAL Game Runtime"};
+
+  std::cout << "Loaded libsm64 header!" << std::endl;
+   
+
   app.add_flag("--version", show_version, "Display the built revision");
   app.add_option("-g,--game", game_name, "The game name: 'jak1' or 'jak2'");
   app.add_flag("-v,--verbose", verbose_logging, "Enable verbose logging on stdout");
