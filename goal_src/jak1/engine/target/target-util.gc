@@ -179,7 +179,7 @@
        :root-radius (meters 2.2)
        :root-offset
        (new 'static 'vector :y 4915.2 :w 1.0)
-       :body-radius (meters 0.7)
+       :body-radius (meters -1.0)
        :edge-radius (meters 0.35)
        :edge-offset
        (new 'static 'vector :y 4915.2 :z 4096.0 :w 1.0)

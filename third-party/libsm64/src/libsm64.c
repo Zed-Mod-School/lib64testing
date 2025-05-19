@@ -244,15 +244,15 @@ SM64_LIB_FN int32_t sm64_mario_create( float x, float y, float z )
     set_mario_action(gMarioState, ACT_SPAWN_SPIN_AIRBORNE, 0);
     printf("[sm64_mario_create] Mario action set to ACT_SPAWN_SPIN_AIRBORNE\n");
 
-    float floorY = find_floor(x, y, z, &gMarioState->floor);
-    if (gMarioState->floor == NULL)
-    {
-        printf("[sm64_mario_create] Warning: No floor found under Mario! Returned Y: %f\n", floorY);
-    }
-    else
-    {
-        printf("[sm64_mario_create] Floor found at Y = %f\n", floorY);
-    }
+    //float floorY = find_floor(x, y, z, &gMarioState->floor);
+    // if (gMarioState->floor == NULL)
+    // {
+    //     printf("[sm64_mario_create] Warning: No floor found under Mario! Returned Y: %f\n", floorY);
+    // }
+    // else
+    // {
+    //     printf("[sm64_mario_create] Floor found at Y = %f\n", floorY);
+    // }
 
     return marioIndex;
 }

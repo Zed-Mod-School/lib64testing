@@ -11,7 +11,7 @@
 (require "pc/pckernel.gc")
 
 ;; DECOMP BEGINS
-
+(define *mario-is-alive* #f)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Letterbox and blackout
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -76,6 +76,18 @@
 
 (defun movie? ()
   "Are we in a movie?"
+  (when #t
+
+    (when *target*
+    (when #t (set! (-> (target-pos 0) x) (* 25.0 (pc-get-mario-x)))  (set! (-> (target-pos 0) y) (* 25.0 (pc-get-mario-y))) (set! (-> (target-pos 0) z) (* 25.0 (pc-get-mario-z))))
+    
+      )
+   
+
+  )
+  
+
+
   (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie)))
 
 (defun set-master-mode ((new-mode symbol))

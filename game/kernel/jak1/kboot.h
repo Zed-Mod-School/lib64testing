@@ -9,6 +9,10 @@
 
 #include "game/kernel/common/kboot.h"
 
+  uint64_t pc_get_mario_x();
+  uint64_t pc_get_mario_y();
+  uint64_t pc_get_mario_z();
+
 namespace jak1 {
 
 // Video Mode that's set based on display refresh rate on boot

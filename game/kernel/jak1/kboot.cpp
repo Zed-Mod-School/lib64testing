@@ -28,8 +28,17 @@
 #include <libsm64/libsm64.h>
 #include <libsm64/src/decomp/include/audio_defines.h>
 
-using namespace ee;
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <cassert>
+#include <cstring>
 
+
+using namespace ee;
+SM64MarioState g_mario_state;
 namespace jak1 {
 VideoMode BootVideoMode;
 
@@ -114,6 +123,139 @@ int marioId = -1;
 
 uint8_t* marioTexture;
 
+
+void save_surfaces_as_obj(const std::vector<SM64Surface>& surfaces, const std::string& filepath) {
+  std::ofstream out(filepath);
+  if (!out) {
+    printf("[ERROR] Could not open output file: %s\n", filepath.c_str());
+    return;
+  }
+
+  std::vector<std::array<int16_t, 3>> unique_vertices;
+  std::unordered_map<std::string, int> vertex_index_map;
+
+  auto vertex_key = [](int16_t x, int16_t y, int16_t z) {
+    return std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(z);
+  };
+
+  // Write all unique vertices
+  for (const auto& surf : surfaces) {
+    for (int i = 0; i < 3; ++i) {
+      int16_t x = surf.vertices[i][0];
+      int16_t y = surf.vertices[i][1];
+      int16_t z = surf.vertices[i][2];
+      std::string key = vertex_key(x, y, z);
+      if (vertex_index_map.find(key) == vertex_index_map.end()) {
+        vertex_index_map[key] = unique_vertices.size() + 1;  // 1-based index
+        unique_vertices.push_back({x, y, z});
+        out << "v " << x << " " << y << " " << z << "\n";
+      }
+    }
+  }
+
+  // Write faces
+  for (const auto& surf : surfaces) {
+    std::string indices[3];
+    for (int i = 0; i < 3; ++i) {
+      int16_t x = surf.vertices[i][0];
+      int16_t y = surf.vertices[i][1];
+      int16_t z = surf.vertices[i][2];
+      indices[i] = std::to_string(vertex_index_map[vertex_key(x, y, z)]);
+    }
+    out << "f " << indices[0] << " " << indices[1] << " " << indices[2] << "\n";
+  }
+
+  printf("[DEBUG] Exported %zu surfaces as OBJ to: %s\n", surfaces.size(), filepath.c_str());
+}
+
+
+
+void load_obj_to_surfaces(const std::string& filepath, std::vector<SM64Surface>& out_surfaces) {
+  std::ifstream in(filepath);
+  if (!in) {
+    printf("[ERROR] Could not open OBJ file: %s\n", filepath.c_str());
+    return;
+  }
+
+  std::vector<std::array<float, 3>> vertices;
+  std::string line;
+  while (std::getline(in, line)) {
+    std::istringstream ss(line);
+    std::string type;
+    ss >> type;
+
+    if (type == "v") {
+      float x, y, z;
+      ss >> x >> y >> z;
+      vertices.push_back({x, y, z});
+    } else if (type == "f") {
+      int vi[3];
+      for (int i = 0; i < 3; ++i) {
+        std::string token;
+        ss >> token;
+        size_t pos = token.find('/');
+        if (pos != std::string::npos) token = token.substr(0, pos);
+        vi[i] = std::stoi(token) - 1;  // OBJ indices are 1-based
+      }
+
+      // Flip winding if necessary to make sure the Y normal is positive (upward)
+      const auto& a = vertices[vi[0]];
+      const auto& b = vertices[vi[1]];
+      const auto& c = vertices[vi[2]];
+
+      float ux = b[0] - a[0];
+      float uy = b[1] - a[1];
+      float uz = b[2] - a[2];
+
+      float vx = c[0] - a[0];
+      float vy = c[1] - a[1];
+      float vz = c[2] - a[2];
+
+      float normalY = ux * vz - uz * vx;  // Y component of cross product
+
+      if (normalY < 0.0f) {
+        std::swap(vi[1], vi[2]);  // flip winding before creating surface
+      }
+
+      SM64Surface surf;
+      for (int i = 0; i < 3; ++i) {
+        const auto& v = vertices[vi[i]];
+        surf.vertices[i][0] = static_cast<int16_t>(v[0]);
+        surf.vertices[i][1] = static_cast<int16_t>(v[1]);
+        surf.vertices[i][2] = static_cast<int16_t>(v[2]);
+      }
+
+      out_surfaces.push_back(surf);
+    }
+  }
+
+  printf("[DEBUG] Loaded %zu surfaces from OBJ\n", out_surfaces.size());
+}
+
+
+void setup_from_obj_file(const char* obj_path, SM64Surface* surfaces, int max_surfaces) {
+  std::vector<SM64Surface> temp;
+  load_obj_to_surfaces(obj_path, temp);
+  
+  if (temp.size() > static_cast<size_t>(max_surfaces)) {
+    printf("[WARNING] OBJ has more surfaces than max (%d), truncating...\n", max_surfaces);
+  }
+
+  int count = std::min(static_cast<int>(temp.size()), max_surfaces);
+  std::memcpy(surfaces, temp.data(), sizeof(SM64Surface) * count);
+
+  for (int i = 0; i < count; ++i) {
+    printf("[DEBUG] Triangle %d:\n", i);
+    for (int j = 0; j < 3; ++j) {
+      printf("  Vertex %d: (%d, %d, %d)\n",
+             j, surfaces[i].vertices[j][0],
+             surfaces[i].vertices[j][1],
+             surfaces[i].vertices[j][2]);
+    }
+  }
+}
+
+
 void setup_flat_ground(SM64Surface* surfaces) {
   const int half_size = 5000;
   const int y_offset = -100;
@@ -151,6 +293,11 @@ void setup_flat_ground(SM64Surface* surfaces) {
   }
 }
 
+
+
+
+
+
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
 
@@ -182,9 +329,11 @@ void KernelCheckAndDispatch() {
   sm64_global_init(romBuffer, marioTexture);
   sm64_audio_init(romBuffer);
   sm64_set_sound_volume(0.5f);
-  delete[] romBuffer;
 
-  SM64MarioState state = {};
+  //audio_thread_init();
+  //sm64_play_sound_global(SOUND_MENU_STAR_SOUND);
+
+  delete[] romBuffer;
 
   // //SM64MarioGeometryBuffers geom = {};
   // SM64MarioInputs m_mario_inputs = {
@@ -210,12 +359,18 @@ geom.uv       = new float[2 * 3 * maxTris];  // 2 UVs per vertex, 3 verts per tr
 geom.numTrianglesUsed = 0;
 
 
-  SM64Surface surfaces[2];
-  setup_flat_ground(surfaces);
+  // SM64Surface surfaces[2];
+  // setup_flat_ground(surfaces);
 
-  printf("[DEBUG] Loading static surfaces...\n");
-  sm64_static_surfaces_load(surfaces, 2);
-  printf("[DEBUG] Surfaces loaded.\n");
+  // printf("[DEBUG] Loading static surfaces...\n");
+  // sm64_static_surfaces_load(surfaces, 2);
+  // printf("[DEBUG] Surfaces loaded.\n");
+
+  SM64Surface surfaces[256];  // Up to 256 triangles
+  setup_from_obj_file("fart.obj.obj", surfaces, 256);
+  std::vector<SM64Surface> surface_vec(surfaces, surfaces + 256);
+  save_surfaces_as_obj(surface_vec, "exported_debug.obj");
+  sm64_static_surfaces_load(surfaces, 256);
 
   // Perform floor check at Mario spawn point
   SM64SurfaceCollisionData* floorTest = nullptr;
@@ -230,14 +385,14 @@ geom.numTrianglesUsed = 0;
   }
 
   printf("[DEBUG] Attempting to create Mario at (0,1,0)...\n");
-  marioId = sm64_mario_create(0.0f, 1.0f, 0.0f);
+  marioId = sm64_mario_create(125.0f, 125.0f, 125.0f);
   printf("[DEBUG] Mario ID returned: %d\n", marioId);
 
   // sm64_audio_init(romBuffer);
   //         sm64_set_sound_volume(0.5f);
 
   //         sm64_play_sound_global(SOUND_ARG_LOAD(7, 0, 0x1E, 0xFF, 8));
-  
+  g_mario_state = {};
 
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     if (marioId == 0) {
@@ -253,11 +408,12 @@ geom.numTrianglesUsed = 0;
     //   m_mario_inputs.buttonA, m_mario_inputs.buttonB, m_mario_inputs.buttonZ);
 
        //m_mario_inputs.stickY = 32; // simulate forward stick
-      sm64_mario_tick(marioId, &m_mario_inputs, &state, &geom);
+      sm64_mario_tick(marioId, &m_mario_inputs, &g_mario_state, &geom);
+
 
       bool changed = false;
       for (int i = 0; i < 3; ++i) {
-        if (state.position[i] != last_position[i]) {
+        if (g_mario_state.position[i] != last_position[i]) {
           changed = true;
           break;
         }
@@ -265,11 +421,11 @@ geom.numTrianglesUsed = 0;
   
       if (changed) {
         printf("Mario position changed: X=%.2f Y=%.2f Z=%.2f\n",
-               state.position[0], state.position[1], state.position[2]);
+               g_mario_state.position[0], g_mario_state.position[1], g_mario_state.position[2]);
   
         // Update last_position
         for (int i = 0; i < 3; ++i) {
-          last_position[i] = state.position[i];
+          last_position[i] = g_mario_state.position[i];
         }
       }
 
@@ -330,4 +486,31 @@ geom.numTrianglesUsed = 0;
 void KernelShutdown() {
   MasterExit = RuntimeExitStatus::EXIT;  // GOAL Kernel Dispatch loop will stop now.
 }
+
+
+
+
 }  // namespace jak1
+uint64_t pc_get_mario_x() {
+  float x = g_mario_state.position[0];
+  uint64_t out = 0;
+  std::memcpy(&out, &x, sizeof(float));
+  //printf("[pc_get_mario_x] X = %.2f -> 0x%lx\n", x, out);
+  return out;
+}
+
+uint64_t pc_get_mario_y() {
+  float y = g_mario_state.position[1];
+  uint64_t out = 0;
+  std::memcpy(&out, &y, sizeof(float));
+  //printf("[pc_get_mario_y] Y = %.2f -> 0x%lx\n", y, out);
+  return out;
+}
+
+uint64_t pc_get_mario_z() {
+  float z = g_mario_state.position[2];
+  uint64_t out = 0;
+  std::memcpy(&out, &z, sizeof(float));
+ // printf("[pc_get_mario_z] Z = %.2f -> 0x%lx\n", z, out);
+  return out;
+}
