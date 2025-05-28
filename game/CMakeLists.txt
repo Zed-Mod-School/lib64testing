@@ -1,4 +1,6 @@
 # Set a more convenient ARM flag
+#all the mario stuff here is a hack to make it work and is terrible so I am sorry in advance if you are looking at this file but you can stop now if its still functioning properly
+include_directories(third-party/libsm64)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
     set(ARM64_ARCH TRUE)
     message(STATUS "ARM64 architecture detected")
@@ -322,7 +324,21 @@ else()
 endif()
 
 add_executable(gk main.cpp)
-target_link_libraries(gk runtime)
+
+
+# if(WIN32)
+#     set_target_properties(gk PROPERTIES VS_DPI_AWARE "PerMonitor")
+
+#     add_custom_command(TARGET gk POST_BUILD
+#         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#             ${CMAKE_SOURCE_DIR}/third-party/libsm64/sm64.dll
+#             $<TARGET_FILE_DIR:gk>)
+# endif()
+
+
+target_include_directories(gk PRIVATE ${CMAKE_SOURCE_DIR}/third-party)
+target_link_directories(gk PRIVATE ${CMAKE_SOURCE_DIR}/third-party/libsm64/lib)
+target_link_libraries(gk runtime libsm64)
 if(WIN32)
     set_target_properties(gk PROPERTIES VS_DPI_AWARE "PerMonitor")
 endif()
