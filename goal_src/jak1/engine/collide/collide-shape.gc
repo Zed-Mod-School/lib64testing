@@ -1209,7 +1209,16 @@
        ;; fill with the gox
        (fill-using-bounding-box *collide-cache* s5-0 arg1 (-> obj process) (-> obj pat-ignore-mask))
        ;; only draw collide cache, if we're the target
+       (when (time-elapsed? 0 (seconds 2000.0))
+        (itereate-collide-tree-and-add-if-new)
+       )
        (when (and *display-collide-cache* (= (-> obj process type) target))
+
+      ;;      (process-spawn-function process
+      ;; (lambda :behavior process ()
+      ;;   (itereate-collide-tree-and-add-if-new)))
+
+
          (debug-draw *collide-cache*)
          ;; og:preserve-this added
          (add-debug-box #t (bucket-id debug) (-> s5-0 min) (-> s5-0 max) (new 'static 'rgba :a #x80 :b #x70 :g #x70))))

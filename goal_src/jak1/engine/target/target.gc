@@ -1037,6 +1037,8 @@
     (behavior ((arg0 float) (arg1 float) (arg2 symbol))
       (set-time! (-> self state-time))
       (logclear! (-> self control status) (cshape-moving-flags onsurf onground tsurf))
+      (itereate-collide-tree-and-add-if-new)
+      (dotimes (i 10) (inspect (-> *my-tri-list* i vertex 1)))
       (set! (-> self control unknown-surface00) *turn-around-mods*))
   :exit target-exit
   :code

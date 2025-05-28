@@ -1,5 +1,5 @@
 #pragma once
-#include <libsm64/libsm64.h>
+#include "libsm64/libsm64.h"
 extern SM64MarioInputs m_mario_inputs;
 
 #include "dualsense_effects.h"

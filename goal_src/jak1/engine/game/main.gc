@@ -74,18 +74,159 @@
           (or (= *master-mode* 'pause)
               (or (and *progress-process* (not (hidden? (-> *progress-process* 0)))) (= *master-mode* 'menu)))))
 
+(define *old-triangle-x* 0.0)
+
+;; (defun print-new-collide-cache-tri ()
+;;   (let ((curr-x  (-> *collide-cache* tris 0 vertex 0 x)))
+;;     (unless (= curr-x *old-triangle-x*)
+;;       (set! *old-triangle-x* curr-x)
+;;       (format #t "New Triangle Detected:~%")
+;;       (inspect (-> *collide-cache* tris 0 vertex 0))
+;;       (inspect (-> *collide-cache* tris 0 vertex 1))
+;;       (inspect (-> *collide-cache* tris 0 vertex 2)))))
+
+
+
+
+
+
+(define *my-tri-list* (new 'static 'inline-array collide-cache-tri 40
+  (new 'static 'collide-cache-tri) 
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+  (new 'static 'collide-cache-tri)
+))
+
+(define should-try-to-store #t)
+(defun itereate-collide-tree-and-add-if-new ()
+ ;;check all the current triangles in the *collide-cache* and see if they are in the *my-tri-list*
+ (format #t "Iterate collide tree and add if new start~%")
+ (format #t "number of num-tris at start is ~d~%" (-> *collide-cache* num-tris))
+  (dotimes (i (-> *collide-cache* num-tris))
+  (format #t "value of i loop is ~d~%" i)
+  (label end-this-tri)
+
+  ;; only process if our last spot is free
+  (when (= (-> *my-tri-list* 39 vertex 0 x) 0.0)
+    (format #t "reseting should-try-to-store~%")
+   (set! should-try-to-store #t)
+
+    (let ((curr-tri (-> *collide-cache* tris i)))
+      
+      ;; check to make sure curr-tri is not in the *my-tri-list*
+      (dotimes (p 40)
+     (format #t "checking triangle to see if it exists at ~d~%" p)
+   (let ((tri (-> *my-tri-list* p)))
+  (when (and
+          (= (-> curr-tri vertex 0 x) (-> tri vertex 0 x))
+          (= (-> curr-tri vertex 0 y) (-> tri vertex 0 y))
+          (= (-> curr-tri vertex 0 z) (-> tri vertex 0 z))
+          (= (-> curr-tri vertex 1 x) (-> tri vertex 1 x))
+          (= (-> curr-tri vertex 1 y) (-> tri vertex 1 y))
+          (= (-> curr-tri vertex 1 z) (-> tri vertex 1 z))
+          (= (-> curr-tri vertex 2 x) (-> tri vertex 2 x))
+          (= (-> curr-tri vertex 2 y) (-> tri vertex 2 y))
+          (= (-> curr-tri vertex 2 z) (-> tri vertex 2 z)))
+          (format #t "Triangle match found at ~d~%" p)
+          (set! should-try-to-store #f) 
+          ;;triangle match is found in the tri-list, set should-try-to-store to false so we skip it in following loop
+          )))
+    (format #t "should-try-to-store is ~a~%" should-try-to-store)
+    ;;no match was found if we reach this point and should-try-to-store is true, so now we find the first empty slot in the *my-tri-list* and add it
+    (when should-try-to-store)
+      (format #t "Adding triangle to my-tri-list~%")
+      (dotimes (d 40)
+      (format #t "looking for empty spot in my-tri-list #~d~%" d)
+        (when (= (-> *my-tri-list* d vertex 0 x) 0.0)
+        (format #t "found empty spot in my-tri-list #~d~%" d)
+          (set! (-> *my-tri-list* d vertex 0 x) (* (/ (-> curr-tri vertex 0 x)  (meters 1.0)) 1.0))
+          (set! (-> *my-tri-list* d vertex 0 y) (* (/ (-> curr-tri vertex 0 y)  (meters 1.0)) 1.0))
+          (set! (-> *my-tri-list* d vertex 0 z) (* (/ (-> curr-tri vertex 0 z)  (meters 1.0)) 1.0))
+          (set! (-> *my-tri-list* d vertex 1 x) (* (/ (-> curr-tri vertex 1 x)  (meters 1.0)) 1.0))
+          (set! (-> *my-tri-list* d vertex 1 y) (* (/ (-> curr-tri vertex 1 y)  (meters 1.0)) 1.0))
+
+          (set! (-> *my-tri-list* d vertex 1 z) (* (/ (-> curr-tri vertex 1 z)  (meters 1.0)) 1.0))
+
+
+          (set! (-> *my-tri-list* d vertex 2 x) (* (/ (-> curr-tri vertex 2 x)  (meters 1.0)) 1.0))
+          (set! (-> *my-tri-list* d vertex 2 y) (* (/ (-> curr-tri vertex 2 y)  (meters 1.0)) 1.0))
+
+          (set! (-> *my-tri-list* d vertex 2 z) (* (/ (-> curr-tri vertex 2 z)  (meters 1.0)) 1.0)) 
+          (mem-copy! (the-as pointer (-> *my-tri-list* d))  (the-as pointer curr-tri) (size-of collide-cache-tri))
+          (format #t "added triangle to my-tri-list at index ~d~%" d)
+          ;; once we have stored increment the collid-cache tris we are looking at as curr-tri and redo loop
+          (format #t "incrementing i~%")
+          (set! i (+ i 1))
+          (format #t "new i is ~d~%" i)
+          (goto end-this-tri)
+          )))
+    )
+  )
+  0)
+
+(defun print-my-tri-list ()
+  (format #t "My Tri List:~%")
+  (dotimes (i 39)
+    (format #t "Triangle ~d:~%" i)
+    (inspect (-> *my-tri-list* i vertex 0))
+    (inspect (-> *my-tri-list* i vertex 1))
+    (inspect (-> *my-tri-list* i vertex 2)))
+  )
+
+(define *old-triangle-x*  0.0)
 (defun movie? ()
   "Are we in a movie?"
   (when #t
+    ;;(print-collide-cache-tris)
+    (when (and *target* (cpad-hold? 0 up))
+      
+    (when #t
+  (set! (-> (target-pos 0) x) (/ (pc-get-mario-x) 50.0))
+  (set! (-> (target-pos 0) y) (/ (pc-get-mario-y) 50.0))
+  (set! (-> (target-pos 0) z) (/ (pc-get-mario-z) 50.0)))
 
-    (when *target*
-    (when #t (set! (-> (target-pos 0) x) (* 25.0 (pc-get-mario-x)))  (set! (-> (target-pos 0) y) (* 25.0 (pc-get-mario-y))) (set! (-> (target-pos 0) z) (* 25.0 (pc-get-mario-z))))
-    
+
       )
-   
+
 
   )
-  
+
 
 
   (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie)))

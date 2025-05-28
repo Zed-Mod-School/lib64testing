@@ -10,6 +10,7 @@
 #include "common/util/Timer.h"
 #include "common/util/string_util.h"
 
+#include "../jak1/kboot.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"
@@ -23,7 +24,6 @@
 #include "game/sce/libpad.h"
 #include "game/sce/libscf.h"
 #include "game/sce/sif_ee.h"
-#include "../jak1/kboot.h"
 
 /*!
  * Where does OVERLORD load its data from?
@@ -959,8 +959,6 @@ u32 pc_get_os() {
 time_t pc_get_unix_timestamp() {
   return std::time(nullptr);
 }
-
-
 
 u64 pc_filepath_exists(u32 filepath) {
   auto filepath_str = std::string(Ptr<String>(filepath).c()->data());

@@ -9,16 +9,13 @@
 
 #include "fmt/format.h"
 
-SM64MarioInputs m_mario_inputs = {
-  .camLookX = 0.0f,
-  .camLookZ = 1.0f,
-  .stickX = 0.0f,
-  .stickY = 0.0f,
-  .buttonA = 0,
-  .buttonB = 0,
-  .buttonZ = 0
-};
-
+SM64MarioInputs m_mario_inputs = {.camLookX = 0.0f,
+                                  .camLookZ = 1.0f,
+                                  .stickX = 0.0f,
+                                  .stickY = 0.0f,
+                                  .buttonA = 0,
+                                  .buttonB = 0,
+                                  .buttonZ = 0};
 
 GameController::GameController(int sdl_device_id,
                                std::shared_ptr<game_settings::InputSettings> settings)
@@ -123,7 +120,7 @@ int normalize_axes_value(int sdl_val) {
 auto sdl_axis_to_sm64 = [](int value) -> int8_t {
   value = std::clamp(value, -32768, 32767);
 
-  //✅ Apply a ~10% deadzone
+  // ✅ Apply a ~10% deadzone
   if (std::abs(value) < 3000)
     return 0;
 
@@ -131,12 +128,11 @@ auto sdl_axis_to_sm64 = [](int value) -> int8_t {
   return static_cast<int8_t>(std::round(scaled));
 };
 
-
 void GameController::process_event(const SDL_Event& event,
                                    const CommandBindingGroups& commands,
                                    std::shared_ptr<PadData> data,
                                    std::optional<InputBindAssignmentMeta>& bind_assignment) {
-                                    // Zero out the entire input struct
+  // Zero out the entire input struct
 
   if (event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION && event.gaxis.which == m_sdl_instance_id) {
     // https://wiki.libsdl.org/SDL3/SDL_GamepadAxis
@@ -144,13 +140,24 @@ void GameController::process_event(const SDL_Event& event,
         event.gaxis.axis >= SDL_GAMEPAD_AXIS_COUNT) {
       return;
     }
-    if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) {
-      m_mario_inputs.stickX = sdl_axis_to_sm64(event.gaxis.value);
-    } else if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) {
-      m_mario_inputs.stickY = -sdl_axis_to_sm64(event.gaxis.value);  // inverted Y
-    }
-    
+static int8_t last_stick_x = 0;
+static int8_t last_stick_y = 0;
 
+if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) {
+  int8_t stick = sdl_axis_to_sm64(event.gaxis.value);
+  if (stick != last_stick_x) {
+    m_mario_inputs.stickX = stick;
+    last_stick_x = stick;
+    printf("[DEBUG] stickX updated: %d\n", stick);
+  }
+} else if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) {
+  int8_t stick = -sdl_axis_to_sm64(event.gaxis.value);
+  if (stick != last_stick_y) {
+    m_mario_inputs.stickY = stick;
+    last_stick_y = stick;
+    printf("[DEBUG] stickY updated: %d\n", stick);
+  }
+}
 
     auto& binds = m_settings->controller_binds.at(m_guid);
 
@@ -208,7 +215,6 @@ void GameController::process_event(const SDL_Event& event,
               event.type == SDL_EVENT_GAMEPAD_BUTTON_UP) &&
              event.gbutton.which == m_sdl_instance_id) {
     auto& binds = m_settings->controller_binds.at(m_guid);
-  
 
     // https://wiki.libsdl.org/SDL3/SDL_GamepadButton
     if ((int)event.gbutton.button <= SDL_GAMEPAD_BUTTON_INVALID ||
@@ -222,8 +228,7 @@ void GameController::process_event(const SDL_Event& event,
     } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
       m_mario_inputs.buttonZ = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
     }
-    
-   
+
     // Binding re-assignment
     if (bind_assignment && event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
       if (bind_assignment->device_type == InputDeviceType::CONTROLLER &&

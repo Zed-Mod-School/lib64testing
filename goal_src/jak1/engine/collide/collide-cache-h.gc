@@ -78,6 +78,23 @@
    (resolve-moving-sphere-tri (_type_ collide-tri-result collide-prim-core vector float collide-action) float)
    (resolve-moving-sphere-sphere (_type_ collide-tri-result collide-prim-core vector float collide-action) float)))
 
+#|
+
+(defmethod inspect ((this vector))
+  (format #t "[~8x] vector~%" this)
+  (format #t "~T[~F] [~F] [~F] [~F]~%" (-> this x) (-> this y) (-> this z) (-> this w))
+  this)
+  |#
+;; (defun print-collide-cache-tris ()
+;; (dotimes (i (-> *collide-cache* num-tris))
+
+;; (format #t "Triangle ~d:~%" i)
+;; (inspect (-> *collide-cache* tris i vertex 0))
+;; (inspect (-> *collide-cache* tris i vertex 1))
+;; (inspect (-> *collide-cache* tris i vertex 2))
+;; )
+
+;;)
 ;; The actual cache!
 (deftype collide-cache (basic)
   ((num-tris      int32)
