@@ -9,6 +9,14 @@
 
 #include "fmt/format.h"
 
+SM64MarioInputs m_mario_inputs = {.camLookX = 0.0f,
+                                  .camLookZ = 1.0f,
+                                  .stickX = 0.0f,
+                                  .stickY = 0.0f,
+                                  .buttonA = 0,
+                                  .buttonB = 0,
+                                  .buttonZ = 0};
+
 GameController::GameController(int sdl_device_id,
                                std::shared_ptr<game_settings::InputSettings> settings)
     : m_sdl_instance_id(sdl_device_id) {
@@ -106,9 +114,21 @@ static std::unordered_map<int, int> pressure_axes_to_button = {
 
 // Adjust the value range to 0-255 (127 being neutral)
 // Values come out of SDL as -32,768 to 32,767
+
 int normalize_axes_value(int sdl_val) {
   return ((sdl_val + 32768) * 256) / 65536;
 }
+
+auto sdl_axis_to_sm64 = [](int value) -> int8_t {
+  value = std::clamp(value, -32768, 32767);
+
+  // ✅ Apply a ~10% deadzone
+  if (std::abs(value) < 3000)
+    return 0;
+
+  float scaled = (value / 32767.0f) * 64.0f;
+  return static_cast<int8_t>(std::round(scaled));
+};
 
 void GameController::process_event(const SDL_Event& event,
                                    const CommandBindingGroups& commands,
@@ -120,6 +140,25 @@ void GameController::process_event(const SDL_Event& event,
         event.gaxis.axis >= SDL_GAMEPAD_AXIS_COUNT) {
       return;
     }
+
+    static int8_t last_stick_x = 0;
+static int8_t last_stick_y = 0;
+
+if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) {
+  int8_t stick = sdl_axis_to_sm64(event.gaxis.value);
+  if (stick != last_stick_x) {
+    m_mario_inputs.stickX = stick;
+    last_stick_x = stick;
+    printf("[DEBUG] stickX updated: %d\n", stick);
+  }
+} else if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) {
+  int8_t stick = -sdl_axis_to_sm64(event.gaxis.value);
+  if (stick != last_stick_y) {
+    m_mario_inputs.stickY = stick;
+    last_stick_y = stick;
+    printf("[DEBUG] stickY updated: %d\n", stick);
+  }
+}
 
     auto& binds = m_settings->controller_binds.at(m_guid);
 
@@ -183,7 +222,14 @@ void GameController::process_event(const SDL_Event& event,
         event.gbutton.button >= SDL_GAMEPAD_BUTTON_COUNT) {
       return;
     }
+    if (event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH) {
+      m_mario_inputs.buttonA = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+    } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
+      m_mario_inputs.buttonB = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+    } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
+      m_mario_inputs.buttonZ = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
 
+    }
     // Binding re-assignment
     if (bind_assignment && event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
       if (bind_assignment->device_type == InputDeviceType::CONTROLLER &&

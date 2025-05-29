@@ -10,6 +10,7 @@
 #include "common/util/Timer.h"
 #include "common/util/string_util.h"
 
+#include "../jak1/kboot.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"
@@ -1012,6 +1013,10 @@ void init_common_pc_port_functions(
     std::function<u64(const char*)> make_string_from_c_func) {
   g_pc_port_funcs.intern_from_c = intern_from_c_func;
   g_pc_port_funcs.make_string_from_c = make_string_from_c_func;
+  // these functions can be improved and extended in the future, but at least we can kind of talk to mario on the GOAL side
+  make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
+  make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
+  make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
   // Get a 300MHz timer value. Called from EE thread
   make_func_symbol_func("__read-ee-timer", (void*)read_ee_timer);
   // Do a fast memory copy.

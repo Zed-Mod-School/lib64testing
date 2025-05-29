@@ -8,7 +8,17 @@
 #include "common/common_types.h"
 
 #include "game/kernel/common/kboot.h"
+extern const struct SM64Surface surfaces1[];
+extern const size_t surfaces_count;
 
+// Surface Types
+#define SURFACE_DEFAULT                      0x0000 // Environment default
+#define TERRAIN_SNOW   0x0002
+
+
+  uint64_t pc_get_mario_x();
+  uint64_t pc_get_mario_y();
+  uint64_t pc_get_mario_z();
 namespace jak1 {
 
 // Video Mode that's set based on display refresh rate on boot
