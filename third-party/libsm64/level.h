@@ -1,11 +1,10 @@
 #pragma once
 
-#include "../src/libsm64.h"
+#include "src/libsm64.h"
 
-extern const struct SM64Surface surfaces[];
-extern const size_t surfaces_count;
+
 //poop
-#include "../src/decomp/include/surface_terrains.h"
+#include "src/decomp/include/surface_terrains.h"
 const struct SM64Surface surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-8123,2648,-2925}, {-8266,2918,-2973}, {-8266,2648,-2818}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-8141,2918,-3067}, {-8266,2918,-2973}, {-8123,2648,-2925}}},

@@ -10,8 +10,7 @@
 #include "libsm64/libsm64.h"
 #include "libsm64/level.h"
 #include "game/kernel/common/kboot.h"
-extern const struct SM64Surface surfaces[];
-extern const size_t surfaces_count;
+
 uint64_t pc_get_mario_x();
 uint64_t pc_get_mario_y();
 uint64_t pc_get_mario_z();

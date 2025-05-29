@@ -9,6 +9,14 @@
 
 #include "fmt/format.h"
 
+SM64MarioInputs m_mario_inputs = {.camLookX = 0.0f,
+                                  .camLookZ = 1.0f,
+                                  .stickX = 0.0f,
+                                  .stickY = 0.0f,
+                                  .buttonA = 0,
+                                  .buttonB = 0,
+                                  .buttonZ = 0};
+                                  
 GameController::GameController(int sdl_device_id,
                                std::shared_ptr<game_settings::InputSettings> settings)
     : m_sdl_instance_id(sdl_device_id) {
