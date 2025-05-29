@@ -105,9 +105,16 @@ s32 goal_main(int argc, const char* const* argv) {
 /*!
  * Main loop to dispatch the GOAL kernel.
  */
+
+
+ // mario globals? 
+int marioId = -1;
+uint8_t* marioTexture;
+
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
 
+  marioId = sm64_mario_create(0.0f, -99.0f, 0.0f);
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
     Ptr<char> new_message = WaitForMessageAndAck();
