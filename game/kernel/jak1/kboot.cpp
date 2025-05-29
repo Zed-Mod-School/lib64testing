@@ -5,6 +5,9 @@
  */
 
 #include "kboot.h"
+#include "third-party/renderer.h"  // if not already included
+
+
 
 #include <chrono>
 #include <cstring>
@@ -29,12 +32,19 @@
 #include "game/kernel/jak1/klisten.h"
 #include "game/kernel/jak1/kmachine.h"
 #include "game/sce/libscf.h"
-#include "libsm64/libsm64.h"
+
 #include "libsm64/src/decomp/include/audio_defines.h"
 #include "game/system/hid/devices/game_controller.h"
 
+
+#include "renderer.h"
+#include "third-party/gl33core/gl33core_renderer.h"
+
+
 using namespace ee;
 SM64MarioState g_mario_state;
+RenderState gRenderState = {};
+GLuint mario_texture = 0;
 
 namespace jak1 {
 VideoMode BootVideoMode;
@@ -115,6 +125,7 @@ s32 goal_main(int argc, const char* const* argv) {
  * Main loop to dispatch the GOAL kernel.
  */
 
+
  // mario globals? 
  int marioId = -1;
 uint8_t* marioTexture;
@@ -169,37 +180,41 @@ void setup_flat_ground(SM64Surface* surfaces, size_t count){
   // Load static surfaces
   //sm64_static_surfaces_load(surfaces.data(),2);
 
-  sm64_static_surfaces_load( surfaces, count );
+  sm64_static_surfaces_load( test_surfaces, test_surfaces_count );\
+  marioId = sm64_mario_create( 0, 1000, 0 );
 
-  // // Spawn Mario at center
-  // float spawnX = 0.0f;
-  // float spawnZ = 0.0f;
-  // float spawnY = y_offset + 1.0f;
+gl33core_renderer.init(&gRenderState, nullptr);
 
-  // SM64SurfaceCollisionData* floorTest = nullptr;
-  // float floorY = sm64_surface_find_floor(spawnX, spawnY, spawnZ, &floorTest);
 
-  // printf("[DEBUG] Floor check at (%.2f, %.2f, %.2f): floorY = %.2f, valid = %d\n",
-  //        spawnX, spawnY, spawnZ, floorY, floorTest != nullptr);
+  // Spawn Mario at center
+  float spawnX = 0.0f;
+  float spawnZ = 0.0f;
+  float spawnY = y_offset + 1.0f;
 
-  // if (!floorTest || !floorTest->isValid) {
-  //   printf("[ERROR] No valid floor found. Mario will likely fall through!\n");
-  // } else {
-  //   printf("[DEBUG] Floor triangle:\n");
-  //   printf("  V1: (%d, %d, %d)\n", floorTest->vertex1[0], floorTest->vertex1[1], floorTest->vertex1[2]);
-  //   printf("  V2: (%d, %d, %d)\n", floorTest->vertex2[0], floorTest->vertex2[1], floorTest->vertex2[2]);
-  //   printf("  V3: (%d, %d, %d)\n", floorTest->vertex3[0], floorTest->vertex3[1], floorTest->vertex3[2]);
-  //   printf("[DEBUG] Floor normal:    (%.2f, %.2f, %.2f)\n",
-  //          floorTest->normal.x, floorTest->normal.y, floorTest->normal.z);
-  //   printf("[DEBUG] Floor height range: [%d, %d]\n", floorTest->lowerY, floorTest->upperY);
-  //   printf("[DEBUG] Floor terrain type: %u\n", floorTest->terrain);
+  SM64SurfaceCollisionData* floorTest = nullptr;
+  float floorY = sm64_surface_find_floor(spawnX, spawnY, spawnZ, &floorTest);
 
-  //   spawnY = floorY + 1.0f;
-  // }
+  printf("[DEBUG] Floor check at (%.2f, %.2f, %.2f): floorY = %.2f, valid = %d\n",
+         spawnX, spawnY, spawnZ, floorY, floorTest != nullptr);
 
-  // printf("[INFO] Spawning Mario at: (%.2f, %.2f, %.2f)\n", spawnX, spawnY, spawnZ);
-  // marioId = sm64_mario_create(spawnX, spawnY, spawnZ);
-  // printf("[DEBUG] Mario ID returned: %d\n", marioId);
+  if (!floorTest || !floorTest->isValid) {
+    printf("[ERROR] No valid floor found. Mario will likely fall through!\n");
+  } else {
+    printf("[DEBUG] Floor triangle:\n");
+    printf("  V1: (%d, %d, %d)\n", floorTest->vertex1[0], floorTest->vertex1[1], floorTest->vertex1[2]);
+    printf("  V2: (%d, %d, %d)\n", floorTest->vertex2[0], floorTest->vertex2[1], floorTest->vertex2[2]);
+    printf("  V3: (%d, %d, %d)\n", floorTest->vertex3[0], floorTest->vertex3[1], floorTest->vertex3[2]);
+    printf("[DEBUG] Floor normal:    (%.2f, %.2f, %.2f)\n",
+           floorTest->normal.x, floorTest->normal.y, floorTest->normal.z);
+    printf("[DEBUG] Floor height range: [%d, %d]\n", floorTest->lowerY, floorTest->upperY);
+    printf("[DEBUG] Floor terrain type: %u\n", floorTest->terrain);
+
+    spawnY = floorY + 1.0f;
+  }
+
+  printf("[INFO] Spawning Mario at: (%.2f, %.2f, %.2f)\n", spawnX, spawnY, spawnZ);
+  //marioId = sm64_mario_create(spawnX, spawnY, spawnZ);
+  printf("[DEBUG] Mario ID returned: %d\n", marioId);
 }
 
 void KernelCheckAndDispatch() {
@@ -259,28 +274,7 @@ void KernelCheckAndDispatch() {
   //sm64_static_surfaces_load(surfaces, 2);
   printf("[DEBUG] Surfaces loaded.\n");
 
-  // Now spawn Mario AFTER surfaces + global init
-float spawnX = 0.0f;
-float spawnZ = 0.0f;
-float spawnY = -99.0f;  // raised slightly above floor
-marioId = sm64_mario_create(spawnX, spawnY, spawnZ);
-printf("[DEBUG] Spawned Mario: ID = %d\n", marioId);
-  //std::vector<SM64Surface> surfaces;
-  //setup_flat_ground(surfaces);
-  //load_obj_to_surfaces("fart.obj.obj", surfaces);
 
-  // // Optionally force Y to -100
-  // for (auto& surf : surfaces) {
-  //   for (int j = 0; j < 3; ++j) {
-  //     surf.vertices[j][1] = -100;
-  //   }
-  // }
-
-  // sm64_audio_init(romBuffer);
-  //         sm64_set_sound_volume(0.5f);
-
-  //         sm64_play_sound_global(SOUND_ARG_LOAD(7, 0, 0x1E, 0xFF, 8));
-  g_mario_state = {};
   static int counter = 0;
   static int last_mario_id = -233;
 
@@ -343,54 +337,8 @@ if (marioId >= 0) {
   static SM64MarioInputs last_inputs = {};
   static SM64MarioState last_state = {};
 
-  // Check if inputs changed
-  bool inputs_changed =
-      m_mario_inputs.stickX != last_inputs.stickX ||
-      m_mario_inputs.stickY != last_inputs.stickY ||
-      m_mario_inputs.camLookX != last_inputs.camLookX ||
-      m_mario_inputs.camLookZ != last_inputs.camLookZ ||
-      m_mario_inputs.buttonA != last_inputs.buttonA ||
-      m_mario_inputs.buttonB != last_inputs.buttonB ||
-      m_mario_inputs.buttonZ != last_inputs.buttonZ;
-
-  if (inputs_changed) {
-    printf("[DEBUG] Mario Inputs Changed:\n");
-    printf("  stickX: %d\n", m_mario_inputs.stickX);
-    printf("  stickY: %d\n", m_mario_inputs.stickY);
-    printf("  camLookX: %.2f\n", m_mario_inputs.camLookX);
-    printf("  camLookZ: %.2f\n", m_mario_inputs.camLookZ);
-    printf("  buttonA: %d, buttonB: %d, buttonZ: %d\n",
-           m_mario_inputs.buttonA, m_mario_inputs.buttonB, m_mario_inputs.buttonZ);
-    last_inputs = m_mario_inputs;
-  }
 
   sm64_mario_tick(marioId, &m_mario_inputs, &g_mario_state, &geom);
-
-  // Check if Mario state changed significantly
-  bool state_changed =
-      memcmp(g_mario_state.position, last_state.position, sizeof(float) * 3) != 0 ||
-      memcmp(g_mario_state.velocity, last_state.velocity, sizeof(float) * 3) != 0 ||
-      g_mario_state.faceAngle != last_state.faceAngle ||
-      g_mario_state.health != last_state.health ||
-      g_mario_state.action != last_state.action ||
-      g_mario_state.flags != last_state.flags ||
-      g_mario_state.particleFlags != last_state.particleFlags ||
-      g_mario_state.invincTimer != last_state.invincTimer;
-
-  if (state_changed) {
-    printf("[DEBUG] Mario State Changed:\n");
-    printf("  Position: (%.2f, %.2f, %.2f)\n",
-           g_mario_state.position[0], g_mario_state.position[1], g_mario_state.position[2]);
-    printf("  Velocity: (%.2f, %.2f, %.2f)\n",
-           g_mario_state.velocity[0], g_mario_state.velocity[1], g_mario_state.velocity[2]);
-    printf("  Face Angle: %.2f\n", g_mario_state.faceAngle);
-    printf("  Health: %d\n", g_mario_state.health);
-    printf("  Action: 0x%X\n", g_mario_state.action);
-    printf("  Flags: 0x%X\n", g_mario_state.flags);
-    printf("  Particle Flags: 0x%X\n", g_mario_state.particleFlags);
-    printf("  Invincibility Timer: %d\n", g_mario_state.invincTimer);
-    last_state = g_mario_state;
-  }
 }
 
 
@@ -411,7 +359,7 @@ uint64_t pc_get_mario_x() {
   float x = g_mario_state.position[0];
   uint64_t out = 0;
   std::memcpy(&out, &x, sizeof(float));
-  // printf("[pc_get_mario_x] X = %.2f -> 0x%lx\n", x, out);
+   printf("[pc_get_mario_x] X = %.2f -> 0x%lx\n", x, out);
   return out;
 }
 
@@ -419,7 +367,7 @@ uint64_t pc_get_mario_y() {
   float y = g_mario_state.position[1];
   uint64_t out = 0;
   std::memcpy(&out, &y, sizeof(float));
-  // printf("[pc_get_mario_y] Y = %.2f -> 0x%lx\n", y, out);
+   printf("[pc_get_mario_y] Y = %.2f -> 0x%lx\n", y, out);
   return out;
 }
 
@@ -427,6 +375,8 @@ uint64_t pc_get_mario_z() {
   float z = g_mario_state.position[2];
   uint64_t out = 0;
   std::memcpy(&out, &z, sizeof(float));
-  // printf("[pc_get_mario_z] Z = %.2f -> 0x%lx\n", z, out);
+   printf("[pc_get_mario_z] Z = %.2f -> 0x%lx\n", z, out);
   return out;
 }
+
+Renderer gl33core_renderer;

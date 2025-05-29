@@ -273,6 +273,7 @@ static std::shared_ptr<GfxDisplay> gl_make_display(int width,
       g_gfx_data = std::make_unique<GraphicsData>(game_version);
     }
     gl_inited = true;
+    
     const char* gl_version = (const char*)glGetString(GL_VERSION);
     lg::info("OpenGL initialized - v{}.{} | Renderer: {}", GLVersion.major, GLVersion.minor,
              gl_version);
