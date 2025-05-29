@@ -11,6 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "common/common_types.h"
 #include "common/log/log.h"
@@ -110,13 +115,55 @@ s32 goal_main(int argc, const char* const* argv) {
  // mario globals? 
 int marioId = -1;
 uint8_t* marioTexture;
+    struct SM64MarioInputs marioInputs;
+    struct SM64MarioState marioState;
+    struct SM64MarioGeometryBuffers marioGeometry;
 
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
 
-  marioId = sm64_mario_create(0.0f, -99.0f, 0.0f);
+  // Must call this once with a pointer to SM64 ROM data
+  // Read the rom data (make sure it's an unmodified SM64 US ROM)
+  std::ifstream file("sm64.us.z64", std::ios::ate | std::ios::binary);
+
+  if (!file) {
+    MessageBoxA(
+        0,
+        "Super Mario 64 US ROM not found!\nPlease provide a ROM with the filename \"sm64.us.z64\"",
+        "sm64-san-andreas", 0);
+    return;
+  }
+
+  // load ROM into memory
+  uint8_t* romBuffer;
+  size_t romFileLength = file.tellg();
+
+  romBuffer = new uint8_t[romFileLength + 1];
+  file.seekg(0);
+  file.read((char*)romBuffer, romFileLength);
+  romBuffer[romFileLength] = 0;
+
+  // Mario texture is 704x64 RGBA
+  marioTexture = new uint8_t[4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT];
+
+  // load libsm64
+  sm64_global_terminate();
+  sm64_global_init(romBuffer, marioTexture);
+  sm64_audio_init(romBuffer);
+  sm64_static_surfaces_load( surfaces, surfaces_count);
+  sm64_set_sound_volume(0.5f);
+
+  // audio_thread_init();
+  // sm64_play_sound_global(SOUND_MENU_STAR_SOUND);
+  
+  delete[] romBuffer;
+  int32_t marioId = sm64_mario_create(5000.000000, 500.000000, 3000.000000);
+
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
+
+    sm64_mario_tick( marioId, &marioInputs, &marioState, &marioGeometry );
+
     Ptr<char> new_message = WaitForMessageAndAck();
     if (new_message.offset) {
       ProcessListenerMessage(new_message);
