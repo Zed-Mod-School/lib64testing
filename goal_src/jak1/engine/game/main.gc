@@ -76,21 +76,7 @@
 
 (defun movie? ()
   "Are we in a movie?"
-  (when #t
-    ;;(print-collide-cache-tris)
-    (when (and *target* (cpad-hold? 0 up))
-      
-    (when #t
 
-  (set! (-> (target-pos 0) x) (/ (pc-get-mario-x) 4.0))
-  (set! (-> (target-pos 0) y) (/ (pc-get-mario-y) 4.0))
-  (set! (-> (target-pos 0) z) (/ (pc-get-mario-z) 4.0)))
-
-
-      )
-
-
-  )
 
 
 
@@ -256,18 +242,36 @@
 
 (define *first-boot* #t) ;; PAL
 
+(define *mario-scale-mult* 81.0)
+
 (define *mario-vector-hellyeah* (new 'static 'vector :x 0.0 :y 0.0 :z 0.0 :w 1.0))
 (defun main-cheats ()
   "Handle cheat codes and timeout"
   ;; look for codes when L3 is pushed
 (set! (-> *setting-control* default border-mode) #f)
-(set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) 4.0))
+  (when #t
+    ;;(print-collide-cache-tris)
+    (when (and *target* #t ;;(cpad-hold? 0 up)
+    )
+      
+    (when #t
 
-  (set! (-> *mario-vector-hellyeah* y) (* (pc-get-mario-y) 4.0))
-  (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) 4.0))
+  (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
+  (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
+  (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
 
-  (format 0 "mario ~f ~f ~f~%" (pc-get-mario-x) (pc-get-mario-y) (pc-get-mario-z))
-  (format 0 "mario vec  ~f ~f ~f~%" (-> *mario-vector-hellyeah* x)  (-> *mario-vector-hellyeah* y)  (-> *mario-vector-hellyeah* z) )
+
+      )
+
+
+  )
+(set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) *mario-scale-mult*))
+
+  (set! (-> *mario-vector-hellyeah* y) (* (pc-get-mario-y) *mario-scale-mult*))
+  (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*))
+
+  ;;(format 0 "mario ~f ~f ~f~%" (pc-get-mario-x) (pc-get-mario-y) (pc-get-mario-z))
+  ;;(format 0 "mario vec  ~f ~f ~f~%" (-> *mario-vector-hellyeah* x)  (-> *mario-vector-hellyeah* y)  (-> *mario-vector-hellyeah* z) )
          (add-debug-text-3d #t
                             (bucket-id debug-no-zbuf)
                             "MARIO GUY HERE"

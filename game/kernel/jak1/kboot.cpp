@@ -170,7 +170,7 @@ void KernelCheckAndDispatch() {
   geom.uv = new float[2 * 3 * maxTris];  // 2 UVs per vertex, 3 verts per tri
   geom.numTrianglesUsed = 0;
   
-  marioId = sm64_mario_create(5000.000000, 45500.000000, 3000.000000);
+  marioId = sm64_mario_create(5000.000000, 1000.000000, 3000.000000);
   
   for (int i = 0; i < 10; ++i) {
     printf("marioId = %d\n", marioId);
@@ -206,9 +206,6 @@ void KernelCheckAndDispatch() {
 // // Optional: keep Mario facing camera
 // m_mario_inputs.camLookX = 0.0f;
 // m_mario_inputs.camLookZ = 1.0f;
-
-sm64_mario_tick(marioId, &m_mario_inputs, &g_mario_state, &geom);
-
 
 // printf("[Mario State] Pos: (%.2f, %.2f, %.2f), Vel: (%.2f, %.2f, %.2f), Action: 0x%X\n",
 //        g_mario_state.position[0],
