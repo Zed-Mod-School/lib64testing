@@ -17,6 +17,7 @@
 #include "game/settings/settings.h"
 #include "game/system/hid/input_bindings.h"
 
+
 /// Central class that:
 /// - keeps track of available input devices
 /// - polls data from the input devices considered active

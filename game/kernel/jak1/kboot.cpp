@@ -5,7 +5,9 @@
  */
 
 #include "kboot.h"
+#include "game/system/hid/input_manager.h"
 
+extern std::unique_ptr<InputManager> g_input_manager;
 #include <chrono>
 #include <cstring>
 #include <stdio.h>
@@ -168,7 +170,7 @@ void KernelCheckAndDispatch() {
   geom.uv = new float[2 * 3 * maxTris];  // 2 UVs per vertex, 3 verts per tri
   geom.numTrianglesUsed = 0;
   
-  marioId = sm64_mario_create(5000.000000, 500.000000, 3000.000000);
+  marioId = sm64_mario_create(5000.000000, 45500.000000, 3000.000000);
   
   for (int i = 0; i < 10; ++i) {
     printf("marioId = %d\n", marioId);
@@ -179,8 +181,46 @@ void KernelCheckAndDispatch() {
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
 
+// auto pad_data_opt = g_input_manager->get_current_data(0);
+// if (pad_data_opt.has_value()) {
+//   const auto& pad = pad_data_opt.value();
 
+//   // Get right analog stick as floats in range [-1, 1]
+//   auto [rx, ry] = pad->analog_right();
+//   m_mario_inputs.stickX = ((int)rx - 127) / 127.0f;
+//   m_mario_inputs.stickY = ((int)ry - 127) / 127.0f;
+
+//   // Button booleans
+//   m_mario_inputs.buttonA = pad->cross().first ? 1 : 0;
+//   m_mario_inputs.buttonB = pad->circle().first ? 1 : 0;
+//   m_mario_inputs.buttonZ = pad->r1().first ? 1 : 0;
+// } else {
+//   // fallback to no input if controller isn't active
+//   m_mario_inputs.stickX = 0.0f;
+//   m_mario_inputs.stickY = 0.0f;
+//   m_mario_inputs.buttonA = 0;
+//   m_mario_inputs.buttonB = 0;
+//   m_mario_inputs.buttonZ = 0;
+// }
+
+// // Optional: keep Mario facing camera
+// m_mario_inputs.camLookX = 0.0f;
+// m_mario_inputs.camLookZ = 1.0f;
+
+sm64_mario_tick(marioId, &m_mario_inputs, &g_mario_state, &geom);
+
+
+// printf("[Mario State] Pos: (%.2f, %.2f, %.2f), Vel: (%.2f, %.2f, %.2f), Action: 0x%X\n",
+//        g_mario_state.position[0],
+//        g_mario_state.position[1],
+//        g_mario_state.position[2],
+//        g_mario_state.velocity[0],
+//        g_mario_state.velocity[1],
+//        g_mario_state.velocity[2],
+//        g_mario_state.action);
+       
     sm64_mario_tick( marioId, &m_mario_inputs, &g_mario_state, &geom );
+
 
     Ptr<char> new_message = WaitForMessageAndAck();
     if (new_message.offset) {
@@ -237,3 +277,26 @@ void KernelShutdown() {
   MasterExit = RuntimeExitStatus::EXIT;  // GOAL Kernel Dispatch loop will stop now.
 }
 }  // namespace jak1
+uint64_t pc_get_mario_x() {
+  float x = g_mario_state.position[0];
+  uint64_t out = 0;
+  std::memcpy(&out, &x, sizeof(float));
+  // printf("[pc_get_mario_x] X = %.2f -> 0x%lx\n", x, out);
+  return out;
+}
+
+uint64_t pc_get_mario_y() {
+  float y = g_mario_state.position[1];
+  uint64_t out = 0;
+  std::memcpy(&out, &y, sizeof(float));
+  // printf("[pc_get_mario_y] Y = %.2f -> 0x%lx\n", y, out);
+  return out;
+}
+
+uint64_t pc_get_mario_z() {
+  float z = g_mario_state.position[2];
+  uint64_t out = 0;
+  std::memcpy(&out, &z, sizeof(float));
+  // printf("[pc_get_mario_z] Z = %.2f -> 0x%lx\n", z, out);
+  return out;
+}

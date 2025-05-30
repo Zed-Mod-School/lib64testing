@@ -151,7 +151,7 @@
              :name "village1-hut"
              :level 'village1
              :trans
-             (new 'static 'vector :x -638860.06 :y 139319.7 :z 769990.6 :w 1.0)
+             (new 'static 'vector :x (meters 1.0) :y (meters 1.0) :z (meters 1.0) :w 1.0)
              :quat
              (new 'static 'quaternion :y -0.9889 :w -0.148)
              :camera-trans
@@ -161,7 +161,7 @@
              :load-commands
              '()
              :vis-nick 'vi1
-             :lev0 'village1
+             :lev0 'test-zone
              :disp0 'display
              :lev1 'beach
              :disp1 #f)
