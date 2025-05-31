@@ -1,12 +1,16 @@
 #pragma once
 
 #include <string>
+#include <glad/glad.h>    // ✅ Use this instead
+
 
 #include "common/common_types.h"
 #include "common/versions/versions.h"
 
 class Shader {
  public:
+ friend GLuint get_shader_program(const Shader& s);
+
   static constexpr char shader_folder[] = "game/graphics/opengl_renderer/shaders/";
   Shader(const std::string& shader_name, GameVersion version);
   Shader() = default;
@@ -70,9 +74,11 @@ enum class ShaderId {
 
 class ShaderLibrary {
  public:
+ 
   ShaderLibrary(GameVersion version);
   Shader& operator[](ShaderId id) { return m_shaders[(int)id]; }
   Shader& at(ShaderId id) { return m_shaders[(int)id]; }
+  
 
  private:
   Shader m_shaders[(int)ShaderId::MAX_SHADERS];

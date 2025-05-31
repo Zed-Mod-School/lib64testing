@@ -4,6 +4,8 @@
 
 #include "game/graphics/gfx.h"
 #include "game/graphics/opengl_renderer/background/background_common.h"
+#include "MarioRenderer.h"  // You’ll create this
+
 
 const static std::vector<float> material_colors_jak1 = {
     1.0f,  0.7f,  1.0f,   // 0, stone
@@ -103,8 +105,9 @@ const static std::vector<float> mode_colors_jak2 = {
     1.0f,  0.1f, 1.0f,  // 2, obstacle
     1.0f,  1.0f, 0.1f,  // 3, halfpipe
 };
-
-CollideMeshRenderer::CollideMeshRenderer(GameVersion version) {
+CollideMeshRenderer::CollideMeshRenderer(GameVersion version)
+    : m_mario_renderer(version)  // <-- proper member initializer
+{
   glGenVertexArrays(1, &m_vao);
   glGenBuffers(1, &m_ubo);
 
@@ -114,6 +117,7 @@ CollideMeshRenderer::CollideMeshRenderer(GameVersion version) {
   glBufferData(GL_UNIFORM_BUFFER, sizeof(m_colors), &m_colors, GL_DYNAMIC_DRAW);
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
+
 
 CollideMeshRenderer::~CollideMeshRenderer() {
   glDeleteVertexArrays(1, &m_vao);
@@ -268,6 +272,15 @@ void CollideMeshRenderer::render(SharedRenderState* render_state, ScopedProfiler
       glEnable(GL_BLEND);
       glDepthMask(GL_TRUE);
     }
+
+    //m_mario_renderer.update_geometry(geo);
+   math::Matrix4f mat;
+for (int i = 0; i < 4; ++i) {
+  for (int j = 0; j < 4; ++j) {
+    mat(j, i) = render_state->camera_matrix[i][j];
+  }
+}
+m_mario_renderer.render(render_state, mat);
 
     prof.add_draw_call();
     prof.add_tri(lev->level->collision.vertices.size() / 3);

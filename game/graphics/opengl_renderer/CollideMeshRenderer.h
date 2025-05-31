@@ -1,6 +1,6 @@
 #pragma once
 #include "common/versions/versions.h"
-
+#include "game/graphics/opengl_renderer/MarioRenderer.h"
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
 
 struct PatColors {
@@ -8,6 +8,9 @@ struct PatColors {
   math::Vector4f pat_material_colors[32];
   math::Vector4f pat_event_colors[32];
 };
+
+
+
 
 class CollideMeshRenderer {
  public:
@@ -22,4 +25,5 @@ class CollideMeshRenderer {
   GLuint m_ubo;
 
   PatColors m_colors;
+  MarioRenderer m_mario_renderer;
 };

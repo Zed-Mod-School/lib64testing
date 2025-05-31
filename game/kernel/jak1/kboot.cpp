@@ -31,6 +31,10 @@ extern std::unique_ptr<InputManager> g_input_manager;
 #include "game/kernel/jak1/klisten.h"
 #include "game/kernel/jak1/kmachine.h"
 #include "game/sce/libscf.h"
+#include "game/graphics/opengl_renderer/MarioRenderer.h"
+
+static std::unique_ptr<MarioRenderer> g_mario_renderer;
+
 
 #include "game/system/hid/devices/game_controller.h"
 using namespace ee;
@@ -172,6 +176,9 @@ void KernelCheckAndDispatch() {
   
   marioId = sm64_mario_create(5000.000000, 1000.000000, 3000.000000);
   
+  g_mario_renderer = std::make_unique<MarioRenderer>(GameVersion::Jak1);
+
+
   for (int i = 0; i < 10; ++i) {
     printf("marioId = %d\n", marioId);
   }
@@ -216,8 +223,48 @@ void KernelCheckAndDispatch() {
 //        g_mario_state.velocity[2],
 //        g_mario_state.action);
        
-    sm64_mario_tick( marioId, &m_mario_inputs, &g_mario_state, &geom );
+// Step 1: Update Mario's mesh
+sm64_mario_tick(marioId, &m_mario_inputs, &g_mario_state, &geom);
+g_mario_renderer->update_geometry(geom);
 
+// Step 2: Camera matrix using your math::Matrix4f
+math::Matrix4f view = math::Matrix4f::identity();
+math::Matrix4f proj = math::Matrix4f::identity();
+
+// Basic hardcoded projection (90° FOV, 4:3 aspect, near=100, far=10000)
+proj(0, 0) = 1.0f / (4.0f / 3.0f);  // aspect
+proj(1, 1) = 1.0f;
+proj(2, 2) = -1.0002f;
+proj(2, 3) = -1.0f;
+proj(3, 2) = -200.02f;  // -(2*far*near)/(far-near)
+proj(3, 3) = 0.0f;
+
+// Simple view matrix from behind and above Mario
+math::Vector3f mario_pos(
+  g_mario_state.position[0],
+  g_mario_state.position[1],
+  g_mario_state.position[2]
+);
+
+math::Vector3f eye = mario_pos + math::Vector3f(0, 300, 500);
+math::Vector3f up = math::Vector3f(0, 1, 0);
+math::Vector3f forward = (mario_pos - eye).normalized();
+math::Vector3f right = up.cross(forward).normalized();
+up = forward.cross(right);  // fix up
+
+view(0, 0) = right.x(); view(1, 0) = right.y(); view(2, 0) = right.z();
+view(0, 1) = up.x();    view(1, 1) = up.y();    view(2, 1) = up.z();
+view(0, 2) = -forward.x(); view(1, 2) = -forward.y(); view(2, 2) = -forward.z();
+
+view(3, 0) = -right.dot(eye);
+view(3, 1) = -up.dot(eye);
+view(3, 2) = forward.dot(eye);  // reversed forward
+
+// Combine view and projection
+math::Matrix4f cam_matrix = proj * view;
+
+// Step 3: Render
+g_mario_renderer->render(nullptr, cam_matrix);
 
     Ptr<char> new_message = WaitForMessageAndAck();
     if (new_message.offset) {

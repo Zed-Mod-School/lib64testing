@@ -85,6 +85,7 @@ Shader::Shader(const std::string& shader_name, GameVersion version) : m_name(sha
   m_is_okay = true;
 }
 
+
 void Shader::activate() const {
   ASSERT(m_is_okay);
   glUseProgram(m_program);
@@ -137,3 +138,9 @@ ShaderLibrary::ShaderLibrary(GameVersion version) {
     ASSERT_MSG(shader.okay(), "error compiling shader");
   }
 }
+
+// At the very end of Shader.cpp
+GLuint get_shader_program(const Shader& s) {
+  return s.m_program;
+}
+
