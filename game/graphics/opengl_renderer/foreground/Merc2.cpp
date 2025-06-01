@@ -892,9 +892,9 @@ std::vector<Vertex> vertices = {
   glUseProgram(shader_prog);
   glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
-  if (glPopDebugGroup) {
-    glPopDebugGroup();
-  }
+  // if (glPopDebugGroup) {
+  //   glPopDebugGroup();
+  // }
 }
 
 /*!
