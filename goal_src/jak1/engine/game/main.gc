@@ -238,7 +238,7 @@
 
 (define *first-boot* #t) ;; PAL
 
-(define *mario-scale-mult* 81.0)
+(define *mario-scale-mult* (/ (meters 1.0) 50.0)) ;;50.0 is the amount we needed to adjust the collide mesh from blender
 
 (define *mario-vector-hellyeah* (new 'static 'vector :x 0.0 :y 0.0 :z 0.0 :w 1.0))
 
