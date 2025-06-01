@@ -10,6 +10,10 @@
 #include "libsm64/libsm64.h"
 #include "libsm64/level.h" // level.h is needed for SM64MarioSurface it has the surface defintions and data
 
+uint64_t pc_get_mario_x();
+uint64_t pc_get_mario_y();
+uint64_t pc_get_mario_z();
+
 #include "game/kernel/common/kboot.h"
 
 namespace jak1 {

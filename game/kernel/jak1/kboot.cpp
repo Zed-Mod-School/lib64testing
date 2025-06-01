@@ -228,3 +228,27 @@ void KernelShutdown() {
   MasterExit = RuntimeExitStatus::EXIT;  // GOAL Kernel Dispatch loop will stop now.
 }
 }  // namespace jak1
+
+uint64_t pc_get_mario_x() {
+  float x = g_mario_state.position[0];
+  uint64_t out = 0;
+  std::memcpy(&out, &x, sizeof(float));
+  // printf("[pc_get_mario_x] X = %.2f -> 0x%lx\n", x, out);
+  return out;
+}
+
+uint64_t pc_get_mario_y() {
+  float y = g_mario_state.position[1];
+  uint64_t out = 0;
+  std::memcpy(&out, &y, sizeof(float));
+  // printf("[pc_get_mario_y] Y = %.2f -> 0x%lx\n", y, out);
+  return out;
+}
+
+uint64_t pc_get_mario_z() {
+  float z = g_mario_state.position[2];
+  uint64_t out = 0;
+  std::memcpy(&out, &z, sizeof(float));
+  // printf("[pc_get_mario_z] Z = %.2f -> 0x%lx\n", z, out);
+  return out;
+}

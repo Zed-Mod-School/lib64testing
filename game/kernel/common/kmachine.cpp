@@ -23,6 +23,7 @@
 #include "game/sce/libpad.h"
 #include "game/sce/libscf.h"
 #include "game/sce/sif_ee.h"
+#include "../jak1/kboot.h"
 
 /*!
  * Where does OVERLORD load its data from?
@@ -1012,6 +1013,12 @@ void init_common_pc_port_functions(
     std::function<u64(const char*)> make_string_from_c_func) {
   g_pc_port_funcs.intern_from_c = intern_from_c_func;
   g_pc_port_funcs.make_string_from_c = make_string_from_c_func;
+    //mario functions
+  make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
+  make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
+  make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
+  //end mario functions
+  
   // Get a 300MHz timer value. Called from EE thread
   make_func_symbol_func("__read-ee-timer", (void*)read_ee_timer);
   // Do a fast memory copy.
