@@ -6,6 +6,8 @@
  */
 
 #include "common/common_types.h"
+//mario stuff
+#include "libsm64/libsm64.h"
 
 #include "game/kernel/common/kboot.h"
 

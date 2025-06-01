@@ -105,9 +105,12 @@ s32 goal_main(int argc, const char* const* argv) {
 /*!
  * Main loop to dispatch the GOAL kernel.
  */
+
+
+
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
-
+  sm64_global_terminate(); // this is just a placeholder function call to make sure it is imported and linked by compiler we can move/change it later.
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
     Ptr<char> new_message = WaitForMessageAndAck();
