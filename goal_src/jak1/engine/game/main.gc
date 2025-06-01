@@ -238,9 +238,46 @@
 
 (define *first-boot* #t) ;; PAL
 
+(define *mario-scale-mult* 81.0)
+
+(define *mario-vector-hellyeah* (new 'static 'vector :x 0.0 :y 0.0 :z 0.0 :w 1.0))
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
   ;; look for codes when L3 is pushed
+  ;; this code is called every frame to check if we are inputing the cheat mode code on our controller, for this proof of concept we will now do a disgusting hi-jack of this function right here, sorry.
+
+  ;;Every frame lets turn level loading off, so we dont unload our custom levels by hitting existing load triggers
+  (set! (-> *setting-control* default border-mode) #f)
+
+  ;; only run this if the condition passes to lock jak to marios reported position.
+  (when (and *target* #t ;;(cpad-hold? 0 up)
+  )
+  (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
+  (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
+  (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
+
+  ;; run this all the time no matter what, so we can see where mario *should* be
+  ;; update his position vector on the GOAL side
+  (set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) *mario-scale-mult*))
+  (set! (-> *mario-vector-hellyeah* y) (* (pc-get-mario-y) *mario-scale-mult*))
+  (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*))
+
+  ;; debug prints
+  ;;(format 0 "mario ~f ~f ~f~%" (pc-get-mario-x) (pc-get-mario-y) (pc-get-mario-z))
+  ;;(format 0 "mario vec  ~f ~f ~f~%" (-> *mario-vector-hellyeah* x)  (-> *mario-vector-hellyeah* y)  (-> *mario-vector-hellyeah* z) )
+
+  ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
+         (add-debug-text-3d #t
+                            (bucket-id debug-no-zbuf)
+                            "MARIO GUY HERE"
+                            *mario-vector-hellyeah*
+                            (font-color white)
+                            (the-as vector2h #f))
+
+     
+
+  
   (when (and (cpad-hold? 0 l3)
              (or *cheat-mode* (= *kernel-boot-message* 'play)) ;; not in demo
              )

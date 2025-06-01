@@ -572,6 +572,11 @@
 
 (define-extern pc-screen-shot (function none))
 
+;; Forward declations so that the compiler doesnt explode when we call cpp functions
+(define-extern pc-get-mario-x (function float))
+(define-extern pc-get-mario-y (function float))
+(define-extern pc-get-mario-z (function float))
+
 (declare-type screen-shot-settings structure)
 
 (define-extern pc-register-screen-shot-settings (function screen-shot-settings none))
