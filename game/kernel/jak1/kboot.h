@@ -8,6 +8,7 @@
 #include "common/common_types.h"
 //mario stuff
 #include "libsm64/libsm64.h"
+#include "libsm64/level.h" // level.h is needed for SM64MarioSurface it has the surface defintions and data
 
 #include "game/kernel/common/kboot.h"
 

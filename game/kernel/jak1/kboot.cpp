@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <fstream>
 
 #include "common/common_types.h"
 #include "common/log/log.h"
@@ -26,6 +27,15 @@
 #include "game/sce/libscf.h"
 
 using namespace ee;
+
+
+// mario globals? 
+int marioId = -1;
+uint8_t* marioTexture;
+SM64MarioState g_mario_state = {0};
+SM64MarioGeometryBuffers g_geom = {0};
+SM64MarioInputs g_mario_inputs = {0};
+
 
 namespace jak1 {
 VideoMode BootVideoMode;
@@ -107,12 +117,62 @@ s32 goal_main(int argc, const char* const* argv) {
  */
 
 
-
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
-  sm64_global_terminate(); // this is just a placeholder function call to make sure it is imported and linked by compiler we can move/change it later.
+  //sm64_global_terminate(); // this is just a placeholder function call to make sure it is imported and linked by compiler we can move/change it later.
+
+  // MARIO STUFF THAT ONLY RUNS ONCE
+  // Read the rom data (make sure it's an unmodified SM64 US ROM)
+  std::ifstream file("sm64.us.z64", std::ios::ate | std::ios::binary);
+
+  // load ROM into memory
+  uint8_t* romBuffer;
+  size_t romFileLength = file.tellg();
+  romBuffer = new uint8_t[romFileLength + 1];
+  file.seekg(0);
+  file.read((char*)romBuffer, romFileLength);
+  romBuffer[romFileLength] = 0;
+
+  // Mario texture is 704x64 RGBA
+  marioTexture = new uint8_t[4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT];
+
+  // load libsm64
+  // sm64_global_terminate();
+  sm64_global_init(romBuffer, marioTexture);
+
+  // Load the mario surfaces
+  sm64_static_surfaces_load( surfaces, surfaces_count);
+  
+  // audio_thread_init();
+  // sm64_set_sound_volume(0.5f);
+  // sm64_play_sound_global(SOUND_MENU_STAR_SOUND);
+
+  delete[] romBuffer;
+
+  // Initialize Mario  and print his ID to the console 10 times
+  marioId = sm64_mario_create(5000.000000, 1000.000000, 3000.000000);
+  for (int i = 0; i < 10; ++i) {
+    printf("marioId = %d\n", marioId);
+  }
+
+const int maxTris = SM64_GEO_MAX_TRIANGLES;
+  g_geom.position = new float[3 * 3 * maxTris];  // 3 coords per vertex, 3 verts per tri
+  g_geom.normal = new float[3 * 3 * maxTris];
+  g_geom.color = new float[3 * 3 * maxTris];
+  g_geom.uv = new float[2 * 3 * maxTris];  // 2 UVs per vertex, 3 verts per tri
+  memset(g_geom.position, 0, sizeof(float) * 3 * 3 * maxTris);
+  memset(g_geom.normal, 0, sizeof(float) * 3 * 3 * maxTris);
+  memset(g_geom.color, 0, sizeof(float) * 3 * 3 * maxTris);
+  memset(g_geom.uv, 0, sizeof(float) * 2 * 3 * maxTris);
+  g_geom.numTrianglesUsed = 0;
+
+  // END MARIO STUFF THAT ONLY RUNS ONCE
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
+
+    // MARIO STUFF THAT RUNS EVERY FRAME
+    sm64_mario_tick( marioId, &g_mario_inputs, &g_mario_state, &g_geom );
+    // END MARIO STUFF THAT RUNS EVERY FRAME
     Ptr<char> new_message = WaitForMessageAndAck();
     if (new_message.offset) {
       ProcessListenerMessage(new_message);
