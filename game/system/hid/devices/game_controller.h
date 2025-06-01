@@ -2,6 +2,8 @@
 
 #include "dualsense_effects.h"
 #include "input_device.h"
+#include "libsm64/libsm64.h"
+extern SM64MarioInputs g_mario_inputs;
 
 // https://wiki.libsdl.org/SDL3/CategoryGamepad
 class GameController : public InputDevice {

@@ -34,8 +34,14 @@ int marioId = -1;
 uint8_t* marioTexture;
 SM64MarioState g_mario_state = {0};
 SM64MarioGeometryBuffers g_geom = {0};
-SM64MarioInputs g_mario_inputs = {0};
-
+//SM64MarioInputs g_mario_inputs = {0};
+SM64MarioInputs g_mario_inputs = {.camLookX = 0.0f,
+                                  .camLookZ = 1.0f,
+                                  .stickX = 0.0f,
+                                  .stickY = 0.0f,
+                                  .buttonA = 0,
+                                  .buttonB = 0,
+                                  .buttonZ = 0};
 
 namespace jak1 {
 VideoMode BootVideoMode;
@@ -165,13 +171,18 @@ const int maxTris = SM64_GEO_MAX_TRIANGLES;
   memset(g_geom.color, 0, sizeof(float) * 3 * 3 * maxTris);
   memset(g_geom.uv, 0, sizeof(float) * 2 * 3 * maxTris);
   g_geom.numTrianglesUsed = 0;
-
+  int32_t frame_num =0;
   // END MARIO STUFF THAT ONLY RUNS ONCE
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
 
     // MARIO STUFF THAT RUNS EVERY FRAME
-    sm64_mario_tick( marioId, &g_mario_inputs, &g_mario_state, &g_geom );
+    // this is a hack to adjust the mario speed to be the same as the original game.
+    if (frame_num % 2 == 0){
+      sm64_mario_tick( marioId, &g_mario_inputs, &g_mario_state, &g_geom );
+      frame_num = 0;
+    }
+    frame_num++;
     // END MARIO STUFF THAT RUNS EVERY FRAME
     Ptr<char> new_message = WaitForMessageAndAck();
     if (new_message.offset) {
