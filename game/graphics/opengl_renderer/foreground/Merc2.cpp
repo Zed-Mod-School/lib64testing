@@ -14,6 +14,7 @@
 
 #include "third-party/imgui/imgui.h"
 
+
 /* Merc 2 renderer:
  The merc2 renderer is the main "foreground" renderer, which draws characters, collectables,
  and even some water.
@@ -777,6 +778,125 @@ void Merc2::switch_to_emerc(SharedRenderState* render_state) {
   glUniform1i(m_emerc_uniforms.gfx_hack_no_tex, Gfx::g_global_settings.hack_no_tex);
 }
 
+GLuint g_sm64_vao = 0;
+GLuint g_sm64_vbo = 0;
+extern SM64MarioState g_mario_state;
+
+const char* vertex_src = R"(
+#version 330 core
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aColor;
+out vec3 vColor;
+void main() {
+  gl_Position = vec4(aPos / 10000.0, 1.0); // world space scaled down
+  vColor = aColor;
+}
+)";
+
+const char* fragment_src = R"(
+#version 330 core
+in vec3 vColor;
+out vec4 FragColor;
+void main() {
+  FragColor = vec4(vColor, 1.0);
+}
+)";
+
+void render_sm64_geom_debug() {
+  // if (glPushDebugGroup) {
+  //   glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Render Mario Debug");
+  // }
+
+  // Compile shader (once)
+  static GLuint shader_prog = 0;
+  if (shader_prog == 0) {
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &vertex_src, nullptr);
+    glCompileShader(vs);
+
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &fragment_src, nullptr);
+    glCompileShader(fs);
+
+    shader_prog = glCreateProgram();
+    glAttachShader(shader_prog, vs);
+    glAttachShader(shader_prog, fs);
+    glLinkProgram(shader_prog);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+  }
+
+  const float scale = 4096.0f / 100.0f;
+  const float* pos = g_mario_state.position;
+
+  float base_x = pos[0] * scale;
+  float base_y = pos[1] * scale;
+  float base_z = pos[2] * scale;
+
+  // Struct for combined geometry
+  struct Vertex {
+    float pos[3];
+    float color[3];
+  };
+
+  // Triangle
+std::vector<Vertex> vertices = {
+    {{0.0f, 200.0f, 0.0f},     {1.0f, 0.0f, 0.0f}},
+    {{-50.0f, 0.0f, -50.0f},   {1.0f, 0.0f, 0.0f}},
+    {{50.0f, 0.0f, -50.0f},    {1.0f, 0.0f, 0.0f}},
+};
+
+  // Append Mario's geometry
+  if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
+    int num_vertices = g_geom.numTrianglesUsed * 3;
+    for (int i = 0; i < num_vertices; ++i) {
+      // float x = (g_geom.position[i * 3 + 0] - pos[0]) * scale + base_x;
+      // float y = (g_geom.position[i * 3 + 1] - pos[1]) * scale + base_y;
+      // float z = (g_geom.position[i * 3 + 2] - pos[2]) * scale + base_z;
+      
+      float x = (g_geom.position[i * 3 + 0] - g_mario_state.position[0]) * scale;
+      float y = (g_geom.position[i * 3 + 1] - g_mario_state.position[1]) * scale;
+      float z = (g_geom.position[i * 3 + 2] - g_mario_state.position[2]) * scale;
+
+
+      float r = 1.0f, g = 1.0f, b = 1.0f;
+      if (g_geom.color) {
+        r = g_geom.color[i * 3 + 0];
+        g = g_geom.color[i * 3 + 1];
+        b = g_geom.color[i * 3 + 2];
+      }
+
+      vertices.push_back({{x, y, z}, {r, g, b}});
+    }
+  }
+
+  // Setup VAO/VBO
+  static GLuint vao = 0, vbo = 0;
+  if (vao == 0) {
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+  }
+
+  // Upload & draw
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
+
+  glUseProgram(shader_prog);
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+  if (glPopDebugGroup) {
+    glPopDebugGroup();
+  }
+}
+
 /*!
  * Main merc2 rendering.
  */
@@ -803,6 +923,7 @@ void Merc2::render(DmaFollower& dma,
     auto pp = scoped_prof("flush-buckets");
     // flush buckets to draws
     flush_draw_buckets(render_state, prof, stats);
+    render_sm64_geom_debug();
   }
 }
 
@@ -1362,3 +1483,4 @@ void Merc2::do_draws(const Draw* draw_array,
     glBindBuffer(GL_ARRAY_BUFFER, lev->merc_vertices);
   }
 }
+

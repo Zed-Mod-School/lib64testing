@@ -1,5 +1,7 @@
 #pragma once
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
+#include "libsm64/libsm64.h"
+extern SM64MarioGeometryBuffers g_geom;
 
 struct MercDebugStats {
   int num_models = 0;
