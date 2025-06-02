@@ -4,7 +4,8 @@
 
 #include "game/graphics/gfx.h"
 #include "game/kernel/common/kscheme.h"
-
+#include "libsm64/libsm64.h"
+extern SM64MarioInputs g_mario_inputs;
 /*!
  * Where does OVERLORD load its data from?
  */

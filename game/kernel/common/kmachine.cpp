@@ -714,6 +714,15 @@ void pc_set_mouse_options(u32 enabled, u32 control_camera, u32 control_movement)
   }
 }
 
+
+void pc_set_mario_camera (u32 x, u32 z){
+g_mario_inputs.camLookX;
+memcpy(&g_mario_inputs.camLookX, &x, 4);
+g_mario_inputs.camLookZ;
+memcpy(&g_mario_inputs.camLookZ, &z, 4);
+}
+
+
 void pc_set_mouse_camera_sens(u32 xsens, u32 ysens) {
   float xsens_val;
   memcpy(&xsens_val, &xsens, 4);
@@ -1064,6 +1073,7 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-get-keyboard-enabled?", (void*)pc_get_keyboard_enabled);
   make_func_symbol_func("pc-set-keyboard-enabled!", (void*)pc_set_keyboard_enabled);
   make_func_symbol_func("pc-set-mouse-options!", (void*)pc_set_mouse_options);
+  make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);
   make_func_symbol_func("pc-ignore-background-controller-events!",
                         (void*)pc_ignore_background_controller_events);
