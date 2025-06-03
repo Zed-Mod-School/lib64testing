@@ -156,7 +156,7 @@ void KernelCheckAndDispatch() {
   delete[] romBuffer;
 
   // Initialize Mario  and print his ID to the console 10 times
-  marioId = sm64_mario_create(5000.000000, 1000.000000, 3000.000000);
+  marioId = sm64_mario_create(-63485.000000, 700.0, 50867.5);
   for (int i = 0; i < 10; ++i) {
     printf("marioId = %d\n", marioId);
   }
@@ -199,7 +199,7 @@ if (frame_num % 2 == 0) {
     // Create a temp input struct with scaled values
     SM64MarioInputs inputs = g_mario_inputs;
     inputs.stickX = scaled_stick_x;
-    inputs.stickY = scaled_stick_y;
+    inputs.stickY = -scaled_stick_y;
 
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
     frame_num = 0;
