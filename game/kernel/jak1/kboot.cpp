@@ -192,15 +192,15 @@ if (scaled_stick_y > max_stick_y) max_stick_y = scaled_stick_y;
 if (scaled_stick_y < min_stick_y) min_stick_y = scaled_stick_y;
 
 if (frame_num % 2 == 0) {
-    printf("MARIO STICK X: %f (min: %f, max: %f), STICK Y: %f (min: %f, max: %f)\n",
-           scaled_stick_x, min_stick_x, max_stick_x,
-           scaled_stick_y, min_stick_y, max_stick_y);
+
 
     // Create a temp input struct with scaled values
     SM64MarioInputs inputs = g_mario_inputs;
     inputs.stickX = scaled_stick_x;
-    inputs.stickY = scaled_stick_y;
-
+    inputs.stickY = scaled_stick_y * -1.0f;
+    printf("MARIO STICK X: %f, STICK Y: %f \n STICK Y: %f \n",
+           g_mario_state.position[0], g_mario_state.position[1], g_mario_state.position[2]);
+          
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
     frame_num = 0;
 }
