@@ -827,12 +827,12 @@ void render_sm64_geom_debug() {
     glDeleteShader(fs);
   }
 
-  const float scale = 4096.0f / 100.0f;
+  const float scale = 4096.0f / 250.0f;
   const float* pos = g_mario_state.position;
 
-  float base_x = pos[0] * scale;
-  float base_y = pos[1] * scale;
-  float base_z = pos[2] * scale;
+  float base_x = pos[0] / scale;
+  float base_y = pos[1] / scale;
+  float base_z = pos[2] / scale;
 
   // Struct for combined geometry
   struct Vertex {
@@ -851,13 +851,13 @@ std::vector<Vertex> vertices = {
   if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
     int num_vertices = g_geom.numTrianglesUsed * 3;
     for (int i = 0; i < num_vertices; ++i) {
-      // float x = (g_geom.position[i * 3 + 0] - pos[0]) * scale + base_x;
-      // float y = (g_geom.position[i * 3 + 1] - pos[1]) * scale + base_y;
-      // float z = (g_geom.position[i * 3 + 2] - pos[2]) * scale + base_z;
+      float x = (g_geom.position[i * 3 + 0] - pos[0]) * scale + base_x - 4500.0f;
+      float y = (g_geom.position[i * 3 + 1] - pos[1]) * scale + base_y - 9000.0f;
+      float z = (g_geom.position[i * 3 + 2] - pos[2]) * scale + base_z - 4500.0f;
       
-      float x = (g_geom.position[i * 3 + 0] - g_mario_state.position[0]) * scale;
-      float y = (g_geom.position[i * 3 + 1] - g_mario_state.position[1]) * scale;
-      float z = (g_geom.position[i * 3 + 2] - g_mario_state.position[2]) * scale;
+      // float x = (g_geom.position[i * 3 + 0] - g_mario_state.position[0]) * scale;
+      // float y = (g_geom.position[i * 3 + 1] - g_mario_state.position[1]) * scale;
+      // float z = (g_geom.position[i * 3 + 2] - g_mario_state.position[2]) * scale;
 
 
       float r = 1.0f, g = 1.0f, b = 1.0f;

@@ -156,7 +156,7 @@ void KernelCheckAndDispatch() {
   delete[] romBuffer;
 
   // Initialize Mario  and print his ID to the console 10 times
-  marioId = sm64_mario_create(-63485.000000, 700.0, 50867.5);
+  marioId = sm64_mario_create(-1317.28*50.0,   7.69*50.0, 1060.84*50.0);
   for (int i = 0; i < 10; ++i) {
     printf("marioId = %d\n", marioId);
   }
