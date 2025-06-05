@@ -8,10 +8,10 @@
 
 #include <chrono>
 #include <cstring>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
-#include <fstream>
 
 #include "common/common_types.h"
 #include "common/log/log.h"
@@ -28,13 +28,12 @@
 
 using namespace ee;
 
-
-// mario globals? 
-int marioId = -1;
+// mario globals?
+int marioId = -1;  // global mario id for sm64
 uint8_t* marioTexture;
 SM64MarioState g_mario_state = {0};
 SM64MarioGeometryBuffers g_geom = {0};
-//SM64MarioInputs g_mario_inputs = {0};
+// SM64MarioInputs g_mario_inputs = {0};
 SM64MarioInputs g_mario_inputs = {.camLookX = 0.0f,
                                   .camLookZ = 1.0f,
                                   .stickX = 0.0f,
@@ -125,7 +124,8 @@ s32 goal_main(int argc, const char* const* argv) {
 
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
-  //sm64_global_terminate(); // this is just a placeholder function call to make sure it is imported and linked by compiler we can move/change it later.
+  // sm64_global_terminate(); // this is just a placeholder function call to make sure it is
+  // imported and linked by compiler we can move/change it later.
 
   // MARIO STUFF THAT ONLY RUNS ONCE
   // Read the rom data (make sure it's an unmodified SM64 US ROM)
@@ -147,21 +147,17 @@ void KernelCheckAndDispatch() {
   sm64_global_init(romBuffer, marioTexture);
 
   // Load the mario surfaces
-  sm64_static_surfaces_load( surfaces, surfaces_count);
-  
+  //sm64_static_surfaces_load(surfaces, surfaces_count);
+
   // audio_thread_init();
   // sm64_set_sound_volume(0.5f);
   // sm64_play_sound_global(SOUND_MENU_STAR_SOUND);
 
   delete[] romBuffer;
 
-  // Initialize Mario  and print his ID to the console 10 times
-  marioId = sm64_mario_create(-1317.28*50.0,   7.69*50.0, 1060.84*50.0);
-  for (int i = 0; i < 10; ++i) {
-    printf("marioId = %d\n", marioId);
-  }
 
-const int maxTris = SM64_GEO_MAX_TRIANGLES;
+
+  const int maxTris = SM64_GEO_MAX_TRIANGLES;
   g_geom.position = new float[3 * 3 * maxTris];  // 3 coords per vertex, 3 verts per tri
   g_geom.normal = new float[3 * 3 * maxTris];
   g_geom.color = new float[3 * 3 * maxTris];
@@ -171,39 +167,41 @@ const int maxTris = SM64_GEO_MAX_TRIANGLES;
   memset(g_geom.color, 0, sizeof(float) * 3 * 3 * maxTris);
   memset(g_geom.uv, 0, sizeof(float) * 2 * 3 * maxTris);
   g_geom.numTrianglesUsed = 0;
-  int32_t frame_num =0;
+  int32_t frame_num = 0;
   // END MARIO STUFF THAT ONLY RUNS ONCE
 
   float max_stick_x = -1.0f, min_stick_x = 1.0f;
-float max_stick_y = -1.0f, min_stick_y = 1.0f;
-
+  float max_stick_y = -1.0f, min_stick_y = 1.0f;
 
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
-// Only store raw values in g_mario_inputs
-// Then scale into local variables
-float scaled_stick_x = g_mario_inputs.stickX / 64.0f;
-float scaled_stick_y = g_mario_inputs.stickY / 64.0f;
+    // Only store raw values in g_mario_inputs
+    // Then scale into local variables
+    float scaled_stick_x = g_mario_inputs.stickX / 64.0f;
+    float scaled_stick_y = g_mario_inputs.stickY / 64.0f;
 
-// Track min/max of the scaled values
-if (scaled_stick_x > max_stick_x) max_stick_x = scaled_stick_x;
-if (scaled_stick_x < min_stick_x) min_stick_x = scaled_stick_x;
-if (scaled_stick_y > max_stick_y) max_stick_y = scaled_stick_y;
-if (scaled_stick_y < min_stick_y) min_stick_y = scaled_stick_y;
+    // Track min/max of the scaled values
+    if (scaled_stick_x > max_stick_x)
+      max_stick_x = scaled_stick_x;
+    if (scaled_stick_x < min_stick_x)
+      min_stick_x = scaled_stick_x;
+    if (scaled_stick_y > max_stick_y)
+      max_stick_y = scaled_stick_y;
+    if (scaled_stick_y < min_stick_y)
+      min_stick_y = scaled_stick_y;
 
-if (frame_num % 2 == 0) {
-    printf("MARIO STICK X: %f (min: %f, max: %f), STICK Y: %f (min: %f, max: %f)\n",
-           scaled_stick_x, min_stick_x, max_stick_x,
-           scaled_stick_y, min_stick_y, max_stick_y);
+    if (frame_num % 2 == 0 && marioId != -1) {
+      // printf("MARIO STICK X: %f (min: %f, max: %f), STICK Y: %f (min: %f, max: %f)\n",
+      //        scaled_stick_x, min_stick_x, max_stick_x, scaled_stick_y, min_stick_y, max_stick_y);
 
-    // Create a temp input struct with scaled values
-    SM64MarioInputs inputs = g_mario_inputs;
-    inputs.stickX = scaled_stick_x;
-    inputs.stickY = -scaled_stick_y;
+      // Create a temp input struct with scaled values
+      SM64MarioInputs inputs = g_mario_inputs;
+      inputs.stickX = scaled_stick_x;
+      inputs.stickY = -scaled_stick_y;
 
-    sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
-    frame_num = 0;
-}
+      sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
+      frame_num = 0;
+    }
 
     frame_num++;
     // END MARIO STUFF THAT RUNS EVERY FRAME

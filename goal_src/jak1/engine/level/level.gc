@@ -261,10 +261,13 @@
   "Get the status of an existing level."
   (let ((lev (level-get *level* level-name))) (if lev (-> lev status))))
 
+            
+
 (defmethod level-status-set! ((this level) (want-status symbol))
   "Change the status of a level, performing any cleanup and prep work as necessary.
    Only change loading statuses in order!
    Returns the level."
+ 
   (case want-status
     (('inactive)
      (case (-> this status))
@@ -308,6 +311,8 @@
               (set! (-> this texture-mask v1-40) (the-as uint 0)))
             (set! (-> this level-distance) 0.0)
             (set! (-> this status) 'active)))))))
+
+
   this)
 
 (define *login-state* (new 'global 'login-state))

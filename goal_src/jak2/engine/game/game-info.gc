@@ -370,7 +370,7 @@
           "demo-start"
           )
          (*debug-segment*
-           "game-start"
+           "village1-warp"
            )
          (else
            "title-start"

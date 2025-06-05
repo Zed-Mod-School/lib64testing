@@ -139,17 +139,16 @@ void GameController::process_event(const SDL_Event& event,
       if (stick != last_stick_x) {
         g_mario_inputs.stickX = stick;
         last_stick_x = stick;
-        printf("[DEBUG] stickX updated: %d\n", stick);
+       // printf("[DEBUG] stickX updated: %d\n", stick);
       }
     } else if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) {
       int8_t stick = -sdl_axis_to_sm64(event.gaxis.value);
       if (stick != last_stick_y) {
         g_mario_inputs.stickY = stick;
         last_stick_y = stick;
-        printf("[DEBUG] stickY updated: %d\n", stick);
+        //printf("[DEBUG] stickY updated: %d\n", stick);
       }
     }
-
 
     auto& binds = m_settings->controller_binds.at(m_guid);
 
@@ -213,7 +212,7 @@ void GameController::process_event(const SDL_Event& event,
         event.gbutton.button >= SDL_GAMEPAD_BUTTON_COUNT) {
       return;
     }
-        
+
     if (event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH) {
       g_mario_inputs.buttonA = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
     } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
