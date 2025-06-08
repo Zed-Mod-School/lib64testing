@@ -1,4 +1,7 @@
 #pragma once
+#include "libsm64/libsm64.h"
+extern SM64MarioGeometryBuffers g_geom;
+
 #include "common/versions/versions.h"
 
 #include "game/graphics/opengl_renderer/BucketRenderer.h"

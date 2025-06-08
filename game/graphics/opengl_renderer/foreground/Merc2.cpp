@@ -785,11 +785,16 @@ const char* vertex_src = R"(
 #version 330 core
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aColor;
+
+uniform mat4 u_ViewProj;
+
 out vec3 vColor;
+
 void main() {
-  gl_Position = vec4(aPos / 10000.0, 1.0); // world space scaled down
+  gl_Position = u_ViewProj * vec4(aPos, 1.0);
   vColor = aColor;
 }
+
 )";
 
 const char* fragment_src = R"(
@@ -801,11 +806,7 @@ void main() {
 }
 )";
 
-void render_sm64_geom_debug() {
-  // if (glPushDebugGroup) {
-  //   glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "Render Mario Debug");
-  // }
-
+void render_sm64_geom_debug(SharedRenderState* render_state) {
   // Compile shader (once)
   static GLuint shader_prog = 0;
   if (shader_prog == 0) {
@@ -826,12 +827,8 @@ void render_sm64_geom_debug() {
     glDeleteShader(fs);
   }
 
-  const float scale = 4096.0f / 250.0f;
-  const float* pos = g_mario_state.position;
-
-  float base_x = pos[0] / scale;
-  float base_y = pos[1] / scale;
-  float base_z = pos[2] / scale;
+  // Adjustable scale for Mario's vertices
+  const float scale = 1.0f;
 
   // Struct for combined geometry
   struct Vertex {
@@ -839,24 +836,24 @@ void render_sm64_geom_debug() {
     float color[3];
   };
 
-  // Triangle
-  std::vector<Vertex> vertices = {
-      {{0.0f, 200.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-      {{-50.0f, 0.0f, -50.0f}, {1.0f, 0.0f, 0.0f}},
-      {{50.0f, 0.0f, -50.0f}, {1.0f, 0.0f, 0.0f}},
-  };
+  std::vector<Vertex> vertices;
+
+  // Debug triangle (optional)
+  vertices.push_back({{0.0f, 200.0f, 0.0f}, {1.0f, 0.0f, 0.0f}});
+  vertices.push_back({{-50.0f, 0.0f, -50.0f}, {1.0f, 0.0f, 0.0f}});
+  vertices.push_back({{50.0f, 0.0f, -50.0f}, {1.0f, 0.0f, 0.0f}});
 
   // Append Mario's geometry
   if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
     int num_vertices = g_geom.numTrianglesUsed * 3;
     for (int i = 0; i < num_vertices; ++i) {
-      float x = (g_geom.position[i * 3 + 0] - pos[0]) * scale + base_x - 4500.0f;
-      float y = (g_geom.position[i * 3 + 1] - pos[1]) * scale + base_y - 9000.0f;
-      float z = (g_geom.position[i * 3 + 2] - pos[2]) * scale + base_z - 4500.0f;
+      float x = g_geom.position[i * 3 + 0] * scale;
+      float y = g_geom.position[i * 3 + 1] * scale;
+      float z = g_geom.position[i * 3 + 2] * scale;
 
-      // float x = (g_geom.position[i * 3 + 0] - g_mario_state.position[0]) * scale;
-      // float y = (g_geom.position[i * 3 + 1] - g_mario_state.position[1]) * scale;
-      // float z = (g_geom.position[i * 3 + 2] - g_mario_state.position[2]) * scale;
+      if (i == 0) {
+        printf("Mario vertex 0 position (scaled): x=%f, y=%f, z=%f\n", x, y, z);
+      }
 
       float r = 1.0f, g = 1.0f, b = 1.0f;
       if (g_geom.color) {
@@ -888,12 +885,12 @@ void render_sm64_geom_debug() {
   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
 
   glUseProgram(shader_prog);
-  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+  GLint loc = glGetUniformLocation(shader_prog, "u_ViewProj");
+  glUniformMatrix4fv(loc, 1, GL_FALSE, render_state->camera_matrix[0].data());
 
-  // if (glPopDebugGroup) {
-  //   glPopDebugGroup();
-  // }
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 }
+
 
 /*!
  * Main merc2 rendering.
@@ -921,7 +918,7 @@ void Merc2::render(DmaFollower& dma,
     auto pp = scoped_prof("flush-buckets");
     // flush buckets to draws
     flush_draw_buckets(render_state, prof, stats);
-    render_sm64_geom_debug();
+   // render_sm64_geom_debug(render_state);
   }
 }
 

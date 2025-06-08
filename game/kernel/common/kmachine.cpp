@@ -141,7 +141,7 @@ if (surfaces2 && count2 > 0) {
   }
   }
   
-  //free(combined);
+  free(combined);
 }
 
 

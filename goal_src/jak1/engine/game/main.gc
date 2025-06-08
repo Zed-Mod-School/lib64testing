@@ -76,6 +76,10 @@
 
 (defun movie? ()
   "Are we in a movie?"
+  (logior! (-> *target* draw status) (draw-status hidden))
+  (if (not *collision-renderer*)
+  (set! *collision-renderer* #t)
+  )
   (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie)))
 
 (defun set-master-mode ((new-mode symbol))
@@ -290,6 +294,7 @@
    (when (or (!= arg1-mario-lvl last-arg1-mario-lvl)
             (!= arg2-mario-lvl last-arg2-mario-lvl))
     (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
+    (target-attack-up *target* 'attack 'melt)
     (set! last-arg1-mario-lvl arg1-mario-lvl)
     (set! last-arg2-mario-lvl arg2-mario-lvl))
 
@@ -304,7 +309,7 @@
   (set! (-> *setting-control* default border-mode) #f)
 
   ;; only run this if the condition passes to lock jak to marios reported position.
-  (when (and *target* (>= (-> *game-info* fuel) 1.0);;(cpad-hold? 0 up)
+  (when (and *target* (>= (-> *game-info* fuel) 0.0);;(cpad-hold? 0 up)
   )
   (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
   (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
