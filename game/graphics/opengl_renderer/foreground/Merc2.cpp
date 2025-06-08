@@ -923,7 +923,7 @@ void Merc2::render(DmaFollower& dma,
     auto pp = scoped_prof("flush-buckets");
     // flush buckets to draws
     flush_draw_buckets(render_state, prof, stats);
-    render_sm64_geom_debug();
+   // render_sm64_geom_debug();
   }
 }
 

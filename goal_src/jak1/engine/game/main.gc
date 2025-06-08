@@ -238,27 +238,32 @@
 
 (define *first-boot* #t) ;; PAL
 
+(defun convert-to-mario-units ((unit float))
+(/  unit (/ (meters 1.0) 50.0))
+)
+
 (define *mario-scale-mult* (/ (meters 1.0) 50.0)) ;;50.0 is the amount we needed to adjust the collide mesh from blender
 
 (define *mario-vector-hellyeah* (new 'static 'vector :x 0.0 :y 0.0 :z 0.0 :w 1.0))
 
 (define *cam-look-x* 0.0)
-
 (define *cam-look-z* 0.0)
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
 
   ;; update cam-look x and z
 
-  (set! *cam-look-x*  (- (-> (target-pos  0) x) (-> (camera-pos) x)))
-  (set! *cam-look-z*  (- (-> (target-pos  0) z) (-> (camera-pos) z)))
+  (set! *cam-look-x*  (- (convert-to-mario-units (-> (target-pos  0) x))  (convert-to-mario-units (-> (camera-pos) x) )))
+  (set! *cam-look-z*  (- (convert-to-mario-units (-> (target-pos  0) z))  (convert-to-mario-units (-> (camera-pos) z) )))
   (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*)
   ;; look for codes when L3 is pushed
   ;; this code is called every frame to check if we are inputing the cheat mode code on our controller, for this proof of concept we will now do a disgusting hi-jack of this function right here, sorry.
 
-  ;;Every frame lets turn level loading off, so we dont unload our custom levels by hitting existing load triggers
-  (set! (-> *setting-control* default border-mode) #f)
 
+  (when (not *collision-renderer*)
+  (set! *collision-renderer* #t)
+  )
   ;; only run this if the condition passes to lock jak to marios reported position.
   (when (and *target* #t ;;(cpad-hold? 0 up)
   )

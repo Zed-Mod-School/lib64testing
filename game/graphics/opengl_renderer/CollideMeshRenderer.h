@@ -1,6 +1,7 @@
 #pragma once
 #include "common/versions/versions.h"
-
+#include "libsm64/libsm64.h"
+extern SM64MarioGeometryBuffers g_geom;
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
 
 struct PatColors {

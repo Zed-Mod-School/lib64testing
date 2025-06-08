@@ -156,7 +156,7 @@ void KernelCheckAndDispatch() {
   delete[] romBuffer;
 
   // Initialize Mario  and print his ID to the console 10 times
-  marioId = sm64_mario_create(5000.000000, 1000.000000, 3000.000000);
+  marioId = sm64_mario_create(-7541.8, 1688.475, 9237.5);
   for (int i = 0; i < 10; ++i) {
     printf("marioId = %d\n", marioId);
   }
@@ -173,15 +173,40 @@ const int maxTris = SM64_GEO_MAX_TRIANGLES;
   g_geom.numTrianglesUsed = 0;
   int32_t frame_num =0;
   // END MARIO STUFF THAT ONLY RUNS ONCE
+
+  float max_stick_x = -1.0f, min_stick_x = 1.0f;
+  float max_stick_y = -1.0f, min_stick_y = 1.0f;
+
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
+    // Only store raw values in g_mario_inputs
+    // Then scale into local variables
+    float scaled_stick_x = g_mario_inputs.stickX / 64.0f;
+    float scaled_stick_y = g_mario_inputs.stickY / 64.0f;
 
-    // MARIO STUFF THAT RUNS EVERY FRAME
-    // this is a hack to adjust the mario speed to be the same as the original game.
-    if (frame_num % 2 == 0){
-      sm64_mario_tick( marioId, &g_mario_inputs, &g_mario_state, &g_geom );
+    // Track min/max of the scaled values
+    if (scaled_stick_x > max_stick_x)
+      max_stick_x = scaled_stick_x;
+    if (scaled_stick_x < min_stick_x)
+      min_stick_x = scaled_stick_x;
+    if (scaled_stick_y > max_stick_y)
+      max_stick_y = scaled_stick_y;
+    if (scaled_stick_y < min_stick_y)
+      min_stick_y = scaled_stick_y;
+
+    if (frame_num % 2 == 0 && marioId != -1) {
+      // printf("MARIO STICK X: %f (min: %f, max: %f), STICK Y: %f (min: %f, max: %f)\n",
+      //        scaled_stick_x, min_stick_x, max_stick_x, scaled_stick_y, min_stick_y, max_stick_y);
+
+      // Create a temp input struct with scaled values
+      SM64MarioInputs inputs = g_mario_inputs;
+      inputs.stickX = scaled_stick_x;
+      inputs.stickY = -scaled_stick_y;
+
+      sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
       frame_num = 0;
     }
+
     frame_num++;
     // END MARIO STUFF THAT RUNS EVERY FRAME
     Ptr<char> new_message = WaitForMessageAndAck();
