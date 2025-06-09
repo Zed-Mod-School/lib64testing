@@ -50,19 +50,19 @@ This is used for funny cheat codes and the like.
     (dotimes (i (-> proc node-list length))
       ;; see if it's a joint and keep that for later
       (awhen (-> proc node-list data i joint)
-             (cond
-               ;; run func if we ARE the parent!
-               ((= it parent-joint)
-                ;;(format #t "running map on parent ~A~%" it)
-                (if include-parent? (func (-> proc node-list data i bone) #t p0 p1)))
-               ;; otherwise go up our parents until we hit what we want (yay!) or nothing (nay...)
-               (else
-                (let ((cur-parent it))
-                  (until (or (not cur-parent) (= cur-parent parent-joint))
-                    (set! cur-parent (-> cur-parent parent)))
-                  (when (= cur-parent parent-joint)
-                    ;;(format #t "running map on child ~A~%" it)
-                    (func (-> proc node-list data i bone) #f p0 p1)))))))))
+        (cond
+          ;; run func if we ARE the parent!
+          ((= it parent-joint)
+           ;;(format #t "running map on parent ~A~%" it)
+           (if include-parent? (func (-> proc node-list data i bone) #t p0 p1)))
+          ;; otherwise go up our parents until we hit what we want (yay!) or nothing (nay...)
+          (else
+           (let ((cur-parent it))
+             (until (or (not cur-parent) (= cur-parent parent-joint))
+               (set! cur-parent (-> cur-parent parent)))
+             (when (= cur-parent parent-joint)
+               ;;(format #t "running map on child ~A~%" it)
+               (func (-> proc node-list data i bone) #f p0 p1)))))))))
 
 (defun scale-joints ((obj process-drawable) (cspace-idx int) (scale-children? symbol) (scale vector))
   "scale a joint (cspace-idx) in an actor. if scale-children? = #t, also scales all child joints."

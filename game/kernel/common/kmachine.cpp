@@ -10,6 +10,7 @@
 #include "common/util/Timer.h"
 #include "common/util/string_util.h"
 
+#include "../jak1/kboot.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"
@@ -23,7 +24,53 @@
 #include "game/sce/libpad.h"
 #include "game/sce/libscf.h"
 #include "game/sce/sif_ee.h"
-#include "../jak1/kboot.h"
+
+void load_combined_static_surfaces(const struct SM64Surface* surfaces1,
+
+                                   int count1,
+
+                                   const struct SM64Surface* surfaces2,
+
+                                   int count2) {
+  int total_count = count1 + count2;
+
+  struct SM64Surface* combined =
+      (struct SM64Surface*)malloc(sizeof(struct SM64Surface) * total_count);
+
+  if (!combined) {
+    fprintf(stderr, "Failed to allocate memory for combined surfaces\n");
+
+    return;
+  }
+
+  int offset = 0;
+
+  if (surfaces1 && count1 > 0) {
+    memcpy(combined, surfaces1, sizeof(struct SM64Surface) * count1);
+
+    offset += count1;
+  }
+
+  if (surfaces2 && count2 > 0) {
+    memcpy(combined + offset, surfaces2, sizeof(struct SM64Surface) * count2);
+  }
+
+  sm64_static_surfaces_load(combined, total_count);
+
+  // sm64_static_surfaces_load(village1_surfaces, village1_surfaces_count);
+
+  if (marioId == -1) {
+    // Initialize Mario  and print his ID to the console 10 times
+
+    marioId = sm64_mario_create(-7541.8, 1688.475, 9237.5);
+
+    for (int i = 0; i < 10; ++i) {
+      printf("marioId = %d\n", marioId);
+    }
+  }
+
+  // free(combined);
+}
 
 /*!
  * Where does OVERLORD load its data from?
@@ -714,14 +761,93 @@ void pc_set_mouse_options(u32 enabled, u32 control_camera, u32 control_movement)
   }
 }
 
+void pc_set_mario_camera(u32 x, u32 z) {
+  g_mario_inputs.camLookX;
 
-void pc_set_mario_camera (u32 x, u32 z){
-g_mario_inputs.camLookX;
-memcpy(&g_mario_inputs.camLookX, &x, 4);
-g_mario_inputs.camLookZ;
-memcpy(&g_mario_inputs.camLookZ, &z, 4);
+  memcpy(&g_mario_inputs.camLookX, &x, 4);
+
+  g_mario_inputs.camLookZ;
+
+  memcpy(&g_mario_inputs.camLookZ, &z, 4);
 }
 
+void pc_call_load_combined_static_surfaces_from_game_idx(u32 x_bits, u32 z_bits) {
+  float x, z;
+
+  memcpy(&x, &x_bits, sizeof(float));
+
+  memcpy(&z, &z_bits, sizeof(float));
+
+  printf("[DEBUG] Called with x = %.2f, z = %.2f\n", x, z);
+
+  const struct SM64Surface* surfaces1 = NULL;
+
+  const struct SM64Surface* surfaces2 = NULL;
+
+  int count1 = 0;
+
+  int count2 = 0;
+
+  if (fabsf(x - 1.0f) < 0.01f) {
+    surfaces1 = surfaces;
+
+    count1 = surfaces_count;
+
+    printf("[DEBUG] x matched surfaces (1.0f)\n");
+
+  } else if (fabsf(x - 2.0f) < 0.01f) {
+    surfaces1 = village1_surfaces;
+
+    count1 = village1_surfaces_count;
+
+    printf("[DEBUG] x matched village1 (2.0f)\n");
+
+  } else if (fabsf(x - 3.0f) < 0.01f) {
+    surfaces1 = beach_surfaces;
+
+    count1 = beach_surfaces_count;
+
+    printf("[DEBUG] x matched beach (3.0f)\n");
+
+  } else if (fabsf(x - 4.0f) < 0.01f) {
+    surfaces1 = jungle_surfaces;
+
+    count1 = jungle_surfaces_count;
+
+    printf("[DEBUG] x matched jungle (4.0f)\n");
+  }
+
+  if (fabsf(z - 1.0f) < 0.01f) {
+    surfaces2 = surfaces;
+
+    count2 = surfaces_count;
+
+    printf("[DEBUG] z matched surfaces (1.0f)\n");
+
+  } else if (fabsf(z - 2.0f) < 0.01f) {
+    surfaces2 = village1_surfaces;
+
+    count2 = village1_surfaces_count;
+
+    printf("[DEBUG] z matched village1 (2.0f)\n");
+
+  } else if (fabsf(z - 3.0f) < 0.01f) {
+    surfaces2 = beach_surfaces;
+
+    count2 = beach_surfaces_count;
+
+    printf("[DEBUG] z matched beach (3.0f)\n");
+
+  } else if (fabsf(z - 4.0f) < 0.01f) {
+    surfaces2 = jungle_surfaces;
+
+    count2 = jungle_surfaces_count;
+
+    printf("[DEBUG] z matched jungle (4.0f)\n");
+  }
+
+  load_combined_static_surfaces(surfaces1, count1, surfaces2, count2);
+}
 
 void pc_set_mouse_camera_sens(u32 xsens, u32 ysens) {
   float xsens_val;
@@ -1022,11 +1148,11 @@ void init_common_pc_port_functions(
     std::function<u64(const char*)> make_string_from_c_func) {
   g_pc_port_funcs.intern_from_c = intern_from_c_func;
   g_pc_port_funcs.make_string_from_c = make_string_from_c_func;
-  //mario functions
+  // mario functions
   make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
   make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
   make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
-  //end mario functions
+  // end mario functions
 
   // Get a 300MHz timer value. Called from EE thread
   make_func_symbol_func("__read-ee-timer", (void*)read_ee_timer);
@@ -1074,6 +1200,9 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-set-keyboard-enabled!", (void*)pc_set_keyboard_enabled);
   make_func_symbol_func("pc-set-mouse-options!", (void*)pc_set_mouse_options);
   make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
+  make_func_symbol_func("pc-load-mario-collide!",
+
+                        (void*)pc_call_load_combined_static_surfaces_from_game_idx);
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);
   make_func_symbol_func("pc-ignore-background-controller-events!",
                         (void*)pc_ignore_background_controller_events);

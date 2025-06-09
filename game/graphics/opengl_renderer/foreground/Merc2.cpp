@@ -14,7 +14,6 @@
 
 #include "third-party/imgui/imgui.h"
 
-
 /* Merc 2 renderer:
  The merc2 renderer is the main "foreground" renderer, which draws characters, collectables,
  and even some water.
@@ -841,11 +840,11 @@ void render_sm64_geom_debug() {
   };
 
   // Triangle
-std::vector<Vertex> vertices = {
-    {{0.0f, 200.0f, 0.0f},     {1.0f, 0.0f, 0.0f}},
-    {{-50.0f, 0.0f, -50.0f},   {1.0f, 0.0f, 0.0f}},
-    {{50.0f, 0.0f, -50.0f},    {1.0f, 0.0f, 0.0f}},
-};
+  std::vector<Vertex> vertices = {
+      {{0.0f, 200.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+      {{-50.0f, 0.0f, -50.0f}, {1.0f, 0.0f, 0.0f}},
+      {{50.0f, 0.0f, -50.0f}, {1.0f, 0.0f, 0.0f}},
+  };
 
   // Append Mario's geometry
   if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
@@ -854,11 +853,10 @@ std::vector<Vertex> vertices = {
       // float x = (g_geom.position[i * 3 + 0] - pos[0]) * scale + base_x;
       // float y = (g_geom.position[i * 3 + 1] - pos[1]) * scale + base_y;
       // float z = (g_geom.position[i * 3 + 2] - pos[2]) * scale + base_z;
-      
+
       float x = (g_geom.position[i * 3 + 0] - g_mario_state.position[0]) * scale;
       float y = (g_geom.position[i * 3 + 1] - g_mario_state.position[1]) * scale;
       float z = (g_geom.position[i * 3 + 2] - g_mario_state.position[2]) * scale;
-
 
       float r = 1.0f, g = 1.0f, b = 1.0f;
       if (g_geom.color) {
@@ -923,7 +921,7 @@ void Merc2::render(DmaFollower& dma,
     auto pp = scoped_prof("flush-buckets");
     // flush buckets to draws
     flush_draw_buckets(render_state, prof, stats);
-   // render_sm64_geom_debug();
+    // render_sm64_geom_debug();
   }
 }
 
@@ -1483,4 +1481,3 @@ void Merc2::do_draws(const Draw* draw_array,
     glBindBuffer(GL_ARRAY_BUFFER, lev->merc_vertices);
   }
 }
-

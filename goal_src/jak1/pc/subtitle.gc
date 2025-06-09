@@ -485,21 +485,21 @@
              ;; cutscenes. get our cutscene.
              (set! (-> self hint-subtitle?) #f)
              (awhen (get-scene-by-name *subtitle-text* (-> self cur-channel) (-> self spool-name))
-                    ;; during a cutscene, check if user toggled subtitles
-                    (when (and (= 'game *master-mode*) (cpad-pressed? 0 square))
-                      (not! (-> *pc-settings* subtitles?))
-                      (set-state-time)
-                      (if (-> *pc-settings* subtitles?)
-                        (set! (-> self notice-id) (text-id subtitle-enabled))
-                        (set! (-> self notice-id) (text-id subtitle-disabled))))
-                    ;; find out position in the scene.
-                    (let ((pos 0))
-                      ;; get frame num
-                      (with-proc ((handle->process (-> *art-control* spool-lock))) (set! pos (the int (ja-aframe-num 0))))
-                      ;; find closest keyframe
-                      (dotimes (i (-> it length))
-                        (when (>= pos (-> it keyframes i frame))
-                          (set! keyframe (-> it keyframes i)))))))
+               ;; during a cutscene, check if user toggled subtitles
+               (when (and (= 'game *master-mode*) (cpad-pressed? 0 square))
+                 (not! (-> *pc-settings* subtitles?))
+                 (set-state-time)
+                 (if (-> *pc-settings* subtitles?)
+                   (set! (-> self notice-id) (text-id subtitle-enabled))
+                   (set! (-> self notice-id) (text-id subtitle-disabled))))
+               ;; find out position in the scene.
+               (let ((pos 0))
+                 ;; get frame num
+                 (with-proc ((handle->process (-> *art-control* spool-lock))) (set! pos (the int (ja-aframe-num 0))))
+                 ;; find closest keyframe
+                 (dotimes (i (-> it length))
+                   (when (>= pos (-> it keyframes i frame))
+                     (set! keyframe (-> it keyframes i)))))))
             (((pc-subtitle-channel hint) (pc-subtitle-channel hint-named))
              ;; hint! find it. or else.
              (set! (-> self hint-subtitle?) #t)

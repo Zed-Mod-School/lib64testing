@@ -239,59 +239,76 @@
 (define *first-boot* #t) ;; PAL
 
 (defun convert-to-mario-units ((unit float))
-(/  unit (/ (meters 1.0) 50.0))
-)
+  (/ unit (/ (meters 1.0) 50.0)))
 
 (define *mario-scale-mult* (/ (meters 1.0) 50.0)) ;;50.0 is the amount we needed to adjust the collide mesh from blender
 
 (define *mario-vector-hellyeah* (new 'static 'vector :x 0.0 :y 0.0 :z 0.0 :w 1.0))
 
+(define arg1-mario-lvl 0.0)
+
+(define arg2-mario-lvl 0.0)
+
+(define last-arg1-mario-lvl -1.0)
+
+(define last-arg2-mario-lvl -1.0)
+
 (define *cam-look-x* 0.0)
+
 (define *cam-look-z* 0.0)
 
 (defun main-cheats ()
   "Handle cheat codes and timeout"
-
+  (when (name= (-> *load-state* want 0 name) "training")
+    (set! arg1-mario-lvl 1.0))
+  (when (name= (-> *load-state* want 1 name) "training")
+    (set! arg2-mario-lvl 1.0))
+  (when (name= (-> *load-state* want 0 name) "village1")
+    (set! arg1-mario-lvl 2.0))
+  (when (name= (-> *load-state* want 1 name) "village1")
+    (set! arg2-mario-lvl 2.0))
+  (when (name= (-> *load-state* want 0 name) "beach")
+    (set! arg1-mario-lvl 3.0))
+  (when (name= (-> *load-state* want 1 name) "beach")
+    (set! arg2-mario-lvl 3.0))
+  (when (name= (-> *load-state* want 0 name) "jungle")
+    (set! arg1-mario-lvl 4.0))
+  (when (name= (-> *load-state* want 1 name) "jungle")
+    (set! arg2-mario-lvl 4.0))
+  (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
+    (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
+    (set! last-arg1-mario-lvl arg1-mario-lvl)
+    (set! last-arg2-mario-lvl arg2-mario-lvl))
   ;; update cam-look x and z
-
-  (set! *cam-look-x*  (- (convert-to-mario-units (-> (target-pos  0) x))  (convert-to-mario-units (-> (camera-pos) x) )))
-  (set! *cam-look-z*  (- (convert-to-mario-units (-> (target-pos  0) z))  (convert-to-mario-units (-> (camera-pos) z) )))
+  (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
+  (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
   (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*)
   ;; look for codes when L3 is pushed
   ;; this code is called every frame to check if we are inputing the cheat mode code on our controller, for this proof of concept we will now do a disgusting hi-jack of this function right here, sorry.
-
-
   (when (not *collision-renderer*)
-  (set! *collision-renderer* #t)
-  )
+    (set! *collision-renderer* #t))
   ;; only run this if the condition passes to lock jak to marios reported position.
-  (when (and *target* #t ;;(cpad-hold? 0 up)
-  )
-  (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
-  (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
-  (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
-
+  (when (and *target*
+             #t ;;(cpad-hold? 0 up)
+             )
+    (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
+    (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
+    (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
   ;; run this all the time no matter what, so we can see where mario *should* be
   ;; update his position vector on the GOAL side
   (set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) *mario-scale-mult*))
   (set! (-> *mario-vector-hellyeah* y) (* (pc-get-mario-y) *mario-scale-mult*))
   (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*))
-
   ;; debug prints
   ;;(format 0 "mario ~f ~f ~f~%" (pc-get-mario-x) (pc-get-mario-y) (pc-get-mario-z))
   ;;(format 0 "mario vec  ~f ~f ~f~%" (-> *mario-vector-hellyeah* x)  (-> *mario-vector-hellyeah* y)  (-> *mario-vector-hellyeah* z) )
-
   ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
-         (add-debug-text-3d #t
-                            (bucket-id debug-no-zbuf)
-                            "MARIO GUY HERE"
-                            *mario-vector-hellyeah*
-                            (font-color white)
-                            (the-as vector2h #f))
-
-     
-
-  
+  (add-debug-text-3d #t
+                     (bucket-id debug-no-zbuf)
+                     "MARIO GUY HERE"
+                     *mario-vector-hellyeah*
+                     (font-color white)
+                     (the-as vector2h #f))
   (when (and (cpad-hold? 0 l3)
              (or *cheat-mode* (= *kernel-boot-message* 'play)) ;; not in demo
              )

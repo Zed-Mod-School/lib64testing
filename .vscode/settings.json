@@ -12,6 +12,7 @@
   "files.associations": {
     "xhash": "cpp",
     "xstring": "cpp",
-    "xtree": "cpp"
+    "xtree": "cpp",
+    "vector": "cpp"
   }
 }

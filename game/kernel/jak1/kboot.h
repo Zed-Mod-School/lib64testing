@@ -6,14 +6,22 @@
  */
 
 #include "common/common_types.h"
-//mario stuff
+// mario stuff
+#include "libsm64/level.h"  // level.h is needed for SM64MarioSurface it has the surface defintions and data
 #include "libsm64/libsm64.h"
-#include "libsm64/level.h" // level.h is needed for SM64MarioSurface it has the surface defintions and data
 
+extern int marioId;
 uint64_t pc_get_mario_x();
 uint64_t pc_get_mario_y();
 uint64_t pc_get_mario_z();
 
+void load_combined_static_surfaces(const struct SM64Surface* surfaces1,
+
+                                   int count1,
+
+                                   const struct SM64Surface* surfaces2,
+
+                                   int count2);
 #include "game/kernel/common/kboot.h"
 
 namespace jak1 {

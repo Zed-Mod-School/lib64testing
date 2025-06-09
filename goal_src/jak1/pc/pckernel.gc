@@ -210,46 +210,46 @@
     (set! (-> info cutscene?) (real-movie?))
     (set! (-> info ogreboss?)
           (aif (process-by-ename "ogreboss-1")
-               (case (-> it next-state name)
-                 (('ogreboss-die 'ogreboss-idle
-                                'ogreboss-stage1
-                                'ogreboss-stage2
-                                'ogreboss-stage3-hit
-                                'ogreboss-stage3-shuffle
-                                'ogreboss-stage3-throw
-                                'ogreboss-wait-for-player)
-                  #t))))
+            (case (-> it next-state name)
+              (('ogreboss-die 'ogreboss-idle
+                             'ogreboss-stage1
+                             'ogreboss-stage2
+                             'ogreboss-stage3-hit
+                             'ogreboss-stage3-shuffle
+                             'ogreboss-stage3-throw
+                             'ogreboss-wait-for-player)
+               #t))))
     (set! (-> info plant-boss?)
           (aif (process-by-ename "plant-boss-3")
-               (case (-> it next-state name)
-                 (('plant-boss-idle 'plant-boss-hit 'plant-boss-vulnerable 'plant-boss-spawn 'plant-boss-reset 'plant-boss-attack) #t))))
+            (case (-> it next-state name)
+              (('plant-boss-idle 'plant-boss-hit 'plant-boss-vulnerable 'plant-boss-spawn 'plant-boss-reset 'plant-boss-attack) #t))))
     (set! (-> info racer?)
           (aif *target*
-               (case (-> it next-state name)
-                 (('target-racing 'target-racing-bounce
-                                 'target-racing-death
-                                 'target-racing-falling
-                                 'target-racing-grab
-                                 'target-racing-hit
-                                 'target-racing-jump
-                                 'target-racing-smack
-                                 'target-racing-start)
-                  #t))))
+            (case (-> it next-state name)
+              (('target-racing 'target-racing-bounce
+                              'target-racing-death
+                              'target-racing-falling
+                              'target-racing-grab
+                              'target-racing-hit
+                              'target-racing-jump
+                              'target-racing-smack
+                              'target-racing-start)
+               #t))))
     (set! (-> info flutflut?)
           (aif *target*
-               (case (-> it next-state name)
-                 (('target-flut-air-attack 'target-flut-air-attack-hit-ground
-                                          'target-flut-double-jump
-                                          'target-flut-falling
-                                          'target-flut-grab
-                                          'target-flut-hit
-                                          'target-flut-hit-ground
-                                          'target-flut-jump
-                                          'target-flut-running-attack
-                                          'target-flut-stance
-                                          'target-flut-start
-                                          'target-flut-walk)
-                  #t))))
+            (case (-> it next-state name)
+              (('target-flut-air-attack 'target-flut-air-attack-hit-ground
+                                       'target-flut-double-jump
+                                       'target-flut-falling
+                                       'target-flut-grab
+                                       'target-flut-hit
+                                       'target-flut-hit-ground
+                                       'target-flut-jump
+                                       'target-flut-running-attack
+                                       'target-flut-stance
+                                       'target-flut-start
+                                       'target-flut-walk)
+               #t))))
     (set! (-> info time-of-day) (&-> *time-of-day-context* time))
     (with-profiler "discord-update"
       (pc-discord-rpc-update info)))

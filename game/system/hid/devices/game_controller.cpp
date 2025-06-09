@@ -150,7 +150,6 @@ void GameController::process_event(const SDL_Event& event,
       }
     }
 
-
     auto& binds = m_settings->controller_binds.at(m_guid);
 
     // Handle analog stick binds
@@ -213,7 +212,7 @@ void GameController::process_event(const SDL_Event& event,
         event.gbutton.button >= SDL_GAMEPAD_BUTTON_COUNT) {
       return;
     }
-        
+
     if (event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH) {
       g_mario_inputs.buttonA = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
     } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
