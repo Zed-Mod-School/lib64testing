@@ -771,79 +771,79 @@ void pc_set_mario_camera(u32 x, u32 z) {
   memcpy(&g_mario_inputs.camLookZ, &z, 4);
 }
 
+
+void pc_set_mario_position_from_goal(u32 x_bits, u32 y_bits, u32 z_bits) {
+    float x, y, z;
+    memcpy(&x, &x_bits, sizeof(u32));
+    memcpy(&y, &y_bits, sizeof(u32));
+    memcpy(&z, &z_bits, sizeof(u32));
+
+    constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
+
+    x *= METERS_TO_UNITS;
+    y *= METERS_TO_UNITS;
+    z *= METERS_TO_UNITS;
+
+    sm64_set_mario_position(marioId, x, y, z);
+}
+
+struct SurfaceEntry {
+  const SM64Surface* surfaces;
+  int count;
+};
+
+#include <unordered_map>
 void pc_call_load_combined_static_surfaces_from_game_idx(u32 x_bits, u32 z_bits) {
   float x, z;
-
   memcpy(&x, &x_bits, sizeof(float));
-
   memcpy(&z, &z_bits, sizeof(float));
 
   printf("[DEBUG] Called with x = %.2f, z = %.2f\n", x, z);
 
-  const struct SM64Surface* surfaces1 = NULL;
+  // Round to int for matching
+  int x_key = static_cast<int>(roundf(x));
+  int z_key = static_cast<int>(roundf(z));
 
-  const struct SM64Surface* surfaces2 = NULL;
-
+static const std::unordered_map<int, SurfaceEntry> surface_map = {
+    {1,  {training_surfaces,   training_surfaces_count}},
+    {2,  {village1_surfaces,   village1_surfaces_count}},
+    {3,  {beach_surfaces,      beach_surfaces_count}},
+    {4,  {jungle_surfaces,     jungle_surfaces_count}},
+    {5,  {jungleb_surfaces,    jungleb_surfaces_count}},
+    {6,  {misty_surfaces,      misty_surfaces_count}},
+    {7,  {firecanyon_surfaces, firecanyon_surfaces_count}},
+    {8,  {village2_surfaces,   village2_surfaces_count}},
+    {9,  {sunken_surfaces,     sunken_surfaces_count}},
+    {10, {sunkenb_surfaces,    sunkenb_surfaces_count}},
+    {11, {swamp_surfaces,      swamp_surfaces_count}},
+    {12, {rolling_surfaces,    rolling_surfaces_count}},
+    {13, {ogre_surfaces,       ogre_surfaces_count}},
+    {14, {village3_surfaces,   village3_surfaces_count}},
+    {15, {snow_surfaces,       snow_surfaces_count}},
+    {16, {maincave_surfaces,   maincave_surfaces_count}},
+    {17, {darkcave_surfaces,   darkcave_surfaces_count}},
+    {18, {robotcave_surfaces,  robotcave_surfaces_count}},
+    {19, {lavatube_surfaces,   lavatube_surfaces_count}},
+    {20, {citadel_surfaces,    citadel_surfaces_count}},
+    {21, {finalboss_surfaces,  finalboss_surfaces_count}},
+};
+  const SM64Surface* surfaces1 = nullptr;
+  const SM64Surface* surfaces2 = nullptr;
   int count1 = 0;
-
   int count2 = 0;
 
-  if (fabsf(x - 1.0f) < 0.01f) {
-    surfaces1 = surfaces;
-
-    count1 = surfaces_count;
-
-    printf("[DEBUG] x matched surfaces (1.0f)\n");
-
-  } else if (fabsf(x - 2.0f) < 0.01f) {
-    surfaces1 = village1_surfaces;
-
-    count1 = village1_surfaces_count;
-
-    printf("[DEBUG] x matched village1 (2.0f)\n");
-
-  } else if (fabsf(x - 3.0f) < 0.01f) {
-    surfaces1 = beach_surfaces;
-
-    count1 = beach_surfaces_count;
-
-    printf("[DEBUG] x matched beach (3.0f)\n");
-
-  } else if (fabsf(x - 4.0f) < 0.01f) {
-    surfaces1 = jungle_surfaces;
-
-    count1 = jungle_surfaces_count;
-
-    printf("[DEBUG] x matched jungle (4.0f)\n");
+  auto it_x = surface_map.find(x_key);
+  if (it_x != surface_map.end()) {
+    surfaces1 = it_x->second.surfaces;
+    count1 = it_x->second.count;
+    printf("[DEBUG] x matched map key %d\n", x_key);
   }
 
-  if (fabsf(z - 1.0f) < 0.01f) {
-    surfaces2 = surfaces;
-
-    count2 = surfaces_count;
-
-    printf("[DEBUG] z matched surfaces (1.0f)\n");
-
-  } else if (fabsf(z - 2.0f) < 0.01f) {
-    surfaces2 = village1_surfaces;
-
-    count2 = village1_surfaces_count;
-
-    printf("[DEBUG] z matched village1 (2.0f)\n");
-
-  } else if (fabsf(z - 3.0f) < 0.01f) {
-    surfaces2 = beach_surfaces;
-
-    count2 = beach_surfaces_count;
-
-    printf("[DEBUG] z matched beach (3.0f)\n");
-
-  } else if (fabsf(z - 4.0f) < 0.01f) {
-    surfaces2 = jungle_surfaces;
-
-    count2 = jungle_surfaces_count;
-
-    printf("[DEBUG] z matched jungle (4.0f)\n");
+  auto it_z = surface_map.find(z_key);
+  if (it_z != surface_map.end()) {
+    surfaces2 = it_z->second.surfaces;
+    count2 = it_z->second.count;
+    printf("[DEBUG] z matched map key %d\n", z_key);
   }
 
   load_combined_static_surfaces(surfaces1, count1, surfaces2, count2);
@@ -1200,6 +1200,7 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-set-keyboard-enabled!", (void*)pc_set_keyboard_enabled);
   make_func_symbol_func("pc-set-mouse-options!", (void*)pc_set_mouse_options);
   make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
+  make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
   make_func_symbol_func("pc-load-mario-collide!",
 
                         (void*)pc_call_load_combined_static_surfaces_from_game_idx);

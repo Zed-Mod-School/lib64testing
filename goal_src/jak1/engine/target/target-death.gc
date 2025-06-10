@@ -31,6 +31,10 @@
                   (set! a1-0 (car a0-1))))
               #f))))
 
+(defun-extern turn-off-mario-glue none)
+(defun-extern turn-off-mario-glue-for-specific-time int none)
+(define *are-we-in-target-continue* #f)
+
 (defstate target-continue (target)
   :event target-generic-event-handler
   :exit
@@ -52,6 +56,8 @@
   :code
     (behavior ((arg0 continue-point))
       (set-time! (-> self state-time))
+      (set! *are-we-in-target-continue* #t)
+      (turn-off-mario-glue-for-specific-time (seconds 3.0))
       (if (-> *art-control* reserve-buffer) (reserve-free *art-control* (-> *art-control* reserve-buffer heap)))
       (add-setting! 'bg-a 'abs 1.0 0)
       (set! (-> *setting-control* current bg-a) 1.0)
@@ -284,6 +290,7 @@
               (car (-> s5-8 continues))))))
       (ja-channel-set! 1)
       (ja :group! eichar-stance-loop-ja)
+      (set! *are-we-in-target-continue* #f)
       (suspend)
       (logior! (-> self control status) (cshape-moving-flags onsurf onground tsurf))
       (go target-stance))

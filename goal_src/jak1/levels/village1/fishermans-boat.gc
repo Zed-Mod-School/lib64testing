@@ -651,6 +651,7 @@
           (set! (-> self auto-pilot) #t)
           (set! (-> self ignition) #t)
           (set! (-> self anchored) #f)
+          (turn-off-mario-glue-for-specific-time (seconds 30.0))
           (set! gp-0 #t))))
     gp-0))
 

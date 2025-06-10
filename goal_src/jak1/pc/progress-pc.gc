@@ -2788,6 +2788,7 @@
              ((< (-> obj option-index) 4)
               (when (nonzero? (-> s5-0 file (-> obj option-index) present))
                 (sound-play "start-options")
+                (turn-off-mario-glue-for-specific-time (seconds 0.5))
                 (set! (-> *progress-state* which) (-> obj option-index))
                 (set! (-> obj next-display-state) (progress-screen memcard-loading))))
              (else (sound-play "cursor-options") (set! (-> obj next-display-state) (progress-screen invalid)))))

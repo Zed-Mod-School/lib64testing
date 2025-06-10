@@ -287,3 +287,4 @@ uint64_t pc_get_mario_z() {
   // printf("[pc_get_mario_z] Z = %.2f -> 0x%lx\n", z, out);
   return out;
 }
+

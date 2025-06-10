@@ -55,6 +55,7 @@
         (ja :num! (seek! (ja-aframe 50.0 0))))
       (restore-collide-with-as (-> self control))
       (ja-no-eval :group! eichar-duck-high-jump-ja :num! (seek!) :frame-num (ja-aframe 50.0 0))
+      (set! *are-we-in-target-continue* #f)
       (until (ja-done? 0)
         (suspend)
         (ja :num! (seek!)))

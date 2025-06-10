@@ -1275,6 +1275,7 @@
   (set! (-> self event-hook) target-generic-event-handler)
   (set! (-> self current-level) #f)
   (level-setup)
+  ;;(turn-off-mario-glue)
   (go target-continue arg0)
   (none))
 
