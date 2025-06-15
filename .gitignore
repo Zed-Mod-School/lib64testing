@@ -12,7 +12,8 @@ cmake-build-debug--o0/*
 .idea/*
 build/
 build.master/
-/decompiler_out*
+/decompiler_out/jak1/*
+!/decompiler_out/jak1/collision/
 logs/*
 profile_data/*
 
@@ -88,3 +89,6 @@ unifont-15.0.03.ttf
 *.diff
 goalc-report.html
 *.z64
+*.mtl
+*.obj
+/decompiler_out/jak1/collision/*.c
