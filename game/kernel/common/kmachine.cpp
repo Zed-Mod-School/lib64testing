@@ -822,7 +822,7 @@ static const std::unordered_map<int, SurfaceEntry> surface_map = {
     {15, {snow_surfaces,       snow_surfaces_count}},
     {16, {maincave_surfaces,   maincave_surfaces_count}},
     {17, {darkcave_surfaces,   darkcave_surfaces_count}},
-    {18, {robotcave_surfaces,  robotcave_surfaces_count}},
+    {18, {robocave_surfaces,  robocave_surfaces_count}},
     {19, {lavatube_surfaces,   lavatube_surfaces_count}},
     {20, {citadel_surfaces,    citadel_surfaces_count}},
     {21, {finalboss_surfaces,  finalboss_surfaces_count}},

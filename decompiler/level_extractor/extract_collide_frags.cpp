@@ -234,21 +234,6 @@ void extract_collide_frags(const level_tools::DrawableTreeCollideFragment* tree,
                            const Config& config,
                            const std::string& debug_name,
                            tfrag3::Level& out) {
-  // in-game, the broad-phase collision builds a list of fragments, then unpacks them with:
-  /*
-   *(dotimes (i (-> *collide-list* num-items))
-      (let ((frag (-> *collide-list* items i)))
-          ;; to VU0 memory
-          (__pc-upload-collide-frag (-> frag mesh packed-data) (-> frag mesh vertex-data-qwc) (->
-   frag mesh vertex-count))
-          ;; from VU0 memory to scratchpad
-          (unpack-background-collide-mesh obj (-> frag mesh) (-> frag inst) 0)
-          ;; from scratchpad to collide-cache memory.
-          (import-mesh-func obj (-> frag mesh))
-        )
-      )
-   */
-
   auto all_frags = build_all_frags_list(tree, ties);
   [[maybe_unused]] u32 total_faces = 0;
   for (auto& frag : all_frags) {
@@ -259,11 +244,46 @@ void extract_collide_frags(const level_tools::DrawableTreeCollideFragment* tree,
     total_faces += frag.unpacked.faces.size();
   }
 
+std::unordered_map<std::string, std::string> my_name_overrides = {
+    {"BEA.DGO-3-collide", "beach"},
+    {"CIT.DGO-5-collide", "citadel"},
+    {"DAR.DGO-2-collide", "darkcave"},
+    {"DEM.DGO-1-collide", "demo"},
+    {"FIC.DGO-3-collide", "firecanyon"},
+    {"INT.DGO-2-collide", "intro"},
+    {"JUB.DGO-3-collide", "jungleb"},
+    {"JUN.DGO-3-collide", "jungle"},
+    {"LAV.DGO-3-collide", "lavatube"},
+    {"MAI.DGO-2-collide", "maincave"},
+    {"MIS.DGO-4-collide", "misty"},
+    {"OGR.DGO-3-collide", "ogre"},
+    {"ROB.DGO-2-collide", "robocave"},
+    {"ROL.DGO-3-collide", "rolling"},
+    {"SNO.DGO-4-collide", "snow"},
+    {"SUB.DGO-3-collide", "sunkenb"},
+    {"SUN.DGO-4-collide", "sunken"},
+    {"SWA.DGO-3-collide", "swamp"},
+    {"TIT.DGO-1-collide", "title"},
+    {"TRA.DGO-3-collide", "training"},
+    {"VI1.DGO-5-collide", "village1"},
+    {"VI2.DGO-4-collide", "village2"},
+    {"VI3.DGO-3-collide", "village3"},
+    {"FIN.DGO-2-collide", "finalboss"}
+};
+
+  std::string final_name = debug_name;
+  auto it = my_name_overrides.find(debug_name);
+  if (it != my_name_overrides.end()) {
+    final_name = it->second;
+  }
+
+  lg::warn("Skipping extract for {} because the BSP file was not found", final_name);
+
   if (config.rip_collision) {
     auto debug_out = debug_dump_to_obj(all_frags);
     auto file_path =
         file_util::get_file_path({fmt::format("decompiler_out/{}/collision", config.game_name),
-                                  fmt::format("collide-{}.obj", debug_name)});
+                                  fmt::format("{}.obj", final_name)});
     file_util::create_dir_if_needed_for_file(file_path);
     file_util::write_text_file(file_path, debug_out);
   }
@@ -282,6 +302,7 @@ void extract_collide_frags(const level_tools::DrawableTreeCollideFragment* tree,
     }
   }
 }
+
 
 ////////////////////////
 // Jak 2 Format
