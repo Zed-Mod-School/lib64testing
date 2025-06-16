@@ -113,8 +113,8 @@ int normalize_axes_value(int sdl_val) {
 auto sdl_axis_to_sm64 = [](int value) -> int8_t {
   value = std::clamp(value, -32768, 32767);
 
-  // ✅ Apply a ~10% deadzone
-  if (std::abs(value) < 3000)
+  // ✅ Apply a deadzone
+  if (std::abs(value) < 8000)
     return 0;
 
   float scaled = (value / 32767.0f) * 64.0f;
