@@ -25,51 +25,49 @@
 #include "game/sce/libscf.h"
 #include "game/sce/sif_ee.h"
 
-void load_combined_static_surfaces(const struct SM64Surface* surfaces1,
+static SM64Surface* g_combined_surfaces = nullptr;
+static int g_combined_surfaces_count = 0;
 
+void load_combined_static_surfaces(const SM64Surface* surfaces1,
                                    int count1,
-
-                                   const struct SM64Surface* surfaces2,
-
+                                   const SM64Surface* surfaces2,
                                    int count2) {
   int total_count = count1 + count2;
 
-  struct SM64Surface* combined =
-      (struct SM64Surface*)malloc(sizeof(struct SM64Surface) * total_count);
+  if (g_combined_surfaces) {
+    free(g_combined_surfaces);
+    g_combined_surfaces = nullptr;
+    g_combined_surfaces_count = 0;
+  }
 
-  if (!combined) {
+  g_combined_surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * total_count);
+
+  if (!g_combined_surfaces) {
     fprintf(stderr, "Failed to allocate memory for combined surfaces\n");
-
     return;
   }
 
   int offset = 0;
 
   if (surfaces1 && count1 > 0) {
-    memcpy(combined, surfaces1, sizeof(struct SM64Surface) * count1);
-
+    memcpy(g_combined_surfaces, surfaces1, sizeof(SM64Surface) * count1);
     offset += count1;
   }
 
   if (surfaces2 && count2 > 0) {
-    memcpy(combined + offset, surfaces2, sizeof(struct SM64Surface) * count2);
+    memcpy(g_combined_surfaces + offset, surfaces2, sizeof(SM64Surface) * count2);
   }
 
-  sm64_static_surfaces_load(combined, total_count);
+  g_combined_surfaces_count = total_count;
 
-  // sm64_static_surfaces_load(village1_surfaces, village1_surfaces_count);
+  sm64_static_surfaces_load(g_combined_surfaces, g_combined_surfaces_count);
 
   if (marioId == -1) {
-    // Initialize Mario  and print his ID to the console 10 times
-
     marioId = sm64_mario_create(-7541.8, 1688.475, 9237.5);
-
     for (int i = 0; i < 10; ++i) {
       printf("marioId = %d\n", marioId);
     }
   }
-
-  // free(combined);
 }
 
 /*!
@@ -771,20 +769,19 @@ void pc_set_mario_camera(u32 x, u32 z) {
   memcpy(&g_mario_inputs.camLookZ, &z, 4);
 }
 
-
 void pc_set_mario_position_from_goal(u32 x_bits, u32 y_bits, u32 z_bits) {
-    float x, y, z;
-    memcpy(&x, &x_bits, sizeof(u32));
-    memcpy(&y, &y_bits, sizeof(u32));
-    memcpy(&z, &z_bits, sizeof(u32));
+  float x, y, z;
+  memcpy(&x, &x_bits, sizeof(u32));
+  memcpy(&y, &y_bits, sizeof(u32));
+  memcpy(&z, &z_bits, sizeof(u32));
 
-    constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
+  constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 
-    x *= METERS_TO_UNITS;
-    y *= METERS_TO_UNITS;
-    z *= METERS_TO_UNITS;
+  x *= METERS_TO_UNITS;
+  y *= METERS_TO_UNITS;
+  z *= METERS_TO_UNITS;
 
-    sm64_set_mario_position(marioId, x, y, z);
+  sm64_set_mario_position(marioId, x, y, z);
 }
 
 struct SurfaceEntry {
@@ -804,29 +801,29 @@ void pc_call_load_combined_static_surfaces_from_game_idx(u32 x_bits, u32 z_bits)
   int x_key = static_cast<int>(roundf(x));
   int z_key = static_cast<int>(roundf(z));
 
-static const std::unordered_map<int, SurfaceEntry> surface_map = {
-    {1,  {training_surfaces,   training_surfaces_count}},
-    {2,  {village1_surfaces,   village1_surfaces_count}},
-    {3,  {beach_surfaces,      beach_surfaces_count}},
-    {4,  {jungle_surfaces,     jungle_surfaces_count}},
-    {5,  {jungleb_surfaces,    jungleb_surfaces_count}},
-    {6,  {misty_surfaces,      misty_surfaces_count}},
-    {7,  {firecanyon_surfaces, firecanyon_surfaces_count}},
-    {8,  {village2_surfaces,   village2_surfaces_count}},
-    {9,  {sunken_surfaces,     sunken_surfaces_count}},
-    {10, {sunkenb_surfaces,    sunkenb_surfaces_count}},
-    {11, {swamp_surfaces,      swamp_surfaces_count}},
-    {12, {rolling_surfaces,    rolling_surfaces_count}},
-    {13, {ogre_surfaces,       ogre_surfaces_count}},
-    {14, {village3_surfaces,   village3_surfaces_count}},
-    {15, {snow_surfaces,       snow_surfaces_count}},
-    {16, {maincave_surfaces,   maincave_surfaces_count}},
-    {17, {darkcave_surfaces,   darkcave_surfaces_count}},
-    {18, {robocave_surfaces,  robocave_surfaces_count}},
-    {19, {lavatube_surfaces,   lavatube_surfaces_count}},
-    {20, {citadel_surfaces,    citadel_surfaces_count}},
-    {21, {finalboss_surfaces,  finalboss_surfaces_count}},
-};
+  static const std::unordered_map<int, SurfaceEntry> surface_map = {
+      {1, {training_surfaces, training_surfaces_count}},
+      {2, {village1_surfaces, village1_surfaces_count}},
+      {3, {beach_surfaces, beach_surfaces_count}},
+      {4, {jungle_surfaces, jungle_surfaces_count}},
+      {5, {jungleb_surfaces, jungleb_surfaces_count}},
+      {6, {misty_surfaces, misty_surfaces_count}},
+      {7, {firecanyon_surfaces, firecanyon_surfaces_count}},
+      {8, {village2_surfaces, village2_surfaces_count}},
+      {9, {sunken_surfaces, sunken_surfaces_count}},
+      {10, {sunkenb_surfaces, sunkenb_surfaces_count}},
+      {11, {swamp_surfaces, swamp_surfaces_count}},
+      {12, {rolling_surfaces, rolling_surfaces_count}},
+      {13, {ogre_surfaces, ogre_surfaces_count}},
+      {14, {village3_surfaces, village3_surfaces_count}},
+      {15, {snow_surfaces, snow_surfaces_count}},
+      {16, {maincave_surfaces, maincave_surfaces_count}},
+      {17, {darkcave_surfaces, darkcave_surfaces_count}},
+      {18, {robocave_surfaces, robocave_surfaces_count}},
+      {19, {lavatube_surfaces, lavatube_surfaces_count}},
+      {20, {citadel_surfaces, citadel_surfaces_count}},
+      {21, {finalboss_surfaces, finalboss_surfaces_count}},
+  };
   const SM64Surface* surfaces1 = nullptr;
   const SM64Surface* surfaces2 = nullptr;
   int count1 = 0;

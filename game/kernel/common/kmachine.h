@@ -6,6 +6,8 @@
 #include "game/kernel/common/kscheme.h"
 #include "libsm64/libsm64.h"
 extern SM64MarioInputs g_mario_inputs;
+extern struct SM64Surface* g_combined_surfaces;
+extern int g_combined_surfaces_count;
 /*!
  * Where does OVERLORD load its data from?
  */

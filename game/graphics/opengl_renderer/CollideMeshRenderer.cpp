@@ -256,69 +256,69 @@ void CollideMeshRenderer::render(SharedRenderState* render_state, ScopedProfiler
     glUniform1ui(glGetUniformLocation(shader, "collision_skip_nomask_allowed"),
                  Gfx::g_global_settings.collision_skip_nomask_allowed);
     glUniform1i(glGetUniformLocation(shader, "mode"), Gfx::g_global_settings.collision_mode);
-   // glDrawArrays(GL_TRIANGLES, 0, lev->level->collision.vertices.size());
+    // glDrawArrays(GL_TRIANGLES, 0, lev->level->collision.vertices.size());
 
     if (Gfx::g_global_settings.collision_wireframe) {
       glUniform1i(glGetUniformLocation(shader, "wireframe"), 1);
       glDisable(GL_BLEND);
       glDepthMask(GL_FALSE);
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-     // glDrawArrays(GL_TRIANGLES, 0, lev->level->collision.vertices.size());
+      // glDrawArrays(GL_TRIANGLES, 0, lev->level->collision.vertices.size());
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
       glEnable(GL_BLEND);
       glDepthMask(GL_TRUE);
     }
- 
 
-      // === Begin Mario Geometry Draw ===
-  if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
-    // Use the same shader to draw Mario (optionally use another if needed)
-    glBindVertexArray(m_vao);
+    // === Begin Mario Geometry Draw ===
+    if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
+      // Use the same shader to draw Mario (optionally use another if needed)
+      glBindVertexArray(m_vao);
 
-    struct Vertex {
-      float pos[3];
-      float color[3];
-    };
-float scale = 4096.0f / 50.0f;
-    std::vector<Vertex> mario_vertices;
-for (int i = 0; i < g_geom.numTrianglesUsed * 3; ++i) {
-  float x = g_geom.position[i * 3 + 0] * scale;
-  float y = g_geom.position[i * 3 + 1] * scale;
-  float z = g_geom.position[i * 3 + 2] * scale;
+      struct Vertex {
+        float pos[3];
+        float color[3];
+      };
+      float scale = 4096.0f / 50.0f;
+      std::vector<Vertex> mario_vertices;
+      for (int i = 0; i < g_geom.numTrianglesUsed * 3; ++i) {
+        float x = g_geom.position[i * 3 + 0] * scale;
+        float y = g_geom.position[i * 3 + 1] * scale;
+        float z = g_geom.position[i * 3 + 2] * scale;
 
-  float r = 1.0f, g = 1.0f, b = 1.0f;
-  if (g_geom.color) {
-    r = g_geom.color[i * 3 + 0];
-    g = g_geom.color[i * 3 + 1];
-    b = g_geom.color[i * 3 + 2];
-  }
+        float r = 1.0f, g = 1.0f, b = 1.0f;
+        if (g_geom.color) {
+          r = g_geom.color[i * 3 + 0];
+          g = g_geom.color[i * 3 + 1];
+          b = g_geom.color[i * 3 + 2];
+        }
 
-  mario_vertices.push_back({{x, y, z}, {r, g, b}});
-}
+        mario_vertices.push_back({{x, y, z}, {r, g, b}});
+      }
 
+      // Setup temp VBO
+      static GLuint mario_vbo = 0;
+      if (mario_vbo == 0) {
+        glGenBuffers(1, &mario_vbo);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, mario_vbo);
+      glBufferData(GL_ARRAY_BUFFER, mario_vertices.size() * sizeof(Vertex), mario_vertices.data(),
+                   GL_DYNAMIC_DRAW);
 
-    // Setup temp VBO
-    static GLuint mario_vbo = 0;
-    if (mario_vbo == 0) {
-      glGenBuffers(1, &mario_vbo);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                            (void*)offsetof(Vertex, color));
+      glEnableVertexAttribArray(1);
+
+      // Disable special attribs to match shader
+      glDisableVertexAttribArray(2);
+      glDisableVertexAttribArray(3);
+
+      //  glDepthFunc(GL_ALWAYS); // Ensure Mario always draws
+      glDrawArrays(GL_TRIANGLES, 0, mario_vertices.size());
+      // glDepthFunc(GL_GEQUAL); // Restore depth mode
     }
-    glBindBuffer(GL_ARRAY_BUFFER, mario_vbo);
-    glBufferData(GL_ARRAY_BUFFER, mario_vertices.size() * sizeof(Vertex), mario_vertices.data(), GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(1);
-
-    // Disable special attribs to match shader
-    glDisableVertexAttribArray(2);
-    glDisableVertexAttribArray(3);
-
-  //  glDepthFunc(GL_ALWAYS); // Ensure Mario always draws
-    glDrawArrays(GL_TRIANGLES, 0, mario_vertices.size());
-   // glDepthFunc(GL_GEQUAL); // Restore depth mode
-  }
-  // === End Mario Geometry Draw ===
+    // === End Mario Geometry Draw ===
 
     prof.add_draw_call();
     prof.add_tri(lev->level->collision.vertices.size() / 3);

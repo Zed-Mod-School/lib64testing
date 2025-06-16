@@ -320,7 +320,7 @@
       ((name= lvl-name "lavatube")    (if (= i 0) (set! arg1-mario-lvl 19.0) (set! arg2-mario-lvl 19.0)))
       ((name= lvl-name "citadel")     (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
       ((name= lvl-name "finalboss")   (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0)))
-      
+
       )))
     (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
       (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)

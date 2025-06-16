@@ -12,10 +12,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <math.h>
 
 #include "common/common_types.h"
 #include "common/log/log.h"
 #include "common/util/Timer.h"
+
+#include "game/kernel/common/kmachine.h"
 
 #include "game/common/game_common_types.h"
 #include "game/kernel/common/klisten.h"
@@ -121,6 +124,120 @@ s32 goal_main(int argc, const char* const* argv) {
  * Main loop to dispatch the GOAL kernel.
  */
 
+
+#define CYLINDER_RADIUS 2000.0f
+#define CYLINDER_RADIUS_SQ (CYLINDER_RADIUS * CYLINDER_RADIUS)
+#define CYLINDER_BUFFER 1000.0f
+
+static float g_cylinder_center[3] = {-7541.8f, 1688.475f, 9237.5f};  // initial Mario position
+
+// Convert fixed-point vertex to float (or adjust based on actual vertex format if needed)
+static inline float to_f32(int32_t val) {
+  return static_cast<float>(val);
+}
+
+// Check if point is inside triangle in XZ plane
+bool point_in_triangle_2d(float px, float pz, const int32_t v[3][3]) {
+  float x0 = to_f32(v[0][0]), z0 = to_f32(v[0][2]);
+  float x1 = to_f32(v[1][0]), z1 = to_f32(v[1][2]);
+  float x2 = to_f32(v[2][0]), z2 = to_f32(v[2][2]);
+
+  float dX = px - x2;
+  float dZ = pz - z2;
+  float dX21 = x2 - x1;
+  float dZ12 = z1 - z2;
+  float D = (z0 - z2) * dX21 + (x2 - x0) * dZ12;
+  float s = ((z0 - z2) * dX + (x2 - x0) * dZ) / D;
+  float t = ((z2 - z1) * dX + (x1 - x2) * dZ) / D;
+
+  return s >= 0 && t >= 0 && (s + t) <= 1;
+}
+
+// Sample points inside triangle to check for cylinder overlap
+bool triangle_samples_in_cylinder(float center_x, float center_z, const int32_t v[3][3]) {
+  const float samples[7][2] = {
+      {1.0f / 3, 1.0f / 3},
+      {0.6f, 0.2f}, {0.2f, 0.6f},
+      {0.2f, 0.2f}, {0.5f, 0.25f},
+      {0.25f, 0.5f}, {0.4f, 0.4f},
+  };
+
+  for (int i = 0; i < 7; ++i) {
+    float a = samples[i][0];
+    float b = samples[i][1];
+    float c = 1.0f - a - b;
+
+    float px = a * to_f32(v[0][0]) + b * to_f32(v[1][0]) + c * to_f32(v[2][0]);
+    float pz = a * to_f32(v[0][2]) + b * to_f32(v[1][2]) + c * to_f32(v[2][2]);
+
+    float dx = px - center_x;
+    float dz = pz - center_z;
+    if (dx * dx + dz * dz <= CYLINDER_RADIUS_SQ)
+      return true;
+  }
+  return false;
+}
+
+int load_surfaces_near(float x, float y, float z) {
+  if (!g_combined_surfaces || g_combined_surfaces_count == 0)
+    return 0;
+
+  SM64Surface* filtered = (SM64Surface*)malloc(sizeof(SM64Surface) * g_combined_surfaces_count);
+  if (!filtered) return 0;
+
+  int count = 0;
+
+  for (int i = 0; i < g_combined_surfaces_count; ++i) {
+    const SM64Surface* s = &g_combined_surfaces[i];
+    bool include = false;
+
+    // 1. Any vertex in cylinder
+    for (int v = 0; v < 3; ++v) {
+      float dx = to_f32(s->vertices[v][0]) - x;
+      float dz = to_f32(s->vertices[v][2]) - z;
+      if (dx * dx + dz * dz <= CYLINDER_RADIUS_SQ) {
+        include = true;
+        break;
+      }
+    }
+
+    // 2. Cylinder center inside triangle
+    if (!include && point_in_triangle_2d(x, z, s->vertices)) {
+      include = true;
+    }
+
+    // 3. Triangle samples intersect cylinder
+    if (!include && triangle_samples_in_cylinder(x, z, s->vertices)) {
+      include = true;
+    }
+
+    if (include) {
+      filtered[count++] = *s;
+    }
+  }
+
+  sm64_static_surfaces_load(filtered, count);
+  free(filtered);
+
+  printf("🔄 Reloaded %d static surfaces near (%.1f, %.1f, %.1f)\n", count, x, y, z);
+  return count;
+}
+
+void maybe_reload_surfaces(const float* mario_pos) {
+  float dx = mario_pos[0] - g_cylinder_center[0];
+  float dz = mario_pos[2] - g_cylinder_center[2];
+  float dist_sq = dx * dx + dz * dz;
+
+  float reload_threshold_sq = (CYLINDER_RADIUS - CYLINDER_BUFFER) * (CYLINDER_RADIUS - CYLINDER_BUFFER);
+  if (dist_sq > reload_threshold_sq) {
+    g_cylinder_center[0] = mario_pos[0];
+    g_cylinder_center[1] = mario_pos[1];
+    g_cylinder_center[2] = mario_pos[2];
+
+    load_surfaces_near(g_cylinder_center[0], g_cylinder_center[1], g_cylinder_center[2]);
+  }
+}
+
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
   // sm64_global_terminate(); // this is just a placeholder function call to make sure it is
@@ -203,6 +320,7 @@ void KernelCheckAndDispatch() {
       inputs.stickY = -scaled_stick_y;
 
       sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
+      maybe_reload_surfaces(g_mario_state.position);
       frame_num = 0;
     }
 

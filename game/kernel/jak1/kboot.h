@@ -14,7 +14,7 @@ extern int marioId;
 uint64_t pc_get_mario_x();
 uint64_t pc_get_mario_y();
 uint64_t pc_get_mario_z();
-
+void MarioThreadMain();
 void load_combined_static_surfaces(const struct SM64Surface* surfaces1,
 
                                    int count1,
