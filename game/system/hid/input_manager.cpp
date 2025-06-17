@@ -42,6 +42,11 @@ InputManager::InputManager(SDL_Window* window)
         sdl_util::log_error(
             "Could not initialize SDL Controller support, controllers will not work!");
       }
+
+      //       if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+      //   sdl_util::log_error(
+      //       "Could not initialize SDL AUDIO support, controllers will not work!");
+      // }
     }
 
     // Update to latest controller DB file
