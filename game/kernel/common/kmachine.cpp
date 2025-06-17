@@ -25,8 +25,8 @@
 #include "game/sce/libscf.h"
 #include "game/sce/sif_ee.h"
 
-static SM64Surface* g_combined_surfaces = nullptr;
-static int g_combined_surfaces_count = 0;
+SM64Surface* g_combined_surfaces = nullptr;
+ int g_combined_surfaces_count = 0;
 
 void load_combined_static_surfaces(const SM64Surface* surfaces1,
                                    int count1,

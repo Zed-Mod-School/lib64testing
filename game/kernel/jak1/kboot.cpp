@@ -14,6 +14,8 @@
 #include <thread>
 #include <math.h>
 
+#include <SDL3/SDL.h>
+
 #include "common/common_types.h"
 #include "common/log/log.h"
 #include "common/util/Timer.h"
@@ -30,6 +32,84 @@
 #include "game/sce/libscf.h"
 
 using namespace ee;
+
+
+
+void PlayTestWav() {
+    printf("[libsm64][DEBUG] Starting WAV audio playback test (SDL3_OpenAudioDeviceStream-compliant).\n");
+
+    const char* test_wav_path = "test.wav";
+    SDL_AudioSpec wav_spec;
+    Uint8* wav_buffer = nullptr;
+    Uint32 wav_length = 0;
+
+    // Ensure SDL audio subsystem is initialized
+    if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
+        if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+            fprintf(stderr, "[libsm64][ERROR] SDL_Init(SDL_INIT_AUDIO) failed: %s\n", SDL_GetError());
+            return;
+        }
+    }
+
+    // Load WAV file using SDL_RWops and SDL_LoadWAV_RW (safe for SDL3)
+    SDL_RWops* rw = SDL_RWFromFile(test_wav_path, "rb");
+    if (!rw) {
+        fprintf(stderr, "[libsm64][ERROR] Failed to open '%s': %s\n", test_wav_path, SDL_GetError());
+        return;
+    }
+
+    if (!SDL_LoadWAV_RW(rw, 1, &wav_spec, &wav_buffer, &wav_length)) {
+        fprintf(stderr, "[libsm64][ERROR] Failed to load WAV from '%s': %s\n", test_wav_path, SDL_GetError());
+        return;
+    }
+
+    printf("[libsm64][DEBUG] Loaded %s: Format=%s, Channels=%d, Freq=%d, Length=%u bytes\n",
+           test_wav_path,
+           SDL_GetAudioFormatName(wav_spec.format),
+           wav_spec.channels,
+           wav_spec.freq,
+           wav_length);
+
+    // Open audio stream for playback
+    SDL_AudioStream* test_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &wav_spec, nullptr, nullptr);
+    if (!test_stream) {
+        fprintf(stderr, "[libsm64][ERROR] Failed to open audio device stream: %s\n", SDL_GetError());
+        SDL_free(wav_buffer);
+        return;
+    }
+    printf("[libsm64][DEBUG] Successfully opened audio device stream.\n");
+
+    // Push audio data
+    if (SDL_PutAudioStreamData(test_stream, wav_buffer, wav_length) < 0) {
+        fprintf(stderr, "[libsm64][ERROR] Failed to queue audio data: %s\n", SDL_GetError());
+        SDL_DestroyAudioStream(test_stream);
+        SDL_free(wav_buffer);
+        return;
+    }
+    SDL_free(wav_buffer);
+    printf("[libsm64][DEBUG] Audio data queued.\n");
+
+    // Start playback
+    if (SDL_ResumeAudioStreamDevice(test_stream) < 0) {
+        fprintf(stderr, "[libsm64][ERROR] Failed to resume playback: %s\n", SDL_GetError());
+        SDL_DestroyAudioStream(test_stream);
+        return;
+    }
+    printf("[libsm64][DEBUG] Playback resumed.\n");
+
+    // Wait until playback is done
+    while (SDL_GetAudioStreamQueued(test_stream) > 0) {
+        SDL_Delay(50);
+    }
+
+    SDL_Delay(250); // Ensure final samples play out
+    printf("[libsm64][DEBUG] Playback finished.\n");
+
+    // Cleanup
+    SDL_DestroyAudioStream(test_stream);
+    printf("[libsm64][DEBUG] Audio stream destroyed.\n");
+}
+
 
 // mario globals?
 int marioId = -1;
@@ -239,6 +319,7 @@ void maybe_reload_surfaces(const float* mario_pos) {
 }
 
 void KernelCheckAndDispatch() {
+
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
   // sm64_global_terminate(); // this is just a placeholder function call to make sure it is
   // imported and linked by compiler we can move/change it later.
@@ -262,6 +343,11 @@ void KernelCheckAndDispatch() {
   // sm64_global_terminate();
   sm64_global_init(romBuffer, marioTexture);
 
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+    fprintf(stderr, "[libsm64][ERROR] SDL_Init failed: %s\n", SDL_GetError());
+    return;
+}
+  PlayTestWav();
   // Load the mario surfaces
   // sm64_static_surfaces_load( surfaces, surfaces_count);
 
