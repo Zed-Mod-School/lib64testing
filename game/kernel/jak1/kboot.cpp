@@ -38,76 +38,64 @@ using namespace ee;
 void PlayTestWav() {
     printf("[libsm64][DEBUG] Starting WAV audio playback test (SDL3_OpenAudioDeviceStream-compliant).\n");
 
-    const char* test_wav_path = "test.wav";
+    const char* test_wav_path = "test.wav"; // Path to your test WAV file
     SDL_AudioSpec wav_spec;
-    Uint8* wav_buffer = nullptr;
-    Uint32 wav_length = 0;
+    uint8_t *wav_buffer = NULL;
+    uint32_t wav_length = 0;
+    SDL_AudioStream *test_stream = NULL; // Moved stream declaration here
 
-    // Ensure SDL audio subsystem is initialized
-    if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
-        if (SDL_Init(SDL_INIT_AUDIO) < 0) {
-            fprintf(stderr, "[libsm64][ERROR] SDL_Init(SDL_INIT_AUDIO) failed: %s\n", SDL_GetError());
-            return;
-        }
-    }
-
-    // Load WAV file using SDL_RWops and SDL_LoadWAV_RW (safe for SDL3)
-    SDL_RWops* rw = SDL_RWFromFile(test_wav_path, "rb");
-    if (!rw) {
-        fprintf(stderr, "[libsm64][ERROR] Failed to open '%s': %s\n", test_wav_path, SDL_GetError());
+    // 1. Load the WAV file using the simpler SDL_LoadWAV (if available)
+    if (SDL_LoadWAV(test_wav_path, &wav_spec, &wav_buffer, &wav_length) == -1) {
+        fprintf(stderr, "[libsm64][ERROR] Failed to load test.wav '%s': %s\n", test_wav_path, SDL_GetError());
         return;
     }
 
-    if (!SDL_LoadWAV_RW(rw, 1, &wav_spec, &wav_buffer, &wav_length)) {
-        fprintf(stderr, "[libsm64][ERROR] Failed to load WAV from '%s': %s\n", test_wav_path, SDL_GetError());
-        return;
-    }
+    printf("[libsm64][DEBUG] Loaded test.wav: Format=%s, Channels=%d, Freq=%d, Length=%u bytes\n",
+           SDL_GetAudioFormatName(wav_spec.format), wav_spec.channels, wav_spec.freq, wav_length);
 
-    printf("[libsm64][DEBUG] Loaded %s: Format=%s, Channels=%d, Freq=%d, Length=%u bytes\n",
-           test_wav_path,
-           SDL_GetAudioFormatName(wav_spec.format),
-           wav_spec.channels,
-           wav_spec.freq,
-           wav_length);
-
-    // Open audio stream for playback
-    SDL_AudioStream* test_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &wav_spec, nullptr, nullptr);
+    // 2. Open an audio stream directly associated with the default playback device
+    test_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &wav_spec, NULL, NULL);
     if (!test_stream) {
         fprintf(stderr, "[libsm64][ERROR] Failed to open audio device stream: %s\n", SDL_GetError());
         SDL_free(wav_buffer);
         return;
     }
-    printf("[libsm64][DEBUG] Successfully opened audio device stream.\n");
+    printf("[libsm64][DEBUG] Successfully opened test audio device stream.\n");
 
-    // Push audio data
+    // 3. Put the WAV data into the stream
     if (SDL_PutAudioStreamData(test_stream, wav_buffer, wav_length) < 0) {
-        fprintf(stderr, "[libsm64][ERROR] Failed to queue audio data: %s\n", SDL_GetError());
-        SDL_DestroyAudioStream(test_stream);
+        fprintf(stderr, "[libsm64][ERROR] Failed to put WAV data into stream: %s\n", SDL_GetError());
+        SDL_DestroyAudioStream(test_stream); // Correct cleanup here
         SDL_free(wav_buffer);
         return;
     }
-    SDL_free(wav_buffer);
-    printf("[libsm64][DEBUG] Audio data queued.\n");
+    SDL_free(wav_buffer); // Data has been copied to the stream, can free original buffer
 
-    // Start playback
+    printf("[libsm64][DEBUG] WAV data queued into stream.\n");
+
+    // 4. Resume the stream's device to start playback
     if (SDL_ResumeAudioStreamDevice(test_stream) < 0) {
-        fprintf(stderr, "[libsm64][ERROR] Failed to resume playback: %s\n", SDL_GetError());
-        SDL_DestroyAudioStream(test_stream);
+        fprintf(stderr, "[libsm64][ERROR] Failed to resume audio stream device: %s\n", SDL_GetError());
+        SDL_DestroyAudioStream(test_stream); // Correct cleanup here
         return;
     }
-    printf("[libsm64][DEBUG] Playback resumed.\n");
+    printf("[libsm64][DEBUG] Audio stream device resumed. Playing WAV...\n");
 
-    // Wait until playback is done
+    // 5. Wait for playback to complete
+    printf("[libsm64][DEBUG] Waiting for WAV playback to finish...\n");
+    // We wait until the stream has no more data queued from us.
     while (SDL_GetAudioStreamQueued(test_stream) > 0) {
-        SDL_Delay(50);
+        SDL_Delay(50); // Small delay to avoid busy-waiting
     }
 
-    SDL_Delay(250); // Ensure final samples play out
-    printf("[libsm64][DEBUG] Playback finished.\n");
+    // Add a slight delay to ensure the last buffered samples play out
+    SDL_Delay(500);
 
-    // Cleanup
-    SDL_DestroyAudioStream(test_stream);
-    printf("[libsm64][DEBUG] Audio stream destroyed.\n");
+    printf("[libsm64][DEBUG] Finished WAV audio playback test.\n");
+
+    // 6. Clean up
+    SDL_DestroyAudioStream(test_stream); // Correct cleanup here: Destroys the stream and closes the device
+    printf("[libsm64][DEBUG] Test audio device stream closed.\n");
 }
 
 
