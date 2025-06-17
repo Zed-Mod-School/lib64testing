@@ -29,6 +29,7 @@
 #include "game/kernel/common/ksocket.h"
 #include "game/kernel/jak1/klisten.h"
 #include "game/kernel/jak1/kmachine.h"
+#include "game/kernel/jak1/audio.h"
 #include "game/sce/libscf.h"
 
 using namespace ee;
@@ -335,16 +336,20 @@ void KernelCheckAndDispatch() {
     fprintf(stderr, "[libsm64][ERROR] SDL_Init failed: %s\n", SDL_GetError());
     return;
 }
-  PlayTestWav();
+ // PlayTestWav();
   // Load the mario surfaces
   // sm64_static_surfaces_load( surfaces, surfaces_count);
+
+  sm64_audio_init(romBuffer);
 
   // audio_thread_init();
   // sm64_set_sound_volume(0.5f);
   // sm64_play_sound_global(SOUND_MENU_STAR_SOUND);
 
-  delete[] romBuffer;
-
+  //delete[] romBuffer;
+   audio_init();
+   
+    sm64_play_music(0, 0x05 | 0x80, 0); // from decomp/include/seq_ids.h: SEQ_LEVEL_WATER | SEQ_VARIATION
   // Initialize Mario  and print his ID to the console 10 times
   // marioId = sm64_mario_create(-7541.8, 1688.475, 9237.5);
   // for (int i = 0; i < 10; ++i) {
