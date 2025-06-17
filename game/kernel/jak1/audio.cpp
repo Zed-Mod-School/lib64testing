@@ -6,12 +6,11 @@
 #include <chrono>
 #include <SDL3/SDL.h>
 #ifdef _WIN32
-#include <windows.h>  // For Sleep if you want it directly
+#include <windows.h>
 #endif
 
 extern "C" {
 #include "libsm64/libsm64.h"
-//#include "context.h"
 }
 
 static SDL_AudioStream* stream = nullptr;
@@ -19,84 +18,92 @@ static SDL_AudioDeviceID dev;
 static std::thread gSoundThread;
 static std::atomic<bool> gKeepRunning = true;
 
-// Cross-platform time in milliseconds using std::chrono
-long long timeInMilliseconds()
-{
+long long timeInMilliseconds() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
         .count();
 }
 
-void audio_thread()
-{
+void audio_thread() {
+    printf("[AUDIO] Audio thread started.\n");
     long long currentTime = timeInMilliseconds();
     long long targetTime = 0;
 
-    while (gKeepRunning.load())
-    {
+    while (gKeepRunning.load()) {
         int16_t audioBuffer[544 * 2 * 2];
         int queued = SDL_GetAudioStreamQueued(stream) / sizeof(int16_t) / 2;
+        printf("[AUDIO] Queued samples: %d\n", queued);
 
         uint32_t numSamples = sm64_audio_tick(queued, 1100, audioBuffer);
+        printf("[AUDIO] sm64_audio_tick returned %u samples\n", numSamples);
 
         if (queued < 6000) {
-            if (SDL_PutAudioStreamData(stream, audioBuffer, numSamples * sizeof(int16_t) * 2) < 0) {
-                fprintf(stderr, "SDL_PutAudioStreamData error: %s\n", SDL_GetError());
+            int result = SDL_PutAudioStreamData(stream, audioBuffer, numSamples * sizeof(int16_t) * 2);
+            if (result < 0) {
+                fprintf(stderr, "[AUDIO][ERROR] SDL_PutAudioStreamData error: %s\n", SDL_GetError());
+            } else {
+                printf("[AUDIO] Queued %u samples to stream.\n", numSamples);
             }
         }
 
         targetTime = currentTime + 33;
-
-        while (timeInMilliseconds() < targetTime)
-        {
+        while (timeInMilliseconds() < targetTime) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             if (!gKeepRunning.load()) return;
         }
 
         currentTime = timeInMilliseconds();
     }
+
+    printf("[AUDIO] Audio thread ending.\n");
 }
 
-void audio_init()
-{
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0)
-    {
-        fprintf(stderr, "SDL_InitSubSystem(SDL_INIT_AUDIO) failed: %s\n", SDL_GetError());
+void audio_init() {
+    printf("[AUDIO] Initializing audio subsystem...\n");
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+        fprintf(stderr, "[AUDIO][ERROR] SDL_InitSubSystem(SDL_INIT_AUDIO) failed: %s\n", SDL_GetError());
         return;
     }
 
-    SDL_AudioSpec want, have;
-    SDL_zero(want);
-    want.freq = 32000;
-    want.format = SDL_AUDIO_S16LE;
-    want.channels = 2;
-
-	SDL_AudioSpec spec;
+    SDL_AudioSpec spec;
     SDL_zero(spec);
     spec.freq = 32000;
     spec.format = SDL_AUDIO_S16LE;
     spec.channels = 2;
-	
-    SDL_AudioStream* stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
-	//SDL_AudioStream* SDL_OpenAudioDeviceStream(SDL_AudioDeviceID devid, const SDL_AudioSpec* spec, SDL_AudioFilterCallback filter, void* userdata);
 
-    if (dev == 0)
-    {
-        fprintf(stderr, "SDL_OpenAudio error: %s\n", SDL_GetError());
+    printf("[AUDIO] Opening audio stream...\n");
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
+    if (!stream) {
+        fprintf(stderr, "[AUDIO][ERROR] SDL_OpenAudioDeviceStream failed: %s\n", SDL_GetError());
         return;
     }
 
-    SDL_ResumeAudioStreamDevice(stream);
+    dev = SDL_GetAudioStreamDevice(stream);
+    printf("[AUDIO] Opened audio stream with device ID %u\n", dev);
 
-    // Start audio thread (cross-platform using std::thread)
+    printf("[AUDIO] Resuming audio stream...\n");
+    if (SDL_ResumeAudioStreamDevice(stream) < 0) {
+        fprintf(stderr, "[AUDIO][ERROR] SDL_ResumeAudioStreamDevice failed: %s\n", SDL_GetError());
+        return;
+    }
+
+    printf("[AUDIO] Launching audio thread...\n");
     gSoundThread = std::thread(audio_thread);
 }
 
-void audio_shutdown()
-{
+void audio_shutdown() {
+    printf("[AUDIO] Shutting down audio system...\n");
     gKeepRunning.store(false);
-    if (gSoundThread.joinable())
+    if (gSoundThread.joinable()) {
         gSoundThread.join();
+        printf("[AUDIO] Audio thread joined successfully.\n");
+    }
 
-    SDL_CloseAudioDevice(dev);
+    if (stream) {
+        SDL_CloseAudioDevice(dev);
+        stream = nullptr;
+        printf("[AUDIO] Closed audio device.\n");
+    }
+
+    printf("[AUDIO] Audio shutdown complete.\n");
 }
