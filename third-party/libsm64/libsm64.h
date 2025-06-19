@@ -7,6 +7,7 @@
 
 #pragma once
 extern int fartmarioId2;
+extern uint8_t* marioTexture;
 
 
 #if defined(_WIN32)

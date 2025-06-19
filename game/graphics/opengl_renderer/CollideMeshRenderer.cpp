@@ -185,8 +185,12 @@ void CollideMeshRenderer::render(SharedRenderState* render_state, ScopedProfiler
 
   glBindVertexArray(m_vao);
   auto shader = render_state->shaders[ShaderId::COLLISION].id();
-  glUniformBlockBinding(shader, glGetUniformBlockIndex(shader, "PatColors"), 0);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+  GLuint block_index = glGetUniformBlockIndex(shader, "PatColors");
+  if (block_index != GL_INVALID_INDEX) {
+    glUniformBlockBinding(shader, block_index, 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_ubo);
+  }
+
   glUniformMatrix4fv(glGetUniformLocation(shader, "camera"), 1, GL_FALSE,
                      render_state->camera_matrix[0].data());
   glUniform4f(glGetUniformLocation(shader, "hvdf_offset"), render_state->camera_hvdf_off[0],
@@ -268,57 +272,87 @@ void CollideMeshRenderer::render(SharedRenderState* render_state, ScopedProfiler
       glEnable(GL_BLEND);
       glDepthMask(GL_TRUE);
     }
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Draw Mario");
 
-    // === Begin Mario Geometry Draw ===
-    if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
-      // Use the same shader to draw Mario (optionally use another if needed)
-      glBindVertexArray(m_vao);
+static GLuint mario_texture_id = 0;
 
-      struct Vertex {
-        float pos[3];
-        float color[3];
-      };
-      float scale = 4096.0f / 50.0f;
-      std::vector<Vertex> mario_vertices;
-      for (int i = 0; i < g_geom.numTrianglesUsed * 3; ++i) {
-        float x = g_geom.position[i * 3 + 0] * scale;
-        float y = g_geom.position[i * 3 + 1] * scale;
-        float z = g_geom.position[i * 3 + 2] * scale;
+if (mario_texture_id == 0 && marioTexture) {
+  glGenTextures(1, &mario_texture_id);
+  glBindTexture(GL_TEXTURE_2D, mario_texture_id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, marioTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D, 0);
+}
 
-        float r = 1.0f, g = 1.0f, b = 1.0f;
-        if (g_geom.color) {
-          r = g_geom.color[i * 3 + 0];
-          g = g_geom.color[i * 3 + 1];
-          b = g_geom.color[i * 3 + 2];
-        }
+if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
+  struct MarioVertex {
+    float pos[3];
+    float color[3];
+    float uv[2];
+  };
 
-        mario_vertices.push_back({{x, y, z}, {r, g, b}});
-      }
+  float scale = 4096.0f / 50.0f;
+  std::vector<MarioVertex> untextured_verts;
+  std::vector<MarioVertex> textured_verts;
 
-      // Setup temp VBO
-      static GLuint mario_vbo = 0;
-      if (mario_vbo == 0) {
-        glGenBuffers(1, &mario_vbo);
-      }
-      glBindBuffer(GL_ARRAY_BUFFER, mario_vbo);
-      glBufferData(GL_ARRAY_BUFFER, mario_vertices.size() * sizeof(Vertex), mario_vertices.data(),
-                   GL_DYNAMIC_DRAW);
+  for (int i = 0; i < g_geom.numTrianglesUsed * 3; ++i) {
+    float x = g_geom.position[i * 3 + 0] * scale;
+    float y = g_geom.position[i * 3 + 1] * scale;
+    float z = g_geom.position[i * 3 + 2] * scale;
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
-      glEnableVertexAttribArray(0);
-      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                            (void*)offsetof(Vertex, color));
-      glEnableVertexAttribArray(1);
-
-      // Disable special attribs to match shader
-      glDisableVertexAttribArray(2);
-      glDisableVertexAttribArray(3);
-
-      //  glDepthFunc(GL_ALWAYS); // Ensure Mario always draws
-      glDrawArrays(GL_TRIANGLES, 0, mario_vertices.size());
-      // glDepthFunc(GL_GEQUAL); // Restore depth mode
+    float u = g_geom.uv[i * 2 + 0];
+    float v = g_geom.uv[i * 2 + 1];
+    if (u > 1.0f) {
+      u /= 65535.0f;
+      v /= 65535.0f;
     }
-    // === End Mario Geometry Draw ===
+
+    bool has_texture = !(g_geom.uv[i * 2 + 0] == 1 && g_geom.uv[i * 2 + 1] == 1);
+    float r = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 0] : 1.0f);
+    float g = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 1] : 1.0f);
+    float b = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 2] : 1.0f);
+
+    MarioVertex vtx = {{x, y, z}, {r, g, b}, {u, v}};
+    if (has_texture)
+      textured_verts.push_back(vtx);
+    else
+      untextured_verts.push_back(vtx);
+  }
+
+  auto draw_mario_vbo = [&](const std::vector<MarioVertex>& verts, GLuint& vbo, bool textured) {
+    if (vbo == 0)
+      glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(MarioVertex), verts.data(), GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(MarioVertex), (void*)offsetof(MarioVertex, pos));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(MarioVertex), (void*)offsetof(MarioVertex, color));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(MarioVertex), (void*)offsetof(MarioVertex, uv));
+    glEnableVertexAttribArray(5);
+    glDisableVertexAttribArray(3);  // Not used
+
+    if (textured) {
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, mario_texture_id);
+      glUniform1i(glGetUniformLocation(shader, "u_texture"), 0);
+    } else {
+      glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    glUniform1i(glGetUniformLocation(shader, "wireframe"), 999);
+    glDrawArrays(GL_TRIANGLES, 0, verts.size());
+  };
+
+  draw_mario_vbo(untextured_verts, m_vbo_untextured, false);
+  draw_mario_vbo(textured_verts, m_vbo_textured, true);
+}
+
+
+
+    glPopDebugGroup();
 
     prof.add_draw_call();
     prof.add_tri(lev->level->collision.vertices.size() / 3);

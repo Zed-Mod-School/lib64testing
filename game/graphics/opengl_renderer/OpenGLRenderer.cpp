@@ -26,10 +26,12 @@
 #include "game/graphics/opengl_renderer/ocean/OceanNear.h"
 #include "game/graphics/opengl_renderer/sprite/Sprite3.h"
 #include "game/graphics/pipelines/opengl.h"
+#include "libsm64/libsm64.h"
 
 #include "third-party/imgui/imgui.h"
 #include "third-party/imgui/imgui_stdlib.h"
-
+extern SM64MarioGeometryBuffers g_geom;
+extern SM64MarioState g_mario_state;
 // for the vif callback
 #include "game/kernel/common/kmachine.h"
 #include "game/runtime.h"
@@ -74,7 +76,8 @@ OpenGLRenderer::OpenGLRenderer(std::shared_ptr<TexturePool> texture_pool,
                                GameVersion version)
     : m_render_state(texture_pool, loader, version),
       m_collide_renderer(version),
-      m_version(version) {
+      m_version(version),
+      m_mario_renderer(std::make_unique<MarioRenderer>()) {
   // requires OpenGL 4.3
 #ifndef __APPLE__
   // setup OpenGL errors
@@ -1310,6 +1313,25 @@ void OpenGLRenderer::dispatch_buckets_jak1(DmaFollower dma,
     if (bucket_id == 31 - 1 && Gfx::g_global_settings.collision_enable) {
       auto p = prof.make_scoped_child("collision-draw");
       m_collide_renderer.render(&m_render_state, p);
+      if (m_mario_renderer) {
+        float model[16] = {1,
+                           0,
+                           0,
+                           0,
+                           0,
+                           1,
+                           0,
+                           0,
+                           0,
+                           0,
+                           1,
+                           0,
+                           g_mario_state.position[0],
+                           g_mario_state.position[1],
+                           g_mario_state.position[2],
+                           1};
+        m_mario_renderer->render(&m_render_state, prof, g_geom, marioTexture, model);
+      }
     }
   }
 

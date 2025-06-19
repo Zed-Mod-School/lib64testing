@@ -1,4 +1,4 @@
-//This code could be cleaned up later, but for now it works so there isnt a reason to touch it.
+// This code could be cleaned up later, but for now it works so there isnt a reason to touch it.
 #include "audio.h"
 
 #include <atomic>
@@ -112,10 +112,10 @@ void audio_thread() {
     int bytesToWrite = numSamples * 2 * sizeof(int16_t);  // stereo 16-bit
 
     // Log the unified debug line
-    printf(
-        "[TICK] t=%lldms | Δt=%lld | ticked=%u samples | queued=%d bytes | min=%d max=%d | "
-        "write=%d bytes\n",
-        currentTime, delta, numSamples, queuedBytes, min, max, bytesToWrite);
+    // printf(
+    //     "[TICK] t=%lldms | Δt=%lld | ticked=%u samples | queued=%d bytes | min=%d max=%d | "
+    //     "write=%d bytes\n",
+    //     currentTime, delta, numSamples, queuedBytes, min, max, bytesToWrite);
 
     tickCount++;
 
@@ -128,8 +128,8 @@ void audio_thread() {
 #ifdef USE_SDL3
       int queuedBytes = SDL_GetAudioStreamQueued(stream);
       SDL_PutAudioStreamData(stream, audioBuffer, numSamples * 2 * 4);
-      printf("Value: %u\n", numSamples * 2 * 4);
-      printf("Value: %u\n", bytesToWrite);
+      //   printf("Value: %u\n", numSamples * 2 * 4);
+      //   printf("Value: %u\n", bytesToWrite);
 
 #else
       int queuedBytes = SDL_GetQueuedAudioSize(dev);
@@ -138,20 +138,6 @@ void audio_thread() {
     }
 
     currentTime = timeInMilliseconds();
-
-    if (currentTime - startTime > 20000) {
-      if (wavFile) {
-        patch_wav_header(wavFile, totalBytesWritten);
-        fclose(wavFile);
-        wavFile = nullptr;
-        printf("[AUDIO] Dumped 20 seconds to output.wav\n");
-      }
-
-      if (currentTime - lastPrintTime >= 1000) {
-        printf("[AUDIO] sm64_audio_tick call count: %d\n", tickCount);
-        lastPrintTime = currentTime;
-      }
-    }
 
     targetTime = currentTime + 33;
     while (timeInMilliseconds() < targetTime) {
