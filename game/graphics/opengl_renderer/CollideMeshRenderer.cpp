@@ -272,7 +272,7 @@ void CollideMeshRenderer::render(SharedRenderState* render_state, ScopedProfiler
       glEnable(GL_BLEND);
       glDepthMask(GL_TRUE);
     }
-    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Draw Mario");
+   // glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Draw Mario");
 
 static GLuint mario_texture_id = 0;
 
@@ -334,13 +334,16 @@ if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
     glEnableVertexAttribArray(5);
     glDisableVertexAttribArray(3);  // Not used
 
-    if (textured) {
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, mario_texture_id);
-      glUniform1i(glGetUniformLocation(shader, "u_texture"), 0);
-    } else {
-      glBindTexture(GL_TEXTURE_2D, 0);
-    }
+if (textured) {
+  glEnable(GL_BLEND);  // ensure blending is on
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // ensure correct blend mode
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, mario_texture_id);
+  glUniform1i(glGetUniformLocation(shader, "u_texture"), 0);
+} else {
+  glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 
     glUniform1i(glGetUniformLocation(shader, "wireframe"), 999);
     glDrawArrays(GL_TRIANGLES, 0, verts.size());
@@ -352,7 +355,7 @@ if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
 
 
 
-    glPopDebugGroup();
+    //glPopDebugGroup();
 
     prof.add_draw_call();
     prof.add_tri(lev->level->collision.vertices.size() / 3);

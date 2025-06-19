@@ -26,6 +26,5 @@ if (wireframe == 999) {
   return;
 }
 
-
   fragColor = vec4(1.0, 0.0, 1.0, 1.0);  // fallback pink
 }
