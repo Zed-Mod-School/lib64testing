@@ -244,32 +244,19 @@ void extract_collide_frags(const level_tools::DrawableTreeCollideFragment* tree,
     total_faces += frag.unpacked.faces.size();
   }
 
-std::unordered_map<std::string, std::string> my_name_overrides = {
-    {"BEA.DGO-3-collide", "beach"},
-    {"CIT.DGO-5-collide", "citadel"},
-    {"DAR.DGO-2-collide", "darkcave"},
-    {"DEM.DGO-1-collide", "demo"},
-    {"FIC.DGO-3-collide", "firecanyon"},
-    {"INT.DGO-2-collide", "intro"},
-    {"JUB.DGO-3-collide", "jungleb"},
-    {"JUN.DGO-3-collide", "jungle"},
-    {"LAV.DGO-3-collide", "lavatube"},
-    {"MAI.DGO-2-collide", "maincave"},
-    {"MIS.DGO-4-collide", "misty"},
-    {"OGR.DGO-3-collide", "ogre"},
-    {"ROB.DGO-2-collide", "robocave"},
-    {"ROL.DGO-3-collide", "rolling"},
-    {"SNO.DGO-4-collide", "snow"},
-    {"SUB.DGO-3-collide", "sunkenb"},
-    {"SUN.DGO-4-collide", "sunken"},
-    {"SWA.DGO-3-collide", "swamp"},
-    {"TIT.DGO-1-collide", "title"},
-    {"TRA.DGO-3-collide", "training"},
-    {"VI1.DGO-5-collide", "village1"},
-    {"VI2.DGO-4-collide", "village2"},
-    {"VI3.DGO-3-collide", "village3"},
-    {"FIN.DGO-2-collide", "finalboss"}
-};
+  std::unordered_map<std::string, std::string> my_name_overrides = {
+      {"BEA.DGO-3-collide", "beach"},      {"CIT.DGO-5-collide", "citadel"},
+      {"DAR.DGO-2-collide", "darkcave"},   {"DEM.DGO-1-collide", "demo"},
+      {"FIC.DGO-3-collide", "firecanyon"}, {"INT.DGO-2-collide", "intro"},
+      {"JUB.DGO-3-collide", "jungleb"},    {"JUN.DGO-3-collide", "jungle"},
+      {"LAV.DGO-3-collide", "lavatube"},   {"MAI.DGO-2-collide", "maincave"},
+      {"MIS.DGO-4-collide", "misty"},      {"OGR.DGO-3-collide", "ogre"},
+      {"ROB.DGO-2-collide", "robocave"},   {"ROL.DGO-3-collide", "rolling"},
+      {"SNO.DGO-4-collide", "snow"},       {"SUB.DGO-3-collide", "sunkenb"},
+      {"SUN.DGO-4-collide", "sunken"},     {"SWA.DGO-3-collide", "swamp"},
+      {"TIT.DGO-1-collide", "title"},      {"TRA.DGO-3-collide", "training"},
+      {"VI1.DGO-5-collide", "village1"},   {"VI2.DGO-4-collide", "village2"},
+      {"VI3.DGO-3-collide", "village3"},   {"FIN.DGO-2-collide", "finalboss"}};
 
   std::string final_name = debug_name;
   auto it = my_name_overrides.find(debug_name);
@@ -302,7 +289,6 @@ std::unordered_map<std::string, std::string> my_name_overrides = {
     }
   }
 }
-
 
 ////////////////////////
 // Jak 2 Format
