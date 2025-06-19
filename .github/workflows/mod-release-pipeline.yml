@@ -45,12 +45,12 @@ on:
       skipLinux:
         description: "Whether to skip Linux builds, defaults to `false`"
         required: false
-        default: false
+        default: true
         type: "boolean"
       skipMacOS:
         description: "Whether to skip macOS builds, defaults to `false`"
         required: false
-        default: false
+        default: true
         type: "boolean"
     secrets:
       token:
