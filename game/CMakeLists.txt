@@ -107,6 +107,7 @@ set(RUNTIME_SOURCE
         kernel/common/ksound.cpp
         kernel/jak1/fileio.cpp
         kernel/jak1/kboot.cpp
+        kernel/jak1/mario1.cpp
         kernel/jak1/kdgo.cpp
         kernel/jak1/klink.cpp
         kernel/jak1/klisten.cpp
@@ -311,10 +312,34 @@ set(RUNTIME_SOURCE
 
 add_subdirectory(sound)
 
+add_library(sm64 SHARED IMPORTED GLOBAL)
+set_target_properties(sm64 PROPERTIES
+  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+  IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/third-party/libsm64/src/libsm64.lib"
+)
+
+
 # we build the runtime as a static library.
 add_library(runtime STATIC ${RUNTIME_SOURCE} "../third-party/glad/src/glad.c")
+target_include_directories(runtime PRIVATE "${CMAKE_SOURCE_DIR}/third-party/libsm64/src")
+target_link_libraries(runtime common fmt SDL3::SDL3 imgui discord-rpc sound stb_image libco libcurl sm64)
 
-target_link_libraries(runtime common fmt SDL3::SDL3 imgui discord-rpc sound stb_image libco libcurl)
+add_custom_target(build_libsm64 ALL
+    COMMAND ${CMAKE_COMMAND} -E echo "Running libsm64 build.bat..."
+    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}/third-party/libsm64" "${CMAKE_SOURCE_DIR}/third-party/libsm64/build.bat"
+    BYPRODUCTS "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/libsm64"
+    COMMENT "Building libsm64 using build.bat"
+)
+# Copy dll to bin directory
+add_custom_target(copy_sm64_dll ALL
+    DEPENDS build_libsm64
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+        "${CMAKE_BINARY_DIR}/bin/sm64.dll"  
+    COMMENT "Copying sm64.dll to output bin directory"
+)
+
 if(WIN32)
     target_link_libraries(runtime mman)
 else()
@@ -322,6 +347,9 @@ else()
 endif()
 
 add_executable(gk main.cpp)
+add_dependencies(runtime build_libsm64 copy_sm64_dll)
+add_dependencies(gk build_libsm64 copy_sm64_dll)
+
 target_link_libraries(gk runtime)
 if(WIN32)
     set_target_properties(gk PROPERTIES VS_DPI_AWARE "PerMonitor")

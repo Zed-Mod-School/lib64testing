@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <cstring>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
@@ -24,6 +25,7 @@
 #include "game/kernel/jak1/klisten.h"
 #include "game/kernel/jak1/kmachine.h"
 #include "game/sce/libscf.h"
+#include "mario1.h"
 
 using namespace ee;
 
@@ -108,6 +110,7 @@ s32 goal_main(int argc, const char* const* argv) {
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
 
+  load_and_init_mario();
   while (MasterExit == RuntimeExitStatus::RUNNING) {
     // try to get a message from the listener, and process it if needed
     Ptr<char> new_message = WaitForMessageAndAck();
