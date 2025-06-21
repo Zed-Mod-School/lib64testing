@@ -45,6 +45,15 @@ int load_and_init_mario() {
   sm64_static_surfaces_load(village1_surfaces, village1_surfaces_count);
   // Create Mario and print his ID
   marioId = sm64_mario_create(-7541.8, 3688.475, 9237.5);
+  sm64_audio_init(romBuffer);
+  delete[] romBuffer;
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+    fprintf(stderr, "[libsm64][ERROR] SDL_Init failed: %s\n", SDL_GetError());
+    return -1;
+  }
+  audio_init();
+  sm64_play_music(0, 0x05 | 0x80,
+                  0);
   // for (int i = 0; i < 10; ++i) {
   //   printf("marioId = %d\n", marioId);
   // }

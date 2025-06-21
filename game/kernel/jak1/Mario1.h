@@ -2,6 +2,8 @@
 
 #include "collide/level.h"
 #include "libsm64.h"
+#include "audio.h"
+#include "SDL3/SDL.h"
 
 extern uint8_t* marioTexture;
 extern int frame_num;
