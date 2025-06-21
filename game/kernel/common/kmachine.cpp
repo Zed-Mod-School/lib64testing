@@ -1065,9 +1065,9 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
   make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
   make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
-  // make_func_symbol_func("pc-load-mario-collide!",
+  make_func_symbol_func("pc-load-mario-collide!",
 
-  //                       (void*)pc_call_load_combined_static_surfaces_from_game_idx);
+                        (void*)pc_call_load_combined_static_surfaces_from_game_idx);
   // end mario functions
 
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);

@@ -249,6 +249,13 @@
 
 (define *cam-look-z* 0.0)
 
+(define arg1-mario-lvl 0.0)
+
+(define arg2-mario-lvl 0.0)
+
+(define last-arg1-mario-lvl -1.0)
+
+(define last-arg2-mario-lvl -1.0)
 (defun close? ((actor-ename string) (dist float))
   (and (process-by-ename actor-ename)
        (<= (vector-vector-distance (target-pos 0) (-> (the process-drawable (process-by-ename actor-ename)) root trans)) dist)))
@@ -290,6 +297,37 @@
   "Handle cheat codes and timeout"
 (when *target*
   ;; Please move these at some point they dont belong here
+  (dotimes (i 2)
+  (let ((lvl-name (-> *load-state* want i name)))
+    (cond
+      ((name= lvl-name "training") (if (= i 0) (set! arg1-mario-lvl 1.0) (set! arg2-mario-lvl 1.0)))
+      ((name= lvl-name "village1") (if (= i 0) (set! arg1-mario-lvl 2.0) (set! arg2-mario-lvl 2.0)))
+      ((name= lvl-name "beach")    (if (= i 0) (set! arg1-mario-lvl 3.0) (set! arg2-mario-lvl 3.0)))
+      ((name= lvl-name "jungle")   (if (= i 0) (set! arg1-mario-lvl 4.0) (set! arg2-mario-lvl 4.0)))
+      ((name= lvl-name "jungleb")     (if (= i 0) (set! arg1-mario-lvl 5.0)  (set! arg2-mario-lvl 5.0)))
+      ((name= lvl-name "misty")       (if (= i 0) (set! arg1-mario-lvl 6.0)  (set! arg2-mario-lvl 6.0)))
+      ((name= lvl-name "firecanyon")  (if (= i 0) (set! arg1-mario-lvl 7.0)  (set! arg2-mario-lvl 7.0)))
+      ((name= lvl-name "village2")    (if (= i 0) (set! arg1-mario-lvl 8.0)  (set! arg2-mario-lvl 8.0)))
+      ((name= lvl-name "sunken")      (if (= i 0) (set! arg1-mario-lvl 9.0)  (set! arg2-mario-lvl 9.0)))
+      ((name= lvl-name "sunkenb")     (if (= i 0) (set! arg1-mario-lvl 10.0) (set! arg2-mario-lvl 10.0)))
+      ((name= lvl-name "swamp")       (if (= i 0) (set! arg1-mario-lvl 11.0) (set! arg2-mario-lvl 11.0)))
+      ((name= lvl-name "rolling")     (if (= i 0) (set! arg1-mario-lvl 12.0) (set! arg2-mario-lvl 12.0)))
+      ((name= lvl-name "ogre")        (if (= i 0) (set! arg1-mario-lvl 13.0) (set! arg2-mario-lvl 13.0)))
+      ((name= lvl-name "village3")    (if (= i 0) (set! arg1-mario-lvl 14.0) (set! arg2-mario-lvl 14.0)))
+      ((name= lvl-name "snow")        (if (= i 0) (set! arg1-mario-lvl 15.0) (set! arg2-mario-lvl 15.0)))
+      ((name= lvl-name "maincave")    (if (= i 0) (set! arg1-mario-lvl 16.0) (set! arg2-mario-lvl 16.0)))
+      ((name= lvl-name "darkcave")    (if (= i 0) (set! arg1-mario-lvl 17.0) (set! arg2-mario-lvl 17.0)))
+      ((name= lvl-name "robotcave")   (if (= i 0) (set! arg1-mario-lvl 18.0) (set! arg2-mario-lvl 18.0)))
+      ((name= lvl-name "lavatube")    (if (= i 0) (set! arg1-mario-lvl 19.0) (set! arg2-mario-lvl 19.0)))
+      ((name= lvl-name "citadel")     (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
+      ((name= lvl-name "finalboss")   (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0)))
+
+      )))
+    (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
+      (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
+      (set! last-arg1-mario-lvl arg1-mario-lvl)
+      (set! last-arg2-mario-lvl arg2-mario-lvl))
+
   ;; update cam-look x and z
     (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
     (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
@@ -310,12 +348,12 @@
 )
 
     ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
-  (add-debug-text-3d #t
-                     (bucket-id debug-no-zbuf)
-                     "MARIO GUY HERE"
-                     *mario-vector-hellyeah*
-                     (font-color white)
-                     (the-as vector2h #f))
+  ;; (add-debug-text-3d #t
+  ;;                    (bucket-id debug-no-zbuf)
+  ;;                    "MARIO GUY HERE"
+  ;;                    *mario-vector-hellyeah*
+  ;;                    (font-color white)
+  ;;                    (the-as vector2h #f))
   ;; look for codes when L3 is pushed
   (when (and (cpad-hold? 0 l3)
              (or *cheat-mode* (= *kernel-boot-message* 'play)) ;; not in demo
