@@ -238,8 +238,84 @@
 
 (define *first-boot* #t) ;; PAL
 
+(defun convert-to-mario-units ((unit float))
+  (/ unit (/ (meters 1.0) 50.0)))
+
+(define *mario-scale-mult* (/ (meters 1.0) 50.0)) ;;50.0 is the amount we needed to adjust the collide mesh from blender
+
+(define *mario-vector-hellyeah* (new 'static 'vector :x 0.0 :y 0.0 :z 0.0 :w 1.0))
+
+(define *cam-look-x* 0.0)
+
+(define *cam-look-z* 0.0)
+
+(defun close? ((actor-ename string) (dist float))
+  (and (process-by-ename actor-ename)
+       (<= (vector-vector-distance (target-pos 0) (-> (the process-drawable (process-by-ename actor-ename)) root trans)) dist)))
+
+(define *move-jak-to-mario?* #t)
+
+(defun turn-off-mario-glue ()
+  (process-spawn-function process
+    (lambda :behavior process ()
+      (when (not #f)
+        (set! *move-jak-to-mario?* #f)
+        (suspend-for (seconds 10))
+        (set! *move-jak-to-mario?* #t)
+        (teleport-mario-to-pos (-> (target-pos 0) x) (+ (-> (target-pos 0) y) (meters 1.0)) (-> (target-pos 0) z))
+        ;;(false! *auto-saving?*)
+        )))
+  (none))
+
+(defun turn-off-mario-glue-for-specific-time ((time1 int))
+  (process-spawn-function process
+    (lambda :behavior process ((time2 seconds))
+      (when (not #f)
+        (set! *move-jak-to-mario?* #f)
+        (suspend-for time2)
+        (set! *move-jak-to-mario?* #t)
+        (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+        ;;(false! *auto-saving?*)
+        ))
+    time1)
+  (none))
+
+(defun mario-glue-override ()
+  (when (close? "fishermans-boat-2" (meters 15.0))
+    (return #f))
+  *move-jak-to-mario?*)
+
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
+(when *target*
+  ;; Please move these at some point they dont belong here
+  ;; update cam-look x and z
+    (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
+    (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
+    (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*)
+;; only run this if the condition passes to lock jak to marios reported position.
+    (when (and (not *are-we-in-target-continue*)
+               *target*
+               (mario-glue-override) ;;(cpad-hold? 0 up)
+               )
+      (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
+      (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
+      (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
+    ;; run this all the time no matter what, so we can see where mario *should* be
+    ;; update his position vector on the GOAL side
+    (set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) *mario-scale-mult*))
+    (set! (-> *mario-vector-hellyeah* y) (* (pc-get-mario-y) *mario-scale-mult*))
+    (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*))
+)
+
+    ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
+  (add-debug-text-3d #t
+                     (bucket-id debug-no-zbuf)
+                     "MARIO GUY HERE"
+                     *mario-vector-hellyeah*
+                     (font-color white)
+                     (the-as vector2h #f))
   ;; look for codes when L3 is pushed
   (when (and (cpad-hold? 0 l3)
              (or *cheat-mode* (= *kernel-boot-message* 'play)) ;; not in demo

@@ -572,6 +572,19 @@
 
 (define-extern pc-screen-shot (function none))
 
+;; Forward declations so that the compiler doesnt explode when we call cpp functions
+(define-extern pc-get-mario-x (function float))
+
+(define-extern pc-get-mario-y (function float))
+
+(define-extern pc-get-mario-z (function float))
+
+(define-extern pc-set-mario-look-angles! (function float float none))
+
+(define-extern pc-load-mario-collide! (function float float none))
+
+(define-extern teleport-mario-to-pos (function float float float none))
+
 (declare-type screen-shot-settings structure)
 
 (define-extern pc-register-screen-shot-settings (function screen-shot-settings none))

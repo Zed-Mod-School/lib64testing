@@ -110,6 +110,17 @@ int normalize_axes_value(int sdl_val) {
   return ((sdl_val + 32768) * 256) / 65536;
 }
 
+auto sdl_axis_to_sm64 = [](int value) -> int8_t {
+  value = std::clamp(value, -32768, 32767);
+
+  // ✅ Apply a deadzone
+  if (std::abs(value) < 8000)
+    return 0;
+
+  float scaled = (value / 32767.0f) * 64.0f;
+  return static_cast<int8_t>(std::round(scaled));
+};
+
 void GameController::process_event(const SDL_Event& event,
                                    const CommandBindingGroups& commands,
                                    std::shared_ptr<PadData> data,
@@ -119,6 +130,25 @@ void GameController::process_event(const SDL_Event& event,
     if ((int)event.gaxis.axis <= SDL_GAMEPAD_AXIS_INVALID ||
         event.gaxis.axis >= SDL_GAMEPAD_AXIS_COUNT) {
       return;
+    }
+
+    static int8_t last_stick_x = 0;
+    static int8_t last_stick_y = 0;
+
+    if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) {
+      int8_t stick = sdl_axis_to_sm64(event.gaxis.value);
+      if (stick != last_stick_x) {
+        g_mario_inputs.stickX = stick;
+        last_stick_x = stick;
+        // printf("[DEBUG] stickX updated: %d\n", stick);
+      }
+    } else if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) {
+      int8_t stick = -sdl_axis_to_sm64(event.gaxis.value);
+      if (stick != last_stick_y) {
+        g_mario_inputs.stickY = stick;
+        last_stick_y = stick;
+        // printf("[DEBUG] stickY updated: %d\n", stick);
+      }
     }
 
     auto& binds = m_settings->controller_binds.at(m_guid);
@@ -182,6 +212,14 @@ void GameController::process_event(const SDL_Event& event,
     if ((int)event.gbutton.button <= SDL_GAMEPAD_BUTTON_INVALID ||
         event.gbutton.button >= SDL_GAMEPAD_BUTTON_COUNT) {
       return;
+    }
+
+    if (event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH) {
+      g_mario_inputs.buttonA = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+    } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
+      g_mario_inputs.buttonB = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+    } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
+      g_mario_inputs.buttonZ = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
     }
 
     // Binding re-assignment

@@ -10,6 +10,7 @@
 #include "common/util/Timer.h"
 #include "common/util/string_util.h"
 
+#include "../jak1/mario1.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"
@@ -1057,6 +1058,18 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-get-keyboard-enabled?", (void*)pc_get_keyboard_enabled);
   make_func_symbol_func("pc-set-keyboard-enabled!", (void*)pc_set_keyboard_enabled);
   make_func_symbol_func("pc-set-mouse-options!", (void*)pc_set_mouse_options);
+
+  // mario functions Id like to move these one day but for now they are here.
+  make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
+  make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
+  make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
+  make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
+  make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
+  // make_func_symbol_func("pc-load-mario-collide!",
+
+  //                       (void*)pc_call_load_combined_static_surfaces_from_game_idx);
+  // end mario functions
+
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);
   make_func_symbol_func("pc-ignore-background-controller-events!",
                         (void*)pc_ignore_background_controller_events);
