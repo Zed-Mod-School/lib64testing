@@ -291,9 +291,9 @@
   (when (close? "fishermans-boat-2" (meters 15.0))
     (return #f))
   *move-jak-to-mario?*)
-  
+
 (defun get-mario-state ()
-  (cond 
+  (cond
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping) ; ACT_SLEEPING
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)     ; ACT_IDLE
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)  ; ACT_WALKING

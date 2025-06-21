@@ -9,7 +9,6 @@ typedef uint32_t u32;
 #define M_PI 3.14159265358979323846
 #endif
 
-
 static uint8_t* g_mario_texture = nullptr;
 int marioId = -1;
 uint8_t* marioTexture;
@@ -120,7 +119,6 @@ void tick_mario_frame() {
 uint64_t pc_get_mario_action() {
   return static_cast<uint64_t>(g_mario_state.action);
 }
-
 
 uint64_t pc_get_mario_x() {
   float x = g_mario_state.position[0];
@@ -275,7 +273,10 @@ float triangle_area_2d(const int32_t v[3][3]) {
   return 0.5f * fabsf((x1 - x0) * (z2 - z0) - (x2 - x0) * (z1 - z0));
 }
 
-bool triangle_intersects_cylinder_recursive(float cx, float cz, const int32_t v[3][3], int depth = 0) {
+bool triangle_intersects_cylinder_recursive(float cx,
+                                            float cz,
+                                            const int32_t v[3][3],
+                                            int depth = 0) {
   if (depth > 3) {
     return triangle_samples_in_cylinder(cx, cz, v);
   }
@@ -296,17 +297,20 @@ bool triangle_intersects_cylinder_recursive(float cx, float cz, const int32_t v[
   }
 
   // Subdivide into 4 triangles and test recursively
-  int32_t sub1[3][3] = { {v[0][0], v[0][1], v[0][2]}, {m01[0], m01[1], m01[2]}, {m20[0], m20[1], m20[2]} };
-  int32_t sub2[3][3] = { {m01[0], m01[1], m01[2]}, {v[1][0], v[1][1], v[1][2]}, {m12[0], m12[1], m12[2]} };
-  int32_t sub3[3][3] = { {m20[0], m20[1], m20[2]}, {m12[0], m12[1], m12[2]}, {v[2][0], v[2][1], v[2][2]} };
-  int32_t sub4[3][3] = { {m01[0], m01[1], m01[2]}, {m12[0], m12[1], m12[2]}, {m20[0], m20[1], m20[2]} };
+  int32_t sub1[3][3] = {
+      {v[0][0], v[0][1], v[0][2]}, {m01[0], m01[1], m01[2]}, {m20[0], m20[1], m20[2]}};
+  int32_t sub2[3][3] = {
+      {m01[0], m01[1], m01[2]}, {v[1][0], v[1][1], v[1][2]}, {m12[0], m12[1], m12[2]}};
+  int32_t sub3[3][3] = {
+      {m20[0], m20[1], m20[2]}, {m12[0], m12[1], m12[2]}, {v[2][0], v[2][1], v[2][2]}};
+  int32_t sub4[3][3] = {
+      {m01[0], m01[1], m01[2]}, {m12[0], m12[1], m12[2]}, {m20[0], m20[1], m20[2]}};
 
   return triangle_intersects_cylinder_recursive(cx, cz, sub1, depth + 1) ||
          triangle_intersects_cylinder_recursive(cx, cz, sub2, depth + 1) ||
          triangle_intersects_cylinder_recursive(cx, cz, sub3, depth + 1) ||
          triangle_intersects_cylinder_recursive(cx, cz, sub4, depth + 1);
 }
-
 
 int load_surfaces_near(float x, float y, float z) {
   if (!g_combined_surfaces || g_combined_surfaces_count == 0)
@@ -338,10 +342,9 @@ int load_surfaces_near(float x, float y, float z) {
     }
 
     // 3. Triangle samples intersect cylinder
-if (!include && triangle_intersects_cylinder_recursive(x, z, s->vertices)) {
-  include = true;
-}
-
+    if (!include && triangle_intersects_cylinder_recursive(x, z, s->vertices)) {
+      include = true;
+    }
 
     if (include) {
       filtered[count++] = *s;
