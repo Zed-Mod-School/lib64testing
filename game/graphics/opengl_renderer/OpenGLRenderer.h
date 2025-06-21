@@ -8,6 +8,7 @@
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
 #include "game/graphics/opengl_renderer/CollideMeshRenderer.h"
 #include "game/graphics/opengl_renderer/Fbo.h"
+#include "game/graphics/opengl_renderer/MarioRenderer.h"
 #include "game/graphics/opengl_renderer/Profiler.h"
 #include "game/graphics/opengl_renderer/Shader.h"
 #include "game/graphics/opengl_renderer/TextureAnimator.h"
@@ -120,6 +121,7 @@ class OpenGLRenderer {
   std::array<float, (int)BucketCategory::MAX_CATEGORIES> m_category_times;
   FullScreenDraw m_blackout_renderer;
   CollideMeshRenderer m_collide_renderer;
+  MarioRenderer m_mario_renderer;
 
   float m_last_pmode_alp = 1.;
   bool m_enable_fast_blackout_loads = true;

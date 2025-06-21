@@ -3,6 +3,7 @@
 #include "collide/level.h"
 #include "libsm64.h"
 
+extern uint8_t* marioTexture;
 extern int frame_num;
 int load_and_init_mario();
 void tick_mario_frame();
