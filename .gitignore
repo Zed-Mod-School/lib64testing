@@ -90,3 +90,4 @@ goalc-report.html
 .vscode/settings.json
 *.z64
 third-party/libsm64/build.bat
+output.wav

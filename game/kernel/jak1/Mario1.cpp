@@ -115,6 +115,13 @@ void tick_mario_frame() {
 }
 
 // Mario functions we call in GOAL
+
+// Mario functions we call in GOAL
+uint64_t pc_get_mario_action() {
+  return static_cast<uint64_t>(g_mario_state.action);
+}
+
+
 uint64_t pc_get_mario_x() {
   float x = g_mario_state.position[0];
   uint64_t out = 0;
