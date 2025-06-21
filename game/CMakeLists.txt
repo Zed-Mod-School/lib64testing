@@ -326,21 +326,7 @@ add_library(runtime STATIC ${RUNTIME_SOURCE} "../third-party/glad/src/glad.c")
 target_include_directories(runtime PRIVATE "${CMAKE_SOURCE_DIR}/third-party/libsm64/src")
 target_link_libraries(runtime common fmt SDL3::SDL3 imgui discord-rpc sound stb_image libco libcurl sm64)
 
-add_custom_target(build_libsm64 ALL
-    COMMAND ${CMAKE_COMMAND} -E echo "Running libsm64 build.bat..."
-    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}/third-party/libsm64" "${CMAKE_SOURCE_DIR}/third-party/libsm64/build.bat"
-    BYPRODUCTS "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/libsm64"
-    COMMENT "Building libsm64 using build.bat"
-)
-# Copy dll to bin directory
-add_custom_target(copy_sm64_dll ALL
-    DEPENDS build_libsm64
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
-        "${CMAKE_BINARY_DIR}/bin/sm64.dll"  
-    COMMENT "Copying sm64.dll to output bin directory"
-)
+
 
 if(WIN32)
     target_link_libraries(runtime mman)
@@ -349,8 +335,26 @@ else()
 endif()
 
 add_executable(gk main.cpp)
-add_dependencies(runtime build_libsm64 copy_sm64_dll)
-add_dependencies(gk build_libsm64 copy_sm64_dll)
+if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
+    add_custom_target(build_libsm64 ALL
+        COMMAND ${CMAKE_COMMAND} -E echo "Running libsm64 build.bat..."
+        COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}/third-party/libsm64" "${CMAKE_SOURCE_DIR}/third-party/libsm64/build.bat"
+        BYPRODUCTS "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/libsm64"
+        COMMENT "Building libsm64 using build.bat"
+    )
+
+    add_custom_target(copy_sm64_dll ALL
+        DEPENDS build_libsm64
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+            "${CMAKE_BINARY_DIR}/bin/sm64.dll"  
+        COMMENT "Copying sm64.dll to output bin directory"
+    )
+
+    add_dependencies(runtime build_libsm64 copy_sm64_dll)
+    add_dependencies(gk build_libsm64 copy_sm64_dll)
+endif()
 
 target_link_libraries(gk runtime)
 if(WIN32)
