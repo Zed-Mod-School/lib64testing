@@ -37,32 +37,49 @@ int load_and_init_mario() {
 
   // Initialize SM64
   sm64_global_init(romBuffer, g_mario_texture);
-
+  //remove this calll later when we add dynamic collide loading back
+  sm64_static_surfaces_load(village1_surfaces, village1_surfaces_count);
   // Create Mario and print his ID
-  marioId = sm64_mario_create(-7541.8, 1688.475, 9237.5);
-  for (int i = 0; i < 10; ++i) {
-    printf("marioId = %d\n", marioId);
-  }
+  marioId = sm64_mario_create(-7541.8, 3688.475, 9237.5);
+  // for (int i = 0; i < 10; ++i) {
+  //   printf("marioId = %d\n", marioId);
+  // }
+
+  //This stuff is needed to avoid a null pointer dereference for some reason
+  const int maxTris = SM64_GEO_MAX_TRIANGLES;
+  g_geom.position = new float[3 * 3 * maxTris];  // 3 coords per vertex, 3 verts per tri
+  g_geom.normal = new float[3 * 3 * maxTris];
+  g_geom.color = new float[3 * 3 * maxTris];
+  g_geom.uv = new float[2 * 3 * maxTris];  // 2 UVs per vertex, 3 verts per tri
+  memset(g_geom.position, 0, sizeof(float) * 3 * 3 * maxTris);
+  memset(g_geom.normal, 0, sizeof(float) * 3 * 3 * maxTris);
+  memset(g_geom.color, 0, sizeof(float) * 3 * 3 * maxTris);
+  memset(g_geom.uv, 0, sizeof(float) * 2 * 3 * maxTris);
+  g_geom.numTrianglesUsed = 0;
 
   return marioId;
 }
 
-static int frame_num = 0;
+int frame_num = 0;
 void tick_mario_frame() {
-  // Only store raw values in g_mario_inputs
-  // Then scale into local variables
+  // Revist this later, probably can /64 where we set .stickX instead and remove all this junk
   float scaled_stick_x = g_mario_inputs.stickX / 64.0f;
   float scaled_stick_y = g_mario_inputs.stickY / 64.0f;
-
+ 
   if (frame_num % 2 == 0 && marioId != -1) {
     SM64MarioInputs inputs = g_mario_inputs;
     inputs.stickX = scaled_stick_x;
     inputs.stickY = -scaled_stick_y;
 
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
-    //maybe_reload_surfaces(g_mario_state.position);  // Ensure this is declared somewhere
-    sm64_static_surfaces_load(village1_surfaces, village1_surfaces_count);
-    marioId = sm64_mario_create(-7541.8, 1688.475, 9237.5);
+    
+  //  printf("[Mario Pos] X = %.2f, Y = %.2f, Z = %.2f\n",
+  //      g_mario_state.position[0],
+  //      g_mario_state.position[1],
+  //      g_mario_state.position[2]);
+
+
+    //maybe_reload_surfaces(g_mario_state.position); // Add back with dynamic collide update
     frame_num = 0;
   }
 

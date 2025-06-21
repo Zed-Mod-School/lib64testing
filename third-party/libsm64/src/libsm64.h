@@ -5,8 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "decomp/include/surface_terrains.h"
-#include "collide/level.h"
+
 
 #if defined(_WIN32)
     #ifdef SM64_LIB_EXPORT
