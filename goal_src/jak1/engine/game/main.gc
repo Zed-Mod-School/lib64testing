@@ -292,10 +292,12 @@
     (return #f))
   *move-jak-to-mario?*)
 
-
 (defun main-cheats ()
   "Handle cheat codes and timeout"
 (when *target*
+(when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
+    (turn-off-mario-glue)
+    (cheats-sound-play *cheat-mode*))
   ;; Please move these at some point they dont belong here
   (dotimes (i 2)
   (let ((lvl-name (-> *load-state* want i name)))
@@ -321,7 +323,6 @@
       ((name= lvl-name "lavatube")    (if (= i 0) (set! arg1-mario-lvl 19.0) (set! arg2-mario-lvl 19.0)))
       ((name= lvl-name "citadel")     (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
       ((name= lvl-name "finalboss")   (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0)))
-
       )))
     (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
       (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
