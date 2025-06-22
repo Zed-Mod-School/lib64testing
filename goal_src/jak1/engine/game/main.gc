@@ -297,6 +297,7 @@
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping) ; ACT_SLEEPING
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)     ; ACT_IDLE
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)  ; ACT_WALKING
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)  ; ACT_GROUND_POUND
     (else 'unknown)))
 
 (defun main-cheats ()
