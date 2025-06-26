@@ -91,3 +91,4 @@ goalc-report.html
 *.z64
 third-party/libsm64/build.bat
 output.wav
+third-party/libsm64/test.bat
