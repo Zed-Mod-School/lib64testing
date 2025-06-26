@@ -9,6 +9,9 @@ typedef uint32_t u32;
 #define M_PI 3.14159265358979323846
 #endif
 
+//#include "game/graphics/opengl_renderer/MarioRenderer.h"
+#include "game/graphics/opengl_renderer/MarioRenderer.h"
+
 static uint8_t* g_mario_texture = nullptr;
 int marioId = -1;
 uint8_t* marioTexture;
@@ -25,7 +28,7 @@ SM64MarioInputs g_mario_inputs = {.camLookX = 0.0f,
 int load_and_init_mario() {
   // Our entrypoint to setup mario, this is called once in kboot.cpp and makes sure all the mario
   // stuff is properly set up at the start
-  const char* romPath = "sm64.us.z64";
+  const char* romPath = "baserom.us.z64";
   static uint8_t* romBuffer = nullptr;
   // Open ROM file
   std::ifstream file(romPath, std::ios::ate | std::ios::binary);
@@ -88,6 +91,8 @@ int load_and_init_mario() {
 }
 
 int frame_num = 0;
+// Static variable to store the previous state of the punch button
+static bool prev_punch_button_state = false;
 void tick_mario_frame() {
   // This function is called every frame and controls updating the mario engine.
   // Revist this later, probably can /64 where we set .stickX instead and remove all this junk
@@ -101,6 +106,15 @@ void tick_mario_frame() {
 
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
 
+    bool current_punch_button_state = g_mario_inputs.buttonB;
+    //TODO make this only run on press instead of hold, if the punch button is pushed
+   if (current_punch_button_state && !prev_punch_button_state) {
+    if (marioId != -1) { // Still check marioId before spawning a cube
+      MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
+    }
+  }
+
+    prev_punch_button_state = current_punch_button_state;
     //  printf("[Mario Pos] X = %.2f, Y = %.2f, Z = %.2f\n",
     //      g_mario_state.position[0],
     //      g_mario_state.position[1],

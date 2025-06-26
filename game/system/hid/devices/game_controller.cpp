@@ -8,6 +8,7 @@
 #include "game/system/hid/sdl_util.h"
 
 #include "fmt/format.h"
+#include "game/graphics/opengl_renderer/MarioRenderer.h"
 
 GameController::GameController(int sdl_device_id,
                                std::shared_ptr<game_settings::InputSettings> settings)
@@ -217,6 +218,8 @@ void GameController::process_event(const SDL_Event& event,
     if (event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH) {
       g_mario_inputs.buttonA = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
     } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
+      
+
       g_mario_inputs.buttonB = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
     } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
       g_mario_inputs.buttonZ = (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);

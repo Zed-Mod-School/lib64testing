@@ -5,6 +5,7 @@
 
 #include "libsm64.h"
 extern SM64MarioInputs g_mario_inputs;
+extern SM64MarioState g_mario_state;
 
 // https://wiki.libsdl.org/SDL3/CategoryGamepad
 class GameController : public InputDevice {
