@@ -101,8 +101,11 @@
     ;; (set! (-> *surf0* vertices_3 1) 1)
     ;; (set! (-> *surf0* vertices_3 2) 0)
 
+;;(pc-mario-surface-update *surf0*)
+#|this updates SM64Surface* g_last_updated_surfaces = nullptr; On the cpp side
 
-
+Now we neeed to make it take the correct triangles and run some logic to see if it should/shouldnt spawn the actor collide or update it or whatever at the end of the function call.
+|#
 
 
 (defmethod debug-dont-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
