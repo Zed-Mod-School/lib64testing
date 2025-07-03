@@ -11693,6 +11693,7 @@
     (populate-cache! (_type_ collide-mesh-cache-tri matrix) none) ;; 13
     (collide-mesh-math-1 (_type_ object object) none) ;; 14
     (collide-mesh-math-2 (_type_ object object object) none) ;; 15
+    (debug-dont-draw-tris (_type_ process-drawable int) none)
     )
   )
 

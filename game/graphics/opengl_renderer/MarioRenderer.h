@@ -6,7 +6,6 @@
 extern SM64MarioGeometryBuffers g_geom;
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
 
-
 #define MAX_CUBES 64
 
 struct Cube {
@@ -18,16 +17,19 @@ struct Cube {
 class MarioRenderer {
  public:
   MarioRenderer(GameVersion version);
-  static uint32_t spawn_cube_under_mario(const float* marioPos, float size = 1000.0f); // Adjust default size
+  static uint32_t spawn_cube_under_mario(const float* marioPos,
+                                         float size = 1000.0f);  // Adjust default size
   // Add SharedRenderState* render_state to the signature
-  void draw_surface_object(const SM64SurfaceObject& obj, const float rgba[4], SharedRenderState* render_state, bool outline = true);
+  void draw_surface_object(const SM64SurfaceObject& obj,
+                           const float rgba[4],
+                           SharedRenderState* render_state,
+                           bool outline = true);
 
   void render(SharedRenderState* render_state, ScopedProfilerNode& prof);
   ~MarioRenderer();
   GLuint m_cube_vao = 0;
   GLuint m_cube_vbo = 0;
   GLuint m_cube_line_vbo = 0;
-
 
  private:
   void init_pat_colors(GameVersion version);

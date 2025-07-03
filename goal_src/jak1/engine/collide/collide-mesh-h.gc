@@ -50,7 +50,8 @@
    (sphere-on-platform-test (_type_ collide-mesh-cache-tri collide-tri-result vector float) float)
    (populate-cache! (_type_ collide-mesh-cache-tri matrix) none)
    (collide-mesh-math-1 (_type_ object object) none)
-   (collide-mesh-math-2 (_type_ object object object) none)))
+   (collide-mesh-math-2 (_type_ object object object) none)
+   (debug-dont-draw-tris (_type_ process-drawable int) none)))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; cache
@@ -91,6 +92,64 @@
       ;;     sd v0, 12(a0)
       (set! (-> obj id) v0)
       v0)))
+
+
+
+ ;;(inspect (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) )
+
+
+;; gc> (inspect (-> (the-as collide-shape-prim-mesh (-> (the-as crate (process-by-ename "crate-2955")) root root-prim)) mesh))
+;; [01fa8fd4] collide-mesh
+;;         joint-id: 2
+;;         num-tris: 12
+;;         num-verts: 8
+;;         vertex-data: Print not implemented!
+;;         tris[1] @ #x1fa8ff0
+;; 33198036        #x1fa8fd4              0.0000        #<collide-mesh @ #x1fa8fd4>
+
+;; gc> (inspect (-> (the-as collide-shape-prim-mesh (-> (the-as crate (process-by-ename "crate-2955")) root root-prim)) mesh tris 11))
+;; [01fa9048] collide-mesh-tri
+;;         vertex-index[3] @ #x1fa9048
+;;         unused: 0
+;;         pat: 1032
+;; 33198152        #x1fa9048              0.0000        4149769
+
+;; (defun print-collide-mesh-tri-indices ((mesh collide-mesh))
+;;  (dotimes (i (-> mesh num-tris))
+;;   a = (format #t (-> mesh tris i vertex-index 0))
+;;   b = (format #t (-> mesh tris i vertex-index 1))
+;;   c = (format #t (-> mesh tris i vertex-index 2))
+
+;;  (inspect (-> mesh vertex-data a))
+;;   (inspect (-> mesh vertex-data b))
+;;    (inspect (-> mesh vertex-data c))
+;;  )
+
+;;  #f)
+
+(defun print-collide-mesh-tri-indices ((mesh collide-mesh))
+  "Print each triangle vertex indices and positions."
+  (dotimes (i (-> mesh num-tris))
+    (let* ((tri (-> mesh tris i))
+           (a (-> tri vertex-index 0))
+           (b (-> tri vertex-index 1))
+           (c (-> tri vertex-index 2))
+           (va (-> mesh vertex-data a))
+           (vb (-> mesh vertex-data b))
+           (vc (-> mesh vertex-data c)))
+      ;; Print indices
+      (format #t "Tri ~D indices: ~D ~D ~D~%" i a b c)
+      ;; Print positions
+      (format #t "  Vertex A: (~F ~F ~F)~%"
+              (-> va x) (-> va y) (-> va z))
+      (format #t "  Vertex B: (~F ~F ~F)~%"
+              (-> vb x) (-> vb y) (-> vb z))
+      (format #t "  Vertex C: (~F ~F ~F)~%"
+              (-> vc x) (-> vc y) (-> vc z))))
+  #f)
+
+
+;;(-> (the-as collide-shape-prim-mesh (-> (the-as crate (process-by-ename "crate-2955")) root root-prim)) mesh)
 
 (defmethod is-id? ((this collide-mesh-cache) (arg0 int))
   "Is this our id?"

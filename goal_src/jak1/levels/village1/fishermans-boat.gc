@@ -674,6 +674,8 @@
       (set-time! (-> self state-time)))
   :trans
     (behavior ()
+
+    (when self (debug-draw-tris (-> (the-as collide-shape-prim-mesh (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) ) prims 0)) mesh)  self 2))
       (if (fishermans-boat-leave-dock?) (go fishermans-boat-ride-to-misty))
       (rider-trans)
       (if (nonzero? (-> self anim)) (spool-push *art-control* (-> self anim name) 0 self -99.0)))

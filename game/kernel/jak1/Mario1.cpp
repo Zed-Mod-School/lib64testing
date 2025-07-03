@@ -9,7 +9,7 @@ typedef uint32_t u32;
 #define M_PI 3.14159265358979323846
 #endif
 
-//#include "game/graphics/opengl_renderer/MarioRenderer.h"
+// #include "game/graphics/opengl_renderer/MarioRenderer.h"
 #include "game/graphics/opengl_renderer/MarioRenderer.h"
 
 static uint8_t* g_mario_texture = nullptr;
@@ -107,12 +107,12 @@ void tick_mario_frame() {
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
 
     bool current_punch_button_state = g_mario_inputs.buttonB;
-    //TODO make this only run on press instead of hold, if the punch button is pushed
-   if (current_punch_button_state && !prev_punch_button_state) {
-    if (marioId != -1) { // Still check marioId before spawning a cube
-      MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
+    // TODO make this only run on press instead of hold, if the punch button is pushed
+    if (current_punch_button_state && !prev_punch_button_state) {
+      if (marioId != -1) {  // Still check marioId before spawning a cube
+        MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
+      }
     }
-  }
 
     prev_punch_button_state = current_punch_button_state;
     //  printf("[Mario Pos] X = %.2f, Y = %.2f, Z = %.2f\n",

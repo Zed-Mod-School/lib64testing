@@ -384,6 +384,9 @@
    (new (symbol type collide-shape uint uint) _type_)
    (change-mesh (_type_ int) none)))
 
+ ;; (inspect  (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim)  )
+
+  ;; (inspect (-> (the-as collide-shape-prim-mesh (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) ) prims 0)) mesh) )
 ;; A group of collide-shape-prim's
 (deftype collide-shape-prim-group (collide-shape-prim)
   ((num-prims       int32)
@@ -410,6 +413,8 @@
 (declare-type collide-work structure)
 
 (declare-type touching-shapes-entry structure)
+
+
 
 (defenum nav-flags
   :bitfield #t

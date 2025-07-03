@@ -43,10 +43,15 @@
 #include "game/sce/libgraph.h"
 #include "game/sce/sif_ee.h"
 #include "game/sce/stubs.h"
+#include "mario1.h"
 
 using namespace ee;
 
 namespace jak1 {
+
+SM64Surface* g_last_updated_surfaces = nullptr;
+int g_combined_last_update_surfaces_count = 0;
+
 
 /*!
  * Initialize global variables based on command line parameters. Not called in retail versions,
@@ -411,6 +416,58 @@ void PutDisplayEnv(u32 ptr) {
   }
 }
 
+
+void update_mario_surface_from_goal_struct(u32 surface_ptr) {
+  // Print any previously stored surfaces
+  printf("=== BEGIN update_mario_surface_from_goal_struct ===\n");
+  if (g_last_updated_surfaces && g_combined_last_update_surfaces_count > 0) {
+    for (int i = 0; i < g_combined_last_update_surfaces_count; ++i) {
+      const auto& s = g_last_updated_surfaces[i];
+      printf("Stored Surface %d: Type=%d Terrain=%d Force=%d V0=(%d,%d,%d)\n",
+             i, s.type, s.terrain, s.force,
+             s.vertices[0][0], s.vertices[0][1], s.vertices[0][2]);
+    }
+  } else {
+    printf("No previously stored surfaces.\n");
+  }
+
+  // Process the incoming surface
+  auto surf = surface_ptr ? Ptr<SM64Surface>(surface_ptr).c() : NULL;
+
+  if (surf) {
+    // Free any old stored surfaces
+    if (g_last_updated_surfaces) {
+      free(g_last_updated_surfaces);
+      g_last_updated_surfaces = nullptr;
+      g_combined_last_update_surfaces_count = 0;
+    }
+
+    // Allocate new storage for 1 surface
+    g_last_updated_surfaces = (SM64Surface*)malloc(sizeof(SM64Surface));
+    if (g_last_updated_surfaces) {
+      memcpy(&g_last_updated_surfaces[0], surf, sizeof(SM64Surface));
+      g_combined_last_update_surfaces_count = 1;
+    }
+  }
+
+  // Print the updated stored surfaces
+  printf("=== END update_mario_surface_from_goal_struct ===\n");
+  if (g_last_updated_surfaces && g_combined_last_update_surfaces_count > 0) {
+    for (int i = 0; i < g_combined_last_update_surfaces_count; ++i) {
+      const auto& s = g_last_updated_surfaces[i];
+      printf("Stored Surface %d: Type=%d Terrain=%d Force=%d V0=(%d,%d,%d)\n",
+             i, s.type, s.terrain, s.force,
+             s.vertices[0][0], s.vertices[0][1], s.vertices[0][2]);
+    }
+  } else {
+    printf("No stored surfaces after update.\n");
+  }
+
+}
+
+
+
+
 void update_discord_rpc(u32 discord_info) {
   if (gDiscordRpcEnabled) {
     DiscordRichPresence rpc;
@@ -548,7 +605,7 @@ void InitMachine_PCPort() {
   make_function_symbol_from_c("__pc-set-levels", (void*)pc_set_levels);
 
   make_function_symbol_from_c("pc-discord-rpc-update", (void*)update_discord_rpc);
-
+  make_function_symbol_from_c("pc-mario-surface-update", (void*)update_mario_surface_from_goal_struct);
   // setup string constants
   // TODO - these may be able to be moved into `init_common_pc_port_functions` but it's trickier
   // since they are accessing the Ptr's value
