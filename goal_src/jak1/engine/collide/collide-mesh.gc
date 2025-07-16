@@ -155,6 +155,72 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
     (none)))
 
 
+(deftype crate (process-drawable)
+  ((root                collide-shape-moving :override)
+   (smush               smush-control :inline)
+   (base                vector :inline)
+   (look                symbol)
+   (defense             symbol)
+   (incomming-attack-id uint64)
+   (target              handle)
+   (child-count         int32)
+   (victory-anim        spool-anim))
+  (:state-methods
+   wait
+   (die symbol int)
+   special-contents-die
+   bounce-on
+   (notice-blue handle))
+  (:methods
+   (params-init (_type_ entity) none)
+   (art-init (_type_) crate)
+   (params-set! (_type_ symbol symbol) none)
+   (check-dead (_type_) none)
+   (smush-update! (_type_) none)))
+   (define *count-crates* 0)
+(define *total-crates* 0)
+
+(defun print-num-crate-level ()
+(iterate-process-tree *active-pool* (lambda ((proc process)) 
+
+(when (-> proc entity) 
+(let (
+    (vec (-> proc entity trans)) 
+    (quat (-> proc entity quat)) 
+    (name (the string (-> proc name))))
+    (when (and (<= (vector-vector-distance vec (target-pos 0)) (meters 5.0)) (= (-> (the entity-actor (-> proc entity)) etype) crate))
+
+    ;;We know its a crate
+
+    ;;What defense does it have
+    ;;(format #t " defense: ~A~%" (-> (the crate (-> (-> proc entity) extra process)) defense))
+
+    ;;If its wood, increase our count
+    (if (= (-> (the crate (-> (-> proc entity) extra process)) defense) 'wood)
+    (set! *count-crates* (+ *count-crates* 1))
+    )
+    ) 
+    
+    ))
+    
+    (when (and #t (< 0 *count-crates*) *target*)
+      (let ((gp-0 (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+        (let ((v1-53 gp-0)) (set! (-> v1-53 width) (the float 1440)))
+        (let ((v1-54 gp-0)) (set! (-> v1-54 height) (the float 1380)))
+        (let ((v1-55 gp-0)) (set! (-> v1-55 scale) 0.2))
+        (set! (-> gp-0 flags) (font-flags kerning large))
+        (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDE TO UPDATE ~D~%"
+                                              
+                                               *count-crates*)
+                                1.0
+                                gp-0
+                                128)))
+    )
+     *kernel-context*)
+       (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 5.0) (static-rgba 0 #xff 0 #x40))
+     (set! *count-crates* 0)
+(none)
+)
 
 (deftype sopt-work (structure)
   ((intersect     vector :inline)

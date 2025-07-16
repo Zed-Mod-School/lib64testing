@@ -92,3 +92,4 @@ goalc-report.html
 third-party/libsm64/build.bat
 output.wav
 third-party/libsm64/test.bat
+goal_src/jak1/engine/collide/ssrctest.py

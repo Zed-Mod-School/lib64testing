@@ -60,7 +60,7 @@ int load_and_init_mario() {
     return -1;
   }
   audio_init();
-  sm64_play_music(0, 0x05 | 0x80, 0);
+  //  sm64_play_music(0, 0x05 | 0x80, 0);
   // for (int i = 0; i < 10; ++i) {
   //   printf("marioId = %d\n", marioId);
   // }

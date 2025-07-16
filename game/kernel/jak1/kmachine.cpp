@@ -417,6 +417,7 @@ void PutDisplayEnv(u32 ptr) {
 }
 
 
+
 void update_mario_surface_from_goal_struct(u32 surface_ptr) {
   // Print any previously stored surfaces
   printf("=== BEGIN update_mario_surface_from_goal_struct ===\n");
