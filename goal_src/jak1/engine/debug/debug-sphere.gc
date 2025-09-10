@@ -13,7 +13,7 @@
 ;; DECOMP BEGINS
 
 (deftype debug-sphere-table (basic)
-  ((point vector 300 :inline)))
+  ((point vector 3000 :inline)))
 
 (defun make-debug-sphere-table ((arg0 debug-sphere-table))
   (local-vars (sv-80 int))

@@ -7,6 +7,14 @@
 
 ;; DECOMP BEGINS
 
+(defmacro temp-string-format (temp-str &rest args)
+  `(begin
+    (format (clear ,temp-str) ,@args)
+    ,temp-str))
+
+  (define *temp-string-mario* (new 'global 'string 256 (the string #f)))
+
+
 (defmethod asize-of ((this collide-mesh))
   "Compute the size in memory of a collide-mesh. Somehow this only counts num-tris and not verts."
   (the-as int (+ (-> collide-mesh size) (* (+ (-> this num-tris) -1) 8))))
@@ -24,6 +32,8 @@
     (+! (-> arg0 data 78 used) v1-16)
     (+! (-> arg0 data 78 total) (logand -16 (+ v1-16 15))))
   (the-as collide-mesh 0))
+
+(defun-extern add-sm64-surface0 symbol process-drawable vector vector vector symbol)
 
 (defmethod debug-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
   "Draw a collide-mesh."
@@ -66,8 +76,14 @@
             (.svf (&-> a2-1 quad) vf1)
             (.svf (&-> a3-0 quad) vf2)
             (.svf (&-> t0-0 quad) vf3)
-            (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)))
-        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
+            (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
+          ;;  (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)
+            ))
+        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))
+        
+       )
+        (pc-mario-surf-flush)
+       )
     0
     (none)))
 
@@ -87,6 +103,7 @@
                    :force 0
                    :terrain 0
 ))
+
     ;; Triangle 0: (0,0,0), (1,0,0), (1,1,0)
 
     ;; (set! (-> *surf0* vertices_1 0) 0)
@@ -106,6 +123,62 @@
 
 Now we neeed to make it take the correct triangles and run some logic to see if it should/shouldnt spawn the actor collide or update it or whatever at the end of the function call.
 |#
+
+
+
+;; (defun collide-mesh-to-surf0 ((mesh collide-mesh))
+;; "takes in a collide-mesh object and converts it to a sm64-surface and stores it in the *surf0* global"
+;; ;;TODO implment
+;; (none))
+;; ;;Example call 
+;; ;; (collide-mesh-to-surf0 (-> (the-as collide-shape-prim-mesh (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) ) prims 0)) mesh))
+
+
+
+(defun add-sm64-surface0 ((enable-write symbol) (arg0 process-drawable) (p0 vector) (p1 vector) (p2 vector))
+  "If enable-write is true, stores a triangle into *surf0* as sm64-surface.
+   Assumes p0, p1, p2 are already in world space."
+  (when enable-write
+    ;; Removed the let binding for v0, v1, v2 and the transform-point-qword! calls.
+    ;; The input p0, p1, p2 are already the world-space points.
+
+    ;; Ensure w = 1.0 (This might be redundant if the caller already sets it, but harmless)
+    (set! (-> p0 w) 1.0)
+    (set! (-> p1 w) 1.0)
+    (set! (-> p2 w) 1.0)
+
+    ;; Draw a sphere on each vertex for debugging.
+    ;; Use the already world-transformed input vectors p0, p1, p2.
+    (add-debug-sphere #t (bucket-id debug) p0 (meters 0.5) (static-rgba 0 #xff 0 #x40))
+    (add-debug-sphere #t (bucket-id debug) p1 (meters 0.5) (static-rgba 0 #xff 0 #x40))
+    (add-debug-sphere #t (bucket-id debug) p2 (meters 0.5) (static-rgba 0 #xff 0 #x40))
+
+    ;; Fill *surf0* with triangle data.
+    ;; Directly use the x, y, z components of the input vectors,
+    ;; truncating them and casting to int as required by *surf0*.
+    (set! (-> *surf0* type) 34)
+    (set! (-> *surf0* force) 0)
+    (set! (-> *surf0* terrain) 0)
+
+    (set! (-> *surf0* vertices_1 0) (the-as int  (-> p0 x)))
+    (set! (-> *surf0* vertices_1 1) (the-as int  (-> p0 y)))
+    (set! (-> *surf0* vertices_1 2) (the-as int  (-> p0 z)))
+
+    (set! (-> *surf0* vertices_2 0) (the-as int  (-> p1 x)))
+    (set! (-> *surf0* vertices_2 1) (the-as int  (-> p1 y)))
+    (set! (-> *surf0* vertices_2 2) (the-as int  (-> p1 z)))
+
+    (set! (-> *surf0* vertices_3 0) (the-as int  (-> p2 x)))
+    (set! (-> *surf0* vertices_3 1) (the-as int  (-> p2 y)))
+    (set! (-> *surf0* vertices_3 2) (the-as int  (-> p2 z)))
+    #t)
+
+   (let ((actor-name (-> arg0 name)))
+   (temp-string-format *temp-string-mario* (-> arg0 name))
+           ;; (pc-mesh-surface-add *temp-string-mario* *surf0*)
+            )
+
+  #f)
 
 
 (defmethod debug-dont-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
@@ -188,6 +261,10 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
     (vec (-> proc entity trans)) 
     (quat (-> proc entity quat)) 
     (name (the string (-> proc name))))
+
+    ;;check to see if a actor is something we DONT want to update, and if so return early/skip so we dont run unneeded code (lag)
+
+
     (when (and (<= (vector-vector-distance vec (target-pos 0)) (meters 5.0)) (= (-> (the entity-actor (-> proc entity)) etype) crate))
 
     ;;We know its a crate

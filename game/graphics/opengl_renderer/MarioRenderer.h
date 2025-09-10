@@ -50,4 +50,8 @@ class MarioRenderer {
   int m_num_mario_untextured_verts;
 
   uint8_t* marioTexture = nullptr;
+
+   GLuint m_overlayVAO = 0;
+  GLuint m_overlayVBO = 0;
+  GLuint m_overlayShader = 0;
 };

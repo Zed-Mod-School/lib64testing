@@ -468,6 +468,103 @@ void update_mario_surface_from_goal_struct(u32 surface_ptr) {
 
 
 
+//test
+SM64Surface g_surface_accumulator[512];
+int g_surface_accumulator_count = 0;
+std::string g_last_surface_actor_name = "";
+
+std::vector<SM64Surface> g_debug_surfaces;
+
+//test
+
+void pc_mesh_surface_flush_current_actor() {
+    if (g_surface_accumulator_count > 0 && !g_last_surface_actor_name.empty()) {
+        printf("[SURFACE-FLUSH-FINAL] %d surfaces for actor %s\n", g_surface_accumulator_count, g_last_surface_actor_name.c_str());
+
+        g_debug_surfaces.insert(
+            g_debug_surfaces.end(),
+            &g_surface_accumulator[0],
+            &g_surface_accumulator[g_surface_accumulator_count]);
+
+        printf("[SURFACE-DEBUG] g_debug_surfaces size after final flush: %zu\n", g_debug_surfaces.size());
+        g_surface_accumulator_count = 0;
+        g_last_surface_actor_name = ""; // Clear for next batch
+    } else {
+        printf("[SURFACE-DEBUG] No surfaces to flush or actor name empty during final flush.\n");
+    }
+
+}
+
+
+void pc_mesh_surface_add(u32 name_sym, u32 surf_ptr) {
+    printf("[SURFACE-DEBUG] pc_mesh_surface_add called. name_sym: %u, surf_ptr: %u\n", name_sym, surf_ptr);
+
+    if (!surf_ptr || !name_sym) {
+        printf("[SURFACE-DEBUG] Exiting early: surf_ptr or name_sym is null.\n");
+        return;
+    }
+
+    const char* name = (Ptr<String>(name_sym))->data();
+    auto* surf = Ptr<SM64Surface>(surf_ptr).c();
+
+    if (!name || !surf) {
+        printf("[SURFACE-DEBUG] Exiting early: name or surf is null after casting.\n");
+        return;
+    }
+
+    printf("[SURFACE-DEBUG] Actor Name: %s, Current Surface Count: %d\n", name, g_surface_accumulator_count);
+    printf("[SURFACE-DEBUG] Last Actor Name: %s, Last Actor Name Empty: %d\n", g_last_surface_actor_name.c_str(), g_last_surface_actor_name.empty());
+
+    // Actor name changed — flush the previous batch
+    if (g_last_surface_actor_name != name && !g_last_surface_actor_name.empty()) {
+        printf("[SURFACE-FLUSH] %d surfaces for actor %s\n", g_surface_accumulator_count, g_last_surface_actor_name.c_str());
+
+        // Append to debug list
+        g_debug_surfaces.insert(
+            g_debug_surfaces.end(),
+            &g_surface_accumulator[0],
+            &g_surface_accumulator[g_surface_accumulator_count]);
+
+        printf("[SURFACE-DEBUG] g_debug_surfaces size after flush: %zu\n", g_debug_surfaces.size());
+        g_surface_accumulator_count = 0;
+    }
+
+    // Update actor name
+    g_last_surface_actor_name = name;
+
+    // ✅ Only store if not already present
+    bool already_exists = false;
+    for (int i = 0; i < g_surface_accumulator_count; ++i) {
+        if (memcmp(&g_surface_accumulator[i], surf, sizeof(SM64Surface)) == 0) {
+            already_exists = true;
+            break;
+        }
+    }
+
+    if (already_exists) {
+        printf("[SURFACE-DEBUG] Surface already exists for actor %s. Skipping add.\n", name);
+    } else {
+        // Store new surface
+        if (g_surface_accumulator_count < 512) {
+            g_surface_accumulator[g_surface_accumulator_count++] = *surf;
+            printf("[SURFACE-DEBUG] Surface added to accumulator. New count: %d\n", g_surface_accumulator_count);
+            if (g_surface_accumulator_count % 100 == 0) {
+              printf("[SURFACE-DEBUG] === REACHED %d SURFACES ===\n", g_surface_accumulator_count);
+              // You can set a debugger breakpoint on this line or drop __debugbreak() here on MSVC
+              // __debugbreak();   // <- uncomment for actual breakpoint in MSVC
+
+            }
+
+        } else {
+            printf("[SURFACE-WARN] Overflow for actor %s (max 512 surfaces)\n", name);
+        }
+    }
+
+    printf("[SURFACE-DEBUG] Exiting pc_mesh_surface_add.\n");
+}
+
+
+//end test
 
 void update_discord_rpc(u32 discord_info) {
   if (gDiscordRpcEnabled) {
@@ -606,6 +703,8 @@ void InitMachine_PCPort() {
   make_function_symbol_from_c("__pc-set-levels", (void*)pc_set_levels);
 
   make_function_symbol_from_c("pc-discord-rpc-update", (void*)update_discord_rpc);
+  make_function_symbol_from_c("pc-mesh-surface-add", (void*)pc_mesh_surface_add); //testing
+  make_function_symbol_from_c("pc-mario-surf-flush", (void*)pc_mesh_surface_flush_current_actor); //testing
   make_function_symbol_from_c("pc-mario-surface-update", (void*)update_mario_surface_from_goal_struct);
   // setup string constants
   // TODO - these may be able to be moved into `init_common_pc_port_functions` but it's trickier

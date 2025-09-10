@@ -4,6 +4,60 @@
 
 #include "game/graphics/gfx.h"
 #include "game/kernel/jak1/Mario1.h"
+#include "third-party/stb_image/stb_image.h"
+  static GLuint overlayTex = 0;
+static int overlayW = 0, overlayH = 0;
+
+static const char* overlayVertSrc = R"GLSL(
+#version 330 core
+layout (location = 0) in vec2 inPos;
+layout (location = 1) in vec2 inUV;
+
+out vec2 fragUV;
+
+uniform vec2 uPos;
+uniform vec2 uSize;
+uniform vec2 uScreen;
+
+void main() {
+    vec2 pos = uPos + inPos * uSize;
+    vec2 ndc = (pos / uScreen) * 2.0 - 1.0;
+    ndc.y = -ndc.y;
+    gl_Position = vec4(ndc, 0.0, 1.0);
+    fragUV = inUV;
+}
+)GLSL";
+
+static const char* overlayFragSrc = R"GLSL(
+#version 330 core
+in vec2 fragUV;
+out vec4 FragColor;
+uniform sampler2D uTex;
+void main() {
+    FragColor = texture(uTex, fragUV);
+}
+)GLSL";
+
+
+static GLuint buildShader(const char* vs, const char* fs) {
+    auto compile = [](GLenum type, const char* src) {
+        GLuint s = glCreateShader(type);
+        glShaderSource(s, 1, &src, nullptr);
+        glCompileShader(s);
+        return s;
+    };
+    GLuint v = compile(GL_VERTEX_SHADER, vs);
+    GLuint f = compile(GL_FRAGMENT_SHADER, fs);
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, v);
+    glAttachShader(prog, f);
+    glLinkProgram(prog);
+    glDeleteShader(v);
+    glDeleteShader(f);
+    return prog;
+}
+
+
 
 MarioRenderer::MarioRenderer(GameVersion version) {
   glGenVertexArrays(1, &m_vao);
@@ -202,6 +256,31 @@ uint32_t MarioRenderer::spawn_cube_under_mario(const float* marioPos, float size
 void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& prof) {
   render_state->shaders[ShaderId::MARIO].activate();
 
+  if (m_overlayShader == 0) {
+    m_overlayShader = buildShader(overlayVertSrc, overlayFragSrc);
+
+    float verts[] = {
+        // pos     // uv
+        0.f, 0.f, 0.f, 0.f,
+        1.f, 0.f, 1.f, 0.f,
+        1.f, 1.f, 1.f, 1.f,
+        0.f, 1.f, 0.f, 1.f
+    };
+
+    glGenVertexArrays(1, &m_overlayVAO);
+    glGenBuffers(1, &m_overlayVBO);
+    glBindVertexArray(m_overlayVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_overlayVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+}
+
+
   glBindVertexArray(m_vao);
   auto shader = render_state->shaders[ShaderId::MARIO].id();
   GLuint block_index = glGetUniformBlockIndex(shader, "PatColors");
@@ -335,6 +414,46 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
     float yellow[4] = {1.0f, 1.0f, 0.0f, 0.4f};  // Alpha is 0.4f, indicating transparency
     this->draw_surface_object(cube.surfaceObj, yellow, render_state, true);
   }
+
+
+
+if (overlayTex == 0) {
+    int n;
+    unsigned char* data = stbi_load("overlay.png", &overlayW, &overlayH, &n, 4);
+    if (data) {
+        glGenTextures(1, &overlayTex);
+        glBindTexture(GL_TEXTURE_2D, overlayTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, overlayW, overlayH,
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        stbi_image_free(data);
+    }
+}
+
+if (overlayTex != 0 && m_overlayShader != 0) {
+    glUseProgram(m_overlayShader);
+    glBindVertexArray(m_overlayVAO);
+
+    glUniform2f(glGetUniformLocation(m_overlayShader, "uPos"), 100.0f, 100.0f);
+    glUniform2f(glGetUniformLocation(m_overlayShader, "uSize"), (float)overlayW, (float)overlayH);
+    glUniform2f(glGetUniformLocation(m_overlayShader, "uScreen"),
+                (float)render_state->render_fb_w,
+                (float)render_state->render_fb_h);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, overlayTex);
+    glUniform1i(glGetUniformLocation(m_overlayShader, "uTex"), 0);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
 
   // Restore previous state
   if (cullEnabled)
