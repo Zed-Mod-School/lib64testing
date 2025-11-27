@@ -110,7 +110,7 @@ void tick_mario_frame() {
     // TODO make this only run on press instead of hold, if the punch button is pushed
     if (current_punch_button_state && !prev_punch_button_state) {
       if (marioId != -1) {  // Still check marioId before spawning a cube
-        MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
+        //MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
       }
     }
 
@@ -168,6 +168,7 @@ void pc_set_mario_camera(u32 x, u32 z) {
   memcpy(&g_mario_inputs.camLookZ, &z, 4);
 }
 
+
 void pc_set_mario_position_from_goal(u32 x_bits, u32 y_bits, u32 z_bits) {
   float x, y, z;
   memcpy(&x, &x_bits, sizeof(u32));
@@ -179,10 +180,12 @@ void pc_set_mario_position_from_goal(u32 x_bits, u32 y_bits, u32 z_bits) {
   x *= METERS_TO_UNITS;
   y *= METERS_TO_UNITS;
   z *= METERS_TO_UNITS;
-
   sm64_set_mario_position(marioId, x, y, z);
 }
 
+void pc_spawn_mario_test_collide() {
+ MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
+}
 // Gross collide stuff just stop reading
 #define CYLINDER_RADIUS 2000.0f
 #define CYLINDER_RADIUS_SQ (CYLINDER_RADIUS * CYLINDER_RADIUS)

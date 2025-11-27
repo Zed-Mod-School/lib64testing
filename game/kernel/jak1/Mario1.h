@@ -18,6 +18,7 @@ uint64_t pc_get_mario_action();
 
 void pc_set_mario_camera(uint32_t x, uint32_t z);
 void pc_set_mario_position_from_goal(uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
+void pc_spawn_mario_test_collide();
 
 void load_combined_static_surfaces(const SM64Surface* surfaces1,
                                    int count1,

@@ -2,6 +2,11 @@
 import os
 import shutil
 import urllib.request
+import ssl
+# Create a default, unverified context
+unverified_context = ssl._create_unverified_context()
+
+
 
 BOB_COLLISION_URL = "https://raw.githubusercontent.com/n64decomp/sm64/06ec56df7f951f88da05f468cdcacecba496145a/levels/bob/areas/1/collision.inc.c"
 
@@ -15,7 +20,8 @@ extern const size_t surfaces_count;
 
 def main():
     print("Downloading " + BOB_COLLISION_URL)
-    in_lines = urllib.request.urlopen(BOB_COLLISION_URL).read().decode('utf8').splitlines()
+    # Pass the context to urlopen
+    in_lines = urllib.request.urlopen(BOB_COLLISION_URL, context=unverified_context).read().decode('utf8').splitlines()
 
     verts = []
     tris = []

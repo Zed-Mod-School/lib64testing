@@ -595,6 +595,7 @@
 (define-extern pc-load-mario-collide! (function float float none))
 
 (define-extern teleport-mario-to-pos (function float float float none))
+(define-extern pc-spawn-mario-test-collide (function none))
 
 (declare-type screen-shot-settings structure)
 
