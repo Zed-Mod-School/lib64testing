@@ -30,6 +30,11 @@ extern "C" {
 #include "audio.h"
 
 #define MAX_CUBES 64
+// Globals for the follow plane
+SM64SurfaceObject followPlaneObj = {};
+uint32_t followPlaneId = 0;
+const float PLANE_SIZE = 1000.0f; // A constant size for the plane (Smaller for better visibility testing)
+
 
 struct Cube {
     float pos[3];
@@ -142,7 +147,45 @@ uint32_t spawn_cube_under_mario(const float* marioPos, float size = 1000.0f) {
     return id;
 }
 
+// ... (after spawn_cube_under_mario) ...
 
+uint32_t create_follow_plane_geometry(float size) {
+    // This uses the global followPlaneObj
+    followPlaneObj.surfaceCount = 2; // quad = 2 triangles
+    followPlaneObj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * followPlaneObj.surfaceCount);
+
+    // *FIX*: Explicitly initialize the transform to ensure its starting position is known.
+    followPlaneObj.transform.position[0] = 0.0f;
+    followPlaneObj.transform.position[1] = 0.0f;
+    followPlaneObj.transform.position[2] = 0.0f;
+
+    float half = size / 2.0f;
+
+    // Vertices are defined relative to the object's origin (0, 0, 0)
+    // Tri 1
+    followPlaneObj.surfaces[0].vertices[0][0] = -half; followPlaneObj.surfaces[0].vertices[0][1] = 0; followPlaneObj.surfaces[0].vertices[0][2] = -half;
+    followPlaneObj.surfaces[0].vertices[1][0] =  half; followPlaneObj.surfaces[0].vertices[1][1] = 0; followPlaneObj.surfaces[0].vertices[1][2] = -half;
+    followPlaneObj.surfaces[0].vertices[2][0] =  half; followPlaneObj.surfaces[0].vertices[2][1] = 0; followPlaneObj.surfaces[0].vertices[2][2] =  half;
+    followPlaneObj.surfaces[0].type      = SURFACE_DEFAULT;
+    followPlaneObj.surfaces[0].force     = 0;
+    followPlaneObj.surfaces[0].terrain = TERRAIN_STONE;
+
+    // Tri 2
+    followPlaneObj.surfaces[1].vertices[0][0] =  half; followPlaneObj.surfaces[1].vertices[0][1] = 0; followPlaneObj.surfaces[1].vertices[0][2] =  half;
+    followPlaneObj.surfaces[1].vertices[1][0] = -half; followPlaneObj.surfaces[1].vertices[1][1] = 0; followPlaneObj.surfaces[1].vertices[1][2] =  half;
+    followPlaneObj.surfaces[1].vertices[2][0] = -half; followPlaneObj.surfaces[1].vertices[2][1] = 0; followPlaneObj.surfaces[1].vertices[2][2] = -half;
+    followPlaneObj.surfaces[1].type      = SURFACE_DEFAULT;
+    followPlaneObj.surfaces[1].force     = 0;
+    followPlaneObj.surfaces[1].terrain = TERRAIN_STONE;
+
+    uint32_t id = sm64_surface_object_create(&followPlaneObj);
+
+    // Unlike the cubes, we must keep the followPlaneObj.surfaces allocated
+    // because it will be drawn every frame using draw_surface_object.
+    return id;
+}
+
+// ... (rest of main.c) ...
 
 void draw_surface_object(const SM64SurfaceObject& obj, const float rgba[4], bool outline = true) {
     glMatrixMode(GL_MODELVIEW);
@@ -169,6 +212,15 @@ for (uint32_t j = 0; j < 3; ++j) {
         (float)obj.surfaces[i].vertices[j][1],
         (float)obj.surfaces[i].vertices[j][2]
     };
+
+    // DEBUG PRINT (only print the first vertex of the first triangle if it's the plane)
+    if (obj.surfaceCount == 2 && i == 0 && j == 0) {
+        // This print confirms the final coordinates used by OpenGL
+        // printf("DEBUG: Drawing Plane V0: Base=(%f, %f, %f), Vert=(%f, %f, %f), Total=(%f, %f, %f)\n",
+        //        base[0], base[1], base[2], v[0], v[1], v[2], v[0] + base[0], v[1] + base[1], v[2] + base[2]);
+    }
+    // END DEBUG PRINT
+
     glVertex3f(v[0] + base[0], v[1] + base[1], v[2] + base[2]);
 }
 
@@ -244,6 +296,12 @@ int main( void )
     sm64_static_surfaces_load( surfaces, surfaces_count );
     int32_t marioId = sm64_mario_create( 0, 1000, 0 );
 
+    followPlaneId = create_follow_plane_geometry(PLANE_SIZE);
+
+    // Print ID after creation to confirm the reported 0
+    printf("Created Follow Plane ID: %u\n", followPlaneId);
+
+
     free( rom );
 
     RenderState renderState;
@@ -274,7 +332,7 @@ int main( void )
     float lastGeoPos[9 * SM64_GEO_MAX_TRIANGLES], currGeoPos[9 * SM64_GEO_MAX_TRIANGLES];
 
     marioGeometry.position = (float*)malloc( sizeof(float) * 9 * SM64_GEO_MAX_TRIANGLES );
-    marioGeometry.color    = (float*)malloc( sizeof(float) * 9 * SM64_GEO_MAX_TRIANGLES );
+    marioGeometry.color     = (float*)malloc( sizeof(float) * 9 * SM64_GEO_MAX_TRIANGLES );
     marioGeometry.normal   = (float*)malloc( sizeof(float) * 9 * SM64_GEO_MAX_TRIANGLES );
     marioGeometry.uv       = (float*)malloc( sizeof(float) * 6 * SM64_GEO_MAX_TRIANGLES );
     marioGeometry.numTrianglesUsed = 0;
@@ -381,7 +439,7 @@ prevSquarePressed = squarePressed;
         while (tick >= 1.f/30)
         {
             memcpy(lastPos, currPos, sizeof(currPos));
-            memcpy(lastGeoPos, currGeoPos, sizeof(currGeoPos));
+            memcpy(lastGeoPos, currGeoPos, sizeof(lastGeoPos)); // Corrected sizeof to lastGeoPos
 
             tick -= 1.f/30;
             sm64_mario_tick( marioId, &marioInputs, &marioState, &marioGeometry );
@@ -411,38 +469,32 @@ for (int i = 0; i < numCubes; ++i) {
     draw_surface_object(cube.surfaceObj, yellow, true);
 }
 
-// for (int i = 0; i < numCubes; ++i) {
-//     const Cube& cube = spawnedCubes[i];
-//     float s = cube.size / 2;
+// FIX: Run if the ID is 0 (the first object) or any positive ID
+if (followPlaneId == 0 || followPlaneId > 0) {
+    // 1. Update the transform based on Mario's position
+    SM64ObjectTransform t{};
+    t.position[0] = marioState.position[0];
+    t.position[1] = marioState.position[1] - 180.0f; // Place it 50 units above Mario for visibility
+    t.position[2] = marioState.position[2];
 
-//     float x = cube.pos[0];
-//     float y = cube.pos[1];
-//     float z = cube.pos[2];
+    // Update the object in the SM64 engine
+    sm64_surface_object_move(followPlaneId, &t);
 
-//     float v[8][3] = {
-//         {x-s, y-s, z-s}, {x+s, y-s, z-s},
-//         {x+s, y+s, z-s}, {x-s, y+s, z-s},
-//         {x-s, y-s, z+s}, {x+s, y-s, z+s},
-//         {x+s, y+s, z+s}, {x-s, y+s, z+s},
-//     };
+    // Crucial: Update the local struct used for drawing in immediate mode GL
+    followPlaneObj.transform = t;
 
-//     int faces[6][4] = {
-//         {0, 1, 2, 3}, // back
-//         {5, 4, 7, 6}, // front
-//         {4, 0, 3, 7}, // left
-//         {1, 5, 6, 2}, // right
-//         {3, 2, 6, 7}, // top
-//         {4, 5, 1, 0}  // bottom
-//     };
+    // ************ DEBUG PRINT ADDED ************
+    // Print the global struct's position, which is actually used for drawing
+    // printf("DEBUG: Drawing Pos: X=%f, Y=%f, Z=%f\n",
+    //        followPlaneObj.transform.position[0],
+    //        followPlaneObj.transform.position[1],
+    //        followPlaneObj.transform.position[2]);
+    // *******************************************
 
-//     glBegin(GL_QUADS);
-//     for (int f = 0; f < 6; ++f) {
-//         for (int j = 0; j < 4; ++j) {
-//             glVertex3fv(v[faces[f][j]]);
-//         }
-//     }
-//     glEnd();
-// }
+    // 2. Draw the plane
+    float yellow[] = {1.0f, 1.0f, 0.0f, 0.4f};
+    draw_surface_object(followPlaneObj, yellow, true);
+}
 
 glPopMatrix();
 glEnable(GL_TEXTURE_2D);
@@ -454,53 +506,6 @@ glColor4f(1, 1, 1, 1);  // reset
 
 //end outlines
         //end new new
-//         //new
-//         glMatrixMode(GL_MODELVIEW);
-// glPushMatrix();
-
-// glEnable(GL_BLEND);
-// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-// glDisable(GL_TEXTURE_2D);
-// glLineWidth(2.0f);
-
-// for (int i = 0; i < numCubes; ++i) {
-//     const Cube& cube = spawnedCubes[i];
-//     float s = cube.size / 2;
-
-//     float x = cube.pos[0];
-//     float y = cube.pos[1];
-//     float z = cube.pos[2];
-
-//     glBegin(GL_LINES);
-//     glColor4f(1.0f, 1.0f, 0.0f, 0.5f);  // yellowish transparent
-
-//     // 8 corners of cube
-//     float v[8][3] = {
-//         {x-s, y-s, z-s}, {x+s, y-s, z-s},
-//         {x+s, y+s, z-s}, {x-s, y+s, z-s},
-//         {x-s, y-s, z+s}, {x+s, y-s, z+s},
-//         {x+s, y+s, z+s}, {x-s, y+s, z+s},
-//     };
-
-//     // 12 edges
-//     int edges[12][2] = {
-//         {0,1},{1,2},{2,3},{3,0},
-//         {4,5},{5,6},{6,7},{7,4},
-//         {0,4},{1,5},{2,6},{3,7}
-//     };
-
-//     for (int e = 0; e < 12; ++e) {
-//         glVertex3fv(v[edges[e][0]]);
-//         glVertex3fv(v[edges[e][1]]);
-//     }
-
-//     glEnd();
-// }
-
-// glPopMatrix();
-// glColor4f(1, 1, 1, 1);
-// glEnable(GL_TEXTURE_2D);
-//         //endnew
     }
     while( context_flip_frame_poll_events() );
 

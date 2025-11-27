@@ -2,6 +2,16 @@
 import os
 import shutil
 import urllib.request
+import ssl
+
+# This block disables SSL certificate verification for this script.
+# Use this only as a temporary fix for local development.
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 BOB_COLLISION_URL = "https://raw.githubusercontent.com/n64decomp/sm64/06ec56df7f951f88da05f468cdcacecba496145a/levels/bob/areas/1/collision.inc.c"
 

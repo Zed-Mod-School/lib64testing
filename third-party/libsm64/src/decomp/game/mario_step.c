@@ -275,7 +275,10 @@ static s32 perform_ground_quarter_step(struct MarioState *m, Vec3f nextPos) {
     m->wall = upperWall;
 
     if (floor == NULL) {
-        return GROUND_STEP_HIT_WALL_STOP_QSTEPS;
+
+        floorHeight = waterLevel;
+        floor = &gWaterSurfacePseudoFloor;
+        floor->originOffset = floorHeight;
     }
 
     if ((m->action & ACT_FLAG_RIDING_SHELL) && floorHeight < waterLevel) {
@@ -285,9 +288,7 @@ static s32 perform_ground_quarter_step(struct MarioState *m, Vec3f nextPos) {
     }
 
     if (nextPos[1] > floorHeight + 100.0f) {
-        if (nextPos[1] + 160.0f >= ceilHeight) {
-            return GROUND_STEP_HIT_WALL_STOP_QSTEPS;
-        }
+
 
         vec3f_copy(m->pos, nextPos);
         m->floor = floor;
@@ -325,11 +326,15 @@ s32 perform_ground_step(struct MarioState *m) {
     Vec3f intendedPos;
 
     for (i = 0; i < 4; i++) {
+        // The current floor pointer is used here.
+        // It must be valid (not NULL) for all 4 quarter-steps to prevent the segfault.
         intendedPos[0] = m->pos[0] + m->floor->normal.y * (m->vel[0] / 4.0f);
         intendedPos[2] = m->pos[2] + m->floor->normal.y * (m->vel[2] / 4.0f);
         intendedPos[1] = m->pos[1];
 
         stepResult = perform_ground_quarter_step(m, intendedPos);
+
+        // *** Original behavior: Breaks the loop but does NOT null m->floor ***
         if (stepResult == GROUND_STEP_LEFT_GROUND || stepResult == GROUND_STEP_HIT_WALL_STOP_QSTEPS) {
             break;
         }

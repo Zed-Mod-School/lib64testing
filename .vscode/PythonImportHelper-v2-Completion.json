@@ -3105,6 +3105,15 @@
         "documentation": {}
     },
     {
+        "label": "ssl",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "ssl",
+        "description": "ssl",
+        "detail": "ssl",
+        "documentation": {}
+    },
+    {
         "label": "pexpect",
         "kind": 6,
         "isExtraImport": true,

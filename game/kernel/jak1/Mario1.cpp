@@ -114,6 +114,10 @@ void tick_mario_frame() {
       }
     }
 
+    if (marioId != -1) {
+      MarioRenderer::update_follow_plane(g_mario_state.position, 50.0f);
+    }
+
     prev_punch_button_state = current_punch_button_state;
     //  printf("[Mario Pos] X = %.2f, Y = %.2f, Z = %.2f\n",
     //      g_mario_state.position[0],

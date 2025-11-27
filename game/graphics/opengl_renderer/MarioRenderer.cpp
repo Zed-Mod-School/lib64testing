@@ -253,6 +253,89 @@ uint32_t MarioRenderer::spawn_cube_under_mario(const float* marioPos, float size
   return id;
 }
 
+
+
+void MarioRenderer::draw_surface_object_with_label(SM64SurfaceObject& obj, const char* label, SharedRenderState* render_state) {
+
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, label);
+
+    // If you want a yellow color with some alpha
+    float yellow[4] = {1.0f, 1.0f, 0.0f, 0.4f};
+
+
+    draw_surface_object(obj, yellow, render_state, true);
+
+    glPopDebugGroup();
+
+}
+
+
+constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;  // same as pc_set_mario_position_from_goal
+
+static uint32_t create_plane(float size);
+
+
+
+
+uint32_t MarioRenderer::followPlaneId = 0;
+SM64SurfaceObject MarioRenderer::followPlaneObj = {};
+bool MarioRenderer::followPlaneInitialized = false;
+
+void MarioRenderer::update_follow_plane(const float* marioPos, float size) {
+    float scaledSize = size * METERS_TO_UNITS;
+
+    if (followPlaneId == 0) {
+        // First frame: create plane geometry
+        followPlaneId = create_plane(scaledSize);
+    }
+
+    // Update transform every frame
+    SM64ObjectTransform t{};
+    t.position[0] = marioPos[0];
+    t.position[1] = marioPos[1] - 0.1f;   // slightly below Mario's feet
+    t.position[2] = marioPos[2];
+
+    sm64_surface_object_move(followPlaneId, &t);
+}
+
+uint32_t create_plane(float size) {
+    SM64SurfaceObject obj{};
+    obj.surfaceCount = 2; // quad = 2 triangles
+    // Allocate memory for the surfaces
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * obj.surfaceCount);
+
+    float half = size / 2.0f;
+
+    // Tri 1
+    obj.surfaces[0].vertices[0][0] = -half; obj.surfaces[0].vertices[0][1] = 0; obj.surfaces[0].vertices[0][2] = -half;
+    obj.surfaces[0].vertices[1][0] =  half; obj.surfaces[0].vertices[1][1] = 0; obj.surfaces[0].vertices[1][2] = -half;
+    obj.surfaces[0].vertices[2][0] =  half; obj.surfaces[0].vertices[2][1] = 0; obj.surfaces[0].vertices[2][2] =  half;
+    obj.surfaces[0].type    = SURFACE_DEFAULT;
+    obj.surfaces[0].force   = 0;
+    obj.surfaces[0].terrain = TERRAIN_STONE;
+
+    // Tri 2
+    obj.surfaces[1].vertices[0][0] =  half; obj.surfaces[1].vertices[0][1] = 0; obj.surfaces[1].vertices[0][2] =  half;
+    obj.surfaces[1].vertices[1][0] = -half; obj.surfaces[1].vertices[1][1] = 0; obj.surfaces[1].vertices[1][2] =  half;
+    obj.surfaces[1].vertices[2][0] = -half; obj.surfaces[1].vertices[2][1] = 0; obj.surfaces[1].vertices[2][2] = -half;
+    obj.surfaces[1].type    = SURFACE_DEFAULT;
+    obj.surfaces[1].force   = 0;
+    obj.surfaces[1].terrain = TERRAIN_STONE;
+
+    uint32_t id = sm64_surface_object_create(&obj);
+
+    // --- START OF FIX ---
+    // Copy the SM64SurfaceObject structure (including the surfaces pointer)
+    // to the static member so the geometry can be drawn in MarioRenderer::render().
+    // This mirrors the logic used for 'spawnedCubes'.
+    MarioRenderer::followPlaneObj = obj;
+    // --- END OF FIX ---
+
+    return id;
+}
+
+
+
 void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& prof) {
   render_state->shaders[ShaderId::MARIO].activate();
 
@@ -414,7 +497,11 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
     float yellow[4] = {1.0f, 1.0f, 0.0f, 0.4f};  // Alpha is 0.4f, indicating transparency
     this->draw_surface_object(cube.surfaceObj, yellow, render_state, true);
   }
+ if (followPlaneId != 0) {
+   float yellow[4] = {1.0f, 1.0f, 0.0f, 0.4f};
+        draw_surface_object_with_label(followPlaneObj, "Follow Plane", render_state);
 
+    }
 
 
 if (overlayTex == 0) {

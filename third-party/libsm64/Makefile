@@ -89,12 +89,12 @@ test/level.c: ./import-test-collision.py
 test/main.cpp test/gl20/gl20_renderer.c test/gl33core/gl33core_renderer.c: test/level.c
 
 $(BUILD_DIR)/test/%.o: test/%.c
-	@$(CC) $(CFLAGS) -MM -MP -MT $@ -MF $(BUILD_DIR)/test/$*.d $<
-	$(CC) -c $(CFLAGS) -o $@ $<
+	@$(CC) $(CFLAGS) -Itest -MM -MP -MT $@ -MF $(BUILD_DIR)/test/$*.d $<
+	$(CC) -c $(CFLAGS) -Itest -o $@ $<
 
 $(BUILD_DIR)/test/%.o: test/%.cpp
-	@$(CXX) $(CFLAGS) -MM -MP -MT $@ -MF $(BUILD_DIR)/test/$*.d $<
-	$(CXX) -c $(CFLAGS) -o $@ $<
+	@$(CXX) $(CFLAGS) -Itest -MM -MP -MT $@ -MF $(BUILD_DIR)/test/$*.d $<
+	$(CXX) -c $(CFLAGS) -Itest -o $@ $<
 
 $(TEST_FILE): $(LIB_FILE) $(TEST_OBJS)
 ifdef WINDOWS_BUILD

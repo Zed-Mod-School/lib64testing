@@ -20,10 +20,17 @@ class MarioRenderer {
   static uint32_t spawn_cube_under_mario(const float* marioPos,
                                          float size = 1000.0f);  // Adjust default size
   // Add SharedRenderState* render_state to the signature
+  static void update_follow_plane(const float* marioPos, float size);
+  static uint32_t followPlaneId;
+  static SM64SurfaceObject followPlaneObj;
+  static bool followPlaneInitialized;
   void draw_surface_object(const SM64SurfaceObject& obj,
                            const float rgba[4],
                            SharedRenderState* render_state,
                            bool outline = true);
+void draw_surface_object_with_label(SM64SurfaceObject& obj,
+                                    const char* label,
+                                    SharedRenderState* render_state);
 
   void render(SharedRenderState* render_state, ScopedProfilerNode& prof);
   ~MarioRenderer();
