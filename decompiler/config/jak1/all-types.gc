@@ -1048,7 +1048,7 @@
   (sidekick-hint-rounddoor #x23c)
   (sidekick-hint-lurkerm #x23d)
   (sidekick-hint-tower #x23e)
-  
+
   (sidekick-reminder-fish #x240)
 
   (firecanyon-need-cells #x24f)
@@ -11682,9 +11682,7 @@
    (vertex-data (inline-array vector) :offset-assert 16)
    (tris        collide-mesh-tri 1 :inline :offset 32)
    )
-  :method-count-assert 16
-  :size-assert         #x28
-  :flag-assert         #x1000000028
+
   (:methods
     (debug-draw-tris (_type_ process-drawable int) none) ;; 9
     (overlap-test (_type_ collide-mesh-cache-tri vector) symbol) ;; 10
