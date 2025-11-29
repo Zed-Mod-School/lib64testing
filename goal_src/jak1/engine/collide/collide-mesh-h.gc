@@ -93,10 +93,7 @@
       (set! (-> obj id) v0)
       v0)))
 
-
-
- ;;(inspect (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) )
-
+;;(inspect (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) )
 
 ;; gc> (inspect (-> (the-as collide-shape-prim-mesh (-> (the-as crate (process-by-ename "crate-2955")) root root-prim)) mesh))
 ;; [01fa8fd4] collide-mesh
@@ -140,14 +137,10 @@
       ;; Print indices
       (format #t "Tri ~D indices: ~D ~D ~D~%" i a b c)
       ;; Print positions
-      (format #t "  Vertex A: (~F ~F ~F)~%"
-              (-> va x) (-> va y) (-> va z))
-      (format #t "  Vertex B: (~F ~F ~F)~%"
-              (-> vb x) (-> vb y) (-> vb z))
-      (format #t "  Vertex C: (~F ~F ~F)~%"
-              (-> vc x) (-> vc y) (-> vc z))))
+      (format #t "  Vertex A: (~F ~F ~F)~%" (-> va x) (-> va y) (-> va z))
+      (format #t "  Vertex B: (~F ~F ~F)~%" (-> vb x) (-> vb y) (-> vb z))
+      (format #t "  Vertex C: (~F ~F ~F)~%" (-> vc x) (-> vc y) (-> vc z))))
   #f)
-
 
 ;;(-> (the-as collide-shape-prim-mesh (-> (the-as crate (process-by-ename "crate-2955")) root root-prim)) mesh)
 

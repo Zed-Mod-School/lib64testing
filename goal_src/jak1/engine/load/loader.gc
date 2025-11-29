@@ -402,7 +402,8 @@
 (defmethod file-status ((this external-art-control) (name string) (part int))
   "Get the status of a file in this art control. #f = file not found"
   (dotimes (i 2)
-    (awhen (file-status (-> this buffer i) name part) (return it)))
+    (awhen (file-status (-> this buffer i) name part)
+      (return it)))
   #f)
 
 (defmethod update ((this external-art-control) (debug-print symbol))

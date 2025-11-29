@@ -12,8 +12,7 @@
     (format (clear ,temp-str) ,@args)
     ,temp-str))
 
-  (define *temp-string-mario* (new 'global 'string 256 (the string #f)))
-
+(define *temp-string-mario* (new 'global 'string 256 (the string #f)))
 
 (defmethod asize-of ((this collide-mesh))
   "Compute the size in memory of a collide-mesh. Somehow this only counts num-tris and not verts."
@@ -48,7 +47,8 @@
          (vf7 :class vf))
     (init-vf0-vector)
     (let ((s5-0 (the-as object (-> this tris)))
-          (s4-0 (-> arg0 node-list data arg1 bone transform)))
+          (s4-0 (-> arg0 node-list data arg1 bone transform))
+          )
       (countdown (s3-0 (-> this num-tris))
         (let ((a2-1 (new 'stack-no-clear 'vector))
               (a3-0 (new 'stack-no-clear 'vector))
@@ -77,54 +77,44 @@
             (.svf (&-> a3-0 quad) vf2)
             (.svf (&-> t0-0 quad) vf3)
             (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
-          ;;  (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)
+            ;;  (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)
             ))
-        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))
-
-       )
-       ;; (pc-mario-surf-flush)
-       )
+        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1)))
+      ;; (pc-mario-surf-flush)
+      )
     0
     (none)))
 
 (deftype sm64-surface (structure)
-  (
-   (type int16)
-   (force int16)
-   (terrain uint16)
+  ((type       int16)
+   (force      int16)
+   (terrain    uint16)
    (vertices_1 int32 3)
    (vertices_2 int32 3)
-   (vertices_3 int32 3)
-  ))
+   (vertices_3 int32 3)))
 
-(define *surf0*
- (new 'static 'sm64-surface
-                   :type 34
-                   :force 0
-                   :terrain 0
-))
+(define *surf0* (new 'static 'sm64-surface :type 34 :force 0 :terrain 0))
 
-    ;; Triangle 0: (0,0,0), (1,0,0), (1,1,0)
+;; Triangle 0: (0,0,0), (1,0,0), (1,1,0)
 
-    ;; (set! (-> *surf0* vertices_1 0) 0)
-    ;; (set! (-> *surf0* vertices_1 1) 0)
-    ;; (set! (-> *surf0* vertices_1 2) 0)
+;; (set! (-> *surf0* vertices_1 0) 0)
+;; (set! (-> *surf0* vertices_1 1) 0)
+;; (set! (-> *surf0* vertices_1 2) 0)
 
-    ;; (set! (-> *surf0* vertices_2 0) 1)
-    ;; (set! (-> *surf0* vertices_2 1) 0)
-    ;; (set! (-> *surf0* vertices_2 2) 0)
+;; (set! (-> *surf0* vertices_2 0) 1)
+;; (set! (-> *surf0* vertices_2 1) 0)
+;; (set! (-> *surf0* vertices_2 2) 0)
 
-    ;; (set! (-> *surf0* vertices_3 0) 1)
-    ;; (set! (-> *surf0* vertices_3 1) 1)
-    ;; (set! (-> *surf0* vertices_3 2) 0)
+;; (set! (-> *surf0* vertices_3 0) 1)
+;; (set! (-> *surf0* vertices_3 1) 1)
+;; (set! (-> *surf0* vertices_3 2) 0)
 
 ;;(pc-mario-surface-update *surf0*)
-#|this updates SM64Surface* g_last_updated_surfaces = nullptr; On the cpp side
+#|
+this updates SM64Surface* g_last_updated_surfaces = nullptr; On the cpp side
 
 Now we neeed to make it take the correct triangles and run some logic to see if it should/shouldnt spawn the actor collide or update it or whatever at the end of the function call.
 |#
-
-
 
 ;; (defun collide-mesh-to-surf0 ((mesh collide-mesh))
 ;; "takes in a collide-mesh object and converts it to a sm64-surface and stores it in the *surf0* global"
@@ -136,11 +126,10 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
 
 (defun print-boat-info ()
   (let* ((process (the-as process-drawable (process-by-ename "fishermans-boat-2")))
-           (process-root (the-as collide-shape (-> process root)))
-           (process-root-prim (-> process-root root-prim))
-           (process-collide-shape-prim-group (the-as collide-shape-prim-group process-root-prim))
-           (process-collide-shape-prim-mesh (the-as collide-shape-prim-mesh (-> process-collide-shape-prim-group prims 0)))
-           )
+         (process-root (the-as collide-shape (-> process root)))
+         (process-root-prim (-> process-root root-prim))
+         (process-collide-shape-prim-group (the-as collide-shape-prim-group process-root-prim))
+         (process-collide-shape-prim-mesh (the-as collide-shape-prim-mesh (-> process-collide-shape-prim-group prims 0))))
     (format #t "Inspect of process")
     (inspect process)
     (format #t "Inspect of process-root")
@@ -150,10 +139,8 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
     (format #t "Inspect of process-collide-shape-prim-group")
     (inspect process-collide-shape-prim-group)
     (format #t "Inspect of process-collide-shape-prim-mesh")
-    (inspect process-collide-shape-prim-mesh)
-    )
-    #f
-)
+    (inspect process-collide-shape-prim-mesh))
+  #f)
 
 (defun add-sm64-surface0 ((enable-write symbol) (arg0 process-drawable) (p0 vector) (p1 vector) (p2 vector))
   "If enable-write is true, stores a triangle into *surf0* as sm64-surface.
@@ -161,45 +148,36 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
   (when enable-write
     ;; Removed the let binding for v0, v1, v2 and the transform-point-qword! calls.
     ;; The input p0, p1, p2 are already the world-space points.
-
     ;; Ensure w = 1.0 (This might be redundant if the caller already sets it, but harmless)
     (set! (-> p0 w) 1.0)
     (set! (-> p1 w) 1.0)
     (set! (-> p2 w) 1.0)
-
     ;; Draw a sphere on each vertex for debugging.
     ;; Use the already world-transformed input vectors p0, p1, p2.
     (add-debug-sphere #t (bucket-id debug) p0 (meters 0.5) (static-rgba 0 #xff 0 #x40))
     (add-debug-sphere #t (bucket-id debug) p1 (meters 0.5) (static-rgba 0 #xff 0 #x40))
     (add-debug-sphere #t (bucket-id debug) p2 (meters 0.5) (static-rgba 0 #xff 0 #x40))
-
     ;; Fill *surf0* with triangle data.
     ;; Directly use the x, y, z components of the input vectors,
     ;; truncating them and casting to int as required by *surf0*.
     (set! (-> *surf0* type) 34)
     (set! (-> *surf0* force) 0)
     (set! (-> *surf0* terrain) 0)
-
-    (set! (-> *surf0* vertices_1 0) (the-as int  (-> p0 x)))
-    (set! (-> *surf0* vertices_1 1) (the-as int  (-> p0 y)))
-    (set! (-> *surf0* vertices_1 2) (the-as int  (-> p0 z)))
-
-    (set! (-> *surf0* vertices_2 0) (the-as int  (-> p1 x)))
-    (set! (-> *surf0* vertices_2 1) (the-as int  (-> p1 y)))
-    (set! (-> *surf0* vertices_2 2) (the-as int  (-> p1 z)))
-
-    (set! (-> *surf0* vertices_3 0) (the-as int  (-> p2 x)))
-    (set! (-> *surf0* vertices_3 1) (the-as int  (-> p2 y)))
-    (set! (-> *surf0* vertices_3 2) (the-as int  (-> p2 z)))
+    (set! (-> *surf0* vertices_1 0) (the-as int (-> p0 x)))
+    (set! (-> *surf0* vertices_1 1) (the-as int (-> p0 y)))
+    (set! (-> *surf0* vertices_1 2) (the-as int (-> p0 z)))
+    (set! (-> *surf0* vertices_2 0) (the-as int (-> p1 x)))
+    (set! (-> *surf0* vertices_2 1) (the-as int (-> p1 y)))
+    (set! (-> *surf0* vertices_2 2) (the-as int (-> p1 z)))
+    (set! (-> *surf0* vertices_3 0) (the-as int (-> p2 x)))
+    (set! (-> *surf0* vertices_3 1) (the-as int (-> p2 y)))
+    (set! (-> *surf0* vertices_3 2) (the-as int (-> p2 z)))
     #t)
-
-   (let ((actor-name (-> arg0 name)))
-   (temp-string-format *temp-string-mario* (-> arg0 name))
-           ;; (pc-mesh-surface-add *temp-string-mario* *surf0*)
-            )
-
+  (let ((actor-name (-> arg0 name)))
+    (temp-string-format *temp-string-mario* (-> arg0 name))
+    ;; (pc-mesh-surface-add *temp-string-mario* *surf0*)
+    )
   #f)
-
 
 (defmethod debug-dont-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
   "Draw a collide-mesh."
@@ -247,7 +225,6 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
     0
     (none)))
 
-
 (deftype crate (process-drawable)
   ((root                collide-shape-moving :override)
    (smush               smush-control :inline)
@@ -270,59 +247,51 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
    (params-set! (_type_ symbol symbol) none)
    (check-dead (_type_) none)
    (smush-update! (_type_) none)))
-   (define *count-crates* 0)
-(define *total-crates* 0)
 
-(defun print-num-crate-level ()
-(iterate-process-tree *active-pool* (lambda ((proc process))
+(define *count-close-actors* 0)
 
+(declare-type rigid-body-platform process-drawable)
+(defun print-close-actor-and-draw-collide ()
+  (iterate-process-tree *active-pool*
+                        (lambda ((proc process))
+                          (let ((vec (-> (the-as process-drawable proc) root trans))
+                                (quat (-> proc entity quat))
+                                (name (the string (-> proc name)))
+                                (type-target rigid-body-platform)
+                                (distance (meters 5.0)))
+                                (declare-type type-target process-drawable)
+                            (when (and (-> proc entity) (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target))
+                              ;;check to see if a actor is something we DO want to update, and if so return early/skip so we dont run unneeded code (lag)
+                              (when (and (<= (vector-vector-distance (-> (the-as process-drawable proc) root trans) (target-pos 0)) distance))
+                                ;; Its close enough to jaks position that we should look into its mesh
+                                (when proc ;;sanity check hopefully it didnt die
+                                  ;;(defmethod debug-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
+                                  ;;(s4-0 (-> arg0 node-list data arg1 bone transform))
 
-(let (
-    (vec (-> proc entity trans))
-    (quat (-> proc entity quat))
-    (name (the string (-> proc name)))
-    (type-target plat-eco))
-
-    (when (and (-> proc entity) (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target))
-
-
-
-    ;;check to see if a actor is something we DONT want to update, and if so return early/skip so we dont run unneeded code (lag)
-
-
-    (when (and (<= (vector-vector-distance (-> (the-as process-drawable proc) root trans) (target-pos 0)) (meters 5.0)) (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target))
-
-    ;;We know its a crate
-    (when proc (debug-draw-tris (-> (the-as collide-shape-prim-mesh (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as process-drawable proc) root))  root-prim) ) prims 0)) mesh)  (the-as process-drawable proc) 2))
-    ;;What defense does it have
-    ;;(format #t " defense: ~A~%" (-> (the crate (-> (-> proc entity) extra process)) defense))
-
-    ;;If its wood, increase our count
-    (if (type-type? (-> (the entity-actor (-> proc entity)) etype)  type-target)
-    (set! *count-crates* (+ *count-crates* 1))
-    )
-    )
-
-    ))
-
-    (when (and #t (< 0 *count-crates*) *target*)
-      (let ((gp-0 (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
-        (let ((v1-53 gp-0)) (set! (-> v1-53 width) (the float 1440)))
-        (let ((v1-54 gp-0)) (set! (-> v1-54 height) (the float 1380)))
-        (let ((v1-55 gp-0)) (set! (-> v1-55 scale) 0.2))
-        (set! (-> gp-0 flags) (font-flags kerning large))
-        (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDE TO UPDATE ~D~%"
-
-                                               *count-crates*)
-                                1.0
-                                gp-0
-                                128)))
-    )
-     *kernel-context*)
-       (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 5.0) (static-rgba 0 #xff 0 #x40))
-     (set! *count-crates* 0)
-(none)
-)
+                                  ;;Ideally this is where we "hack into" to send each tris passed through debug-draw-tris to sm64 surface0 on the cpp side
+                                  (debug-draw-tris (-> (the-as collide-shape-prim-mesh
+                                                               (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as process-drawable proc) root)) root-prim))
+                                                                   prims
+                                                                   0))
+                                                       mesh)
+                                                   (the-as process-drawable proc)
+                                                   2))
+                          ;;Add this object to our current count of actors we are drawing collision for
+                          (if (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target) (set! *count-close-actors* (+ *count-close-actors* 1))))))
+                          ;;This is bad but its for debugging so whatever, currently it draws multiple times if there are multiple actors close enough to jaks position
+                          (when (and #t (< 0 *count-close-actors*) *target*)
+                            (let ((gp-0 (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+                              (let ((v1-53 gp-0)) (set! (-> v1-53 width) (the float 1440)))
+                              (let ((v1-54 gp-0)) (set! (-> v1-54 height) (the float 1380)))
+                              (let ((v1-55 gp-0)) (set! (-> v1-55 scale) 0.2))
+                              (set! (-> gp-0 flags) (font-flags kerning large))
+                              (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDE TO UPDATE ~D~%" *count-close-actors*) 1.0 gp-0 128))))
+                        *kernel-context*)
+  ;; Draw a big sphere at Jaks position to visualize the area we are checking for close actors
+  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 5.0) (static-rgba 0 #xff 0 #x40))
+  ;;reset count for next frame
+  (set! *count-close-actors* 0)
+  (none))
 
 (deftype sopt-work (structure)
   ((intersect     vector :inline)

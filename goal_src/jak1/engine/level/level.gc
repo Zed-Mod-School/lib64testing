@@ -222,7 +222,9 @@
   (alloc-levels! this #f)
   (let* ((level-info (lookup-level-info name))
          (level-name (remap-level-name level-info)))
-    (awhen (level-get this level-name) (level-status-set! it want-status) (return it))
+    (awhen (level-get this level-name)
+      (level-status-set! it want-status)
+      (return it))
     (let ((a0-7 (level-get-most-disposable this))) (set! s5-1 (if a0-7 (level-status-set! a0-7 'inactive) a0-7)))
     ;; THIS WAS BUGGED IN THE ORIGINAL GAME!! Probably due to a fault in the original GOAL compiler and because they had
     ;; a local variable called "level", this branch here checks for the *TYPE* object called level instead of the
@@ -627,8 +629,7 @@
      ;;  it should be copied back out of game-info on birth to prevent "NG+ glitch"
      (let ((lev-ents (-> this entity)))
        (dotimes (idx (-> lev-ents length))
-         (let ((ent (-> lev-ents data idx entity)))
-           (update-perm! (-> ent extra perm) 'game (the-as entity-perm-status 1919)))))
+         (let ((ent (-> lev-ents data idx entity))) (update-perm! (-> ent extra perm) 'game (the-as entity-perm-status 1919)))))
      (send-event *camera* 'level-deactivate (-> this name))
      (send-event *target* 'level-deactivate (-> this name))
      ;; remove this BSP from the engine. This will stop us from being drawn.

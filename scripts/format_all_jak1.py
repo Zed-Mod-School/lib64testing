@@ -7,7 +7,7 @@ def run_formatter_on_gc_files(root_dir):
             if filename.endswith('.gc'):
                 gc_file_path = os.path.join(dirpath, filename)
                 command = [
-                    r"C:\Users\zedze\OneDrive\Documents\Github\lib64testing\out\build\Release\bin\formatter.exe",
+                    r"C:\Users\NinjaPC\Documents\Github\lib64testing\out\build\Release\bin\formatter.exe",
                     "-w", "-f", gc_file_path
                 ]
 
@@ -26,6 +26,6 @@ def run_formatter_on_gc_files(root_dir):
 
 # Choose *one* root directory by uncommenting the one you want
 # Only the *last assignment* to root_directory will take effect
-root_directory = r"C:\Users\zedze\OneDrive\Documents\Github\libsm64testing\goal_src\jak1"
+root_directory = r"C:\Users\NinjaPC\Documents\Github\lib64testing\goal_src\jak1"
 
 run_formatter_on_gc_files(root_directory)
