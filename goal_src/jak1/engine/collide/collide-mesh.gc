@@ -80,9 +80,9 @@
           ;;  (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)
             ))
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))
-        
+
        )
-        (pc-mario-surf-flush)
+       ;; (pc-mario-surf-flush)
        )
     0
     (none)))
@@ -130,10 +130,30 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
 ;; "takes in a collide-mesh object and converts it to a sm64-surface and stores it in the *surf0* global"
 ;; ;;TODO implment
 ;; (none))
-;; ;;Example call 
+;; ;;Example call
+
 ;; ;; (collide-mesh-to-surf0 (-> (the-as collide-shape-prim-mesh (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) ) prims 0)) mesh))
 
-
+(defun print-boat-info ()
+  (let* ((process (the-as process-drawable (process-by-ename "fishermans-boat-2")))
+           (process-root (the-as collide-shape (-> process root)))
+           (process-root-prim (-> process-root root-prim))
+           (process-collide-shape-prim-group (the-as collide-shape-prim-group process-root-prim))
+           (process-collide-shape-prim-mesh (the-as collide-shape-prim-mesh (-> process-collide-shape-prim-group prims 0)))
+           )
+    (format #t "Inspect of process")
+    (inspect process)
+    (format #t "Inspect of process-root")
+    (inspect process-root)
+    (format #t "Inspect of process-root-prim")
+    (inspect process-root-prim)
+    (format #t "Inspect of process-collide-shape-prim-group")
+    (inspect process-collide-shape-prim-group)
+    (format #t "Inspect of process-collide-shape-prim-mesh")
+    (inspect process-collide-shape-prim-mesh)
+    )
+    #f
+)
 
 (defun add-sm64-surface0 ((enable-write symbol) (arg0 process-drawable) (p0 vector) (p1 vector) (p2 vector))
   "If enable-write is true, stores a triangle into *surf0* as sm64-surface.
@@ -254,32 +274,37 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
 (define *total-crates* 0)
 
 (defun print-num-crate-level ()
-(iterate-process-tree *active-pool* (lambda ((proc process)) 
+(iterate-process-tree *active-pool* (lambda ((proc process))
 
-(when (-> proc entity) 
+
 (let (
-    (vec (-> proc entity trans)) 
-    (quat (-> proc entity quat)) 
-    (name (the string (-> proc name))))
+    (vec (-> proc entity trans))
+    (quat (-> proc entity quat))
+    (name (the string (-> proc name)))
+    (type-target plat-eco))
+
+    (when (and (-> proc entity) (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target))
+
+
 
     ;;check to see if a actor is something we DONT want to update, and if so return early/skip so we dont run unneeded code (lag)
 
 
-    (when (and (<= (vector-vector-distance vec (target-pos 0)) (meters 5.0)) (= (-> (the entity-actor (-> proc entity)) etype) crate))
+    (when (and (<= (vector-vector-distance (-> (the-as process-drawable proc) root trans) (target-pos 0)) (meters 5.0)) (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target))
 
     ;;We know its a crate
-
+    (when proc (debug-draw-tris (-> (the-as collide-shape-prim-mesh (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as process-drawable proc) root))  root-prim) ) prims 0)) mesh)  (the-as process-drawable proc) 2))
     ;;What defense does it have
     ;;(format #t " defense: ~A~%" (-> (the crate (-> (-> proc entity) extra process)) defense))
 
     ;;If its wood, increase our count
-    (if (= (-> (the crate (-> (-> proc entity) extra process)) defense) 'wood)
+    (if (type-type? (-> (the entity-actor (-> proc entity)) etype)  type-target)
     (set! *count-crates* (+ *count-crates* 1))
     )
-    ) 
-    
+    )
+
     ))
-    
+
     (when (and #t (< 0 *count-crates*) *target*)
       (let ((gp-0 (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
         (let ((v1-53 gp-0)) (set! (-> v1-53 width) (the float 1440)))
@@ -287,7 +312,7 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
         (let ((v1-55 gp-0)) (set! (-> v1-55 scale) 0.2))
         (set! (-> gp-0 flags) (font-flags kerning large))
         (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDE TO UPDATE ~D~%"
-                                              
+
                                                *count-crates*)
                                 1.0
                                 gp-0

@@ -294,11 +294,21 @@
 
 (defun get-mario-state ()
   (cond
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping) ; ACT_SLEEPING
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)     ; ACT_IDLE
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)  ; ACT_WALKING
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)  ; ACT_GROUND_POUND
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)
     (else 'unknown)))
+
+(define *MARIO-STATE-STRING* (new 'global 'string 128 (the-as string #f)))
+(defun get-mario-state-as-str ()
+  (cond
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "sleeping"))
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "idle"))
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "walking"))
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "groundpound"))
+    (else (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "unknown")))
+    )
 
 (defun main-cheats ()
   "Handle cheat codes and timeout"

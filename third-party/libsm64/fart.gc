@@ -1,0 +1,46 @@
+(collide-mesh-to-surf0 (-> (the-as collide-shape-prim-mesh
+ (-> (the-as collide-shape-prim-group
+ (-> (the-as collide-shape (-> (the-as fishermans-boat (process-by-ename "fishermans-boat-2")) root))  root-prim) ) prims 0)) mesh))
+
+ ;; Get the surf0 collision mesh from the Fisherman's Boat asset
+(collide-mesh-to-surf0
+  ;; Step 1: Get the mesh from the first primitive in the prim-group
+  (->
+    ;; Access the mesh inside the primitive
+    (the-as collide-shape-prim-mesh
+      ;; Step 2: Access prims[0] inside the prim-group
+      (->
+        (the-as collide-shape-prim-group
+          ;; Step 3: Get root-prim from the collide-shape
+          (->
+            (the-as collide-shape
+              ;; Load the Fisherman's Boat asset and grab its root
+              (->
+                (the-as fishermans-boat
+                  (process-by-ename "fishermans-boat-2"))
+                root))
+            root-prim))
+        prims 0))
+    mesh))
+(defun print-boat-info ()
+  (let* ((process (the-as process-drawable (process-by-ename "fishermans-boat-2")))
+           (process-root (the-as collide-shape (-> process root)))
+           (process-root-prim (-> process-root root-prim))
+           (process-collide-shape-prim-group (the-as collide-shape-prim-group process-root-prim))
+           (process-collide-shape-prim-mesh (the-as collide-shape-prim-mesh (-> process-collide-shape-prim-group prims 0)))
+           )
+    (format #t "Inspect of process")
+    (inspect process)
+    (format #t "Inspect of process-root")
+    (inspect process-root)
+    (format #t "Inspect of process-root-prim")
+    (inspect process-root-prim)
+    (format #t "Inspect of process-collide-shape-prim-group")
+    (inspect process-collide-shape-prim-group)
+    (format #t "Inspect of process-collide-shape-prim-mesh")
+    (inspect process-collide-shape-prim-mesh)
+    )
+    #f
+)
+
+

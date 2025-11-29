@@ -3105,6 +3105,15 @@
         "documentation": {}
     },
     {
+        "label": "ssl",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "ssl",
+        "description": "ssl",
+        "detail": "ssl",
+        "documentation": {}
+    },
+    {
         "label": "pexpect",
         "kind": 6,
         "isExtraImport": true,
@@ -11791,7 +11800,16 @@
         "kind": 2,
         "importPath": "third-party.libsm64.import-test-collision",
         "description": "third-party.libsm64.import-test-collision",
-        "peekOfCode": "def main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    in_lines = urllib.request.urlopen(BOB_COLLISION_URL).read().decode('utf8').splitlines()\n    verts = []\n    tris = []\n    mode = \"\"\n    for line in in_lines:\n        if not line.strip().startswith(\"COL_\"):\n            continue;\n        tokens = line.strip().replace(\"(\", \",\").replace(\")\", \"\").split(\",\")",
+        "peekOfCode": "def main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    # Pass the context to urlopen\n    in_lines = urllib.request.urlopen(BOB_COLLISION_URL, context=unverified_context).read().decode('utf8').splitlines()\n    verts = []\n    tris = []\n    mode = \"\"\n    for line in in_lines:\n        if not line.strip().startswith(\"COL_\"):\n            continue;",
+        "detail": "third-party.libsm64.import-test-collision",
+        "documentation": {}
+    },
+    {
+        "label": "unverified_context",
+        "kind": 5,
+        "importPath": "third-party.libsm64.import-test-collision",
+        "description": "third-party.libsm64.import-test-collision",
+        "peekOfCode": "unverified_context = ssl._create_unverified_context()\nBOB_COLLISION_URL = \"https://raw.githubusercontent.com/n64decomp/sm64/06ec56df7f951f88da05f468cdcacecba496145a/levels/bob/areas/1/collision.inc.c\"\nLEVEL_H = \"\"\"#pragma once\n#include \"../src/libsm64.h\"\nextern const struct SM64Surface surfaces[];\nextern const size_t surfaces_count;\n\"\"\"\ndef main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    # Pass the context to urlopen",
         "detail": "third-party.libsm64.import-test-collision",
         "documentation": {}
     },
@@ -11800,7 +11818,7 @@
         "kind": 5,
         "importPath": "third-party.libsm64.import-test-collision",
         "description": "third-party.libsm64.import-test-collision",
-        "peekOfCode": "BOB_COLLISION_URL = \"https://raw.githubusercontent.com/n64decomp/sm64/06ec56df7f951f88da05f468cdcacecba496145a/levels/bob/areas/1/collision.inc.c\"\nLEVEL_H = \"\"\"#pragma once\n#include \"../src/libsm64.h\"\nextern const struct SM64Surface surfaces[];\nextern const size_t surfaces_count;\n\"\"\"\ndef main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    in_lines = urllib.request.urlopen(BOB_COLLISION_URL).read().decode('utf8').splitlines()\n    verts = []",
+        "peekOfCode": "BOB_COLLISION_URL = \"https://raw.githubusercontent.com/n64decomp/sm64/06ec56df7f951f88da05f468cdcacecba496145a/levels/bob/areas/1/collision.inc.c\"\nLEVEL_H = \"\"\"#pragma once\n#include \"../src/libsm64.h\"\nextern const struct SM64Surface surfaces[];\nextern const size_t surfaces_count;\n\"\"\"\ndef main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    # Pass the context to urlopen\n    in_lines = urllib.request.urlopen(BOB_COLLISION_URL, context=unverified_context).read().decode('utf8').splitlines()",
         "detail": "third-party.libsm64.import-test-collision",
         "documentation": {}
     },
@@ -11809,7 +11827,7 @@
         "kind": 5,
         "importPath": "third-party.libsm64.import-test-collision",
         "description": "third-party.libsm64.import-test-collision",
-        "peekOfCode": "LEVEL_H = \"\"\"#pragma once\n#include \"../src/libsm64.h\"\nextern const struct SM64Surface surfaces[];\nextern const size_t surfaces_count;\n\"\"\"\ndef main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    in_lines = urllib.request.urlopen(BOB_COLLISION_URL).read().decode('utf8').splitlines()\n    verts = []\n    tris = []",
+        "peekOfCode": "LEVEL_H = \"\"\"#pragma once\n#include \"../src/libsm64.h\"\nextern const struct SM64Surface surfaces[];\nextern const size_t surfaces_count;\n\"\"\"\ndef main():\n    print(\"Downloading \" + BOB_COLLISION_URL)\n    # Pass the context to urlopen\n    in_lines = urllib.request.urlopen(BOB_COLLISION_URL, context=unverified_context).read().decode('utf8').splitlines()\n    verts = []",
         "detail": "third-party.libsm64.import-test-collision",
         "documentation": {}
     },
