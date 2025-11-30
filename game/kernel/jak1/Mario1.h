@@ -2,12 +2,14 @@
 
 #include "audio.h"
 
+#include <vector>
 #include "SDL3/SDL.h"
 #include "collide/level.h"
 #include "libsm64.h"
 
 extern uint8_t* marioTexture;
 extern int frame_num;
+extern std::vector<SM64SurfaceObject> g_active_debug_objects;  // DECLARATION
 int load_and_init_mario();
 void tick_mario_frame();
 

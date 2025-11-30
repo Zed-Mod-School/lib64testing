@@ -288,17 +288,16 @@
     time1)
   (none))
 
-(defun mario-glue-override ()
-  (when (close? "fishermans-boat-2" (meters 15.0))
-    (return #f))
-  *move-jak-to-mario?*)
-
 (defun get-mario-state ()
   (cond
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x21315)) 'dead) ;;temp custom hack
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x21316)) 'dead) ;;temp custom hack
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x21311)) 'dead) ;;temp custom hack
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x21312)) 'dead) ;;temp custom hack
     (else 'unknown)))
 
 (define *MARIO-STATE-STRING* (new 'global 'string 128 (the-as string #f)))
@@ -318,6 +317,11 @@
      (clear *MARIO-STATE-STRING*)
      (format *MARIO-STATE-STRING* "groundpound"))
     (else (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "unknown"))))
+
+(defun mario-glue-override ()
+  (when (or (close? "fishermans-boat-2" (meters 15.0)) (= (get-mario-state) 'dead))
+    (return #f))
+  *move-jak-to-mario?*)
 
 (defun main-cheats ()
   "Handle cheat codes and timeout"
@@ -376,12 +380,13 @@
     (set! (-> *mario-vector-hellyeah* y) (* (pc-get-mario-y) *mario-scale-mult*))
     (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*)))
   ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
-  ;; (add-debug-text-3d #t
-  ;;                    (bucket-id debug-no-zbuf)
-  ;;                    "MARIO GUY HERE"
-  ;;                    *mario-vector-hellyeah*
-  ;;                    (font-color white)
-  ;;                    (the-as vector2h #f))
+  (when (= (get-mario-state) 'dead)
+    (add-debug-text-3d #t
+                       (bucket-id debug-no-zbuf)
+                       "MARIO GUY HERE"
+                       *mario-vector-hellyeah*
+                       (font-color white)
+                       (the-as vector2h #f)))
   ;; look for codes when L3 is pushed
   (when (and (cpad-hold? 0 l3)
              (or *cheat-mode* (= *kernel-boot-message* 'play)) ;; not in demo

@@ -10,7 +10,7 @@
 #include "common/util/Timer.h"
 #include "common/util/string_util.h"
 
-#include "../jak1/mario1.h"
+#include "../jak1/Mario1.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"

@@ -47,8 +47,7 @@
          (vf7 :class vf))
     (init-vf0-vector)
     (let ((s5-0 (the-as object (-> this tris)))
-          (s4-0 (-> arg0 node-list data arg1 bone transform))
-          )
+          (s4-0 (-> arg0 node-list data arg1 bone transform)))
       (countdown (s3-0 (-> this num-tris))
         (let ((a2-1 (new 'stack-no-clear 'vector))
               (a3-0 (new 'stack-no-clear 'vector))
@@ -77,11 +76,9 @@
             (.svf (&-> a3-0 quad) vf2)
             (.svf (&-> t0-0 quad) vf3)
             (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
-            ;;  (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)
-            ))
+            (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)))
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1)))
-      ;; (pc-mario-surf-flush)
-      )
+      (pc-mario-surf-flush))
     0
     (none)))
 
@@ -175,8 +172,8 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
     #t)
   (let ((actor-name (-> arg0 name)))
     (temp-string-format *temp-string-mario* (-> arg0 name))
-    ;; (pc-mesh-surface-add *temp-string-mario* *surf0*)
-    )
+    (pc-mesh-surface-add *temp-string-mario* *surf0*)
+    (pc-mario-surface-update *surf0*))
   #f)
 
 (defmethod debug-dont-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
@@ -251,47 +248,47 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
 (define *count-close-actors* 0)
 
 (declare-type rigid-body-platform process-drawable)
+
 (defun print-close-actor-and-draw-collide ()
+  (declare-type rigid-body-platform process-drawable)
   (iterate-process-tree *active-pool*
                         (lambda ((proc process))
-                          (let ((vec (-> (the-as process-drawable proc) root trans))
-                                (quat (-> proc entity quat))
-                                (name (the string (-> proc name)))
-                                (type-target rigid-body-platform)
-                                (distance (meters 5.0)))
-                                (declare-type type-target process-drawable)
-                            (when (and (-> proc entity) (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target))
-                              ;;check to see if a actor is something we DO want to update, and if so return early/skip so we dont run unneeded code (lag)
-                              (when (and (<= (vector-vector-distance (-> (the-as process-drawable proc) root trans) (target-pos 0)) distance))
-                                ;; Its close enough to jaks position that we should look into its mesh
-                                (when proc ;;sanity check hopefully it didnt die
-                                  ;;(defmethod debug-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
-                                  ;;(s4-0 (-> arg0 node-list data arg1 bone transform))
-
-                                  ;;Ideally this is where we "hack into" to send each tris passed through debug-draw-tris to sm64 surface0 on the cpp side
-                                  (debug-draw-tris (-> (the-as collide-shape-prim-mesh
-                                                               (-> (the-as collide-shape-prim-group (-> (the-as collide-shape (-> (the-as process-drawable proc) root)) root-prim))
-                                                                   prims
-                                                                   0))
-                                                       mesh)
-                                                   (the-as process-drawable proc)
-                                                   2))
-                          ;;Add this object to our current count of actors we are drawing collision for
-                          (if (type-type? (-> (the entity-actor (-> proc entity)) etype) type-target) (set! *count-close-actors* (+ *count-close-actors* 1))))))
-                          ;;This is bad but its for debugging so whatever, currently it draws multiple times if there are multiple actors close enough to jaks position
-                          (when (and #t (< 0 *count-close-actors*) *target*)
-                            (let ((gp-0 (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
-                              (let ((v1-53 gp-0)) (set! (-> v1-53 width) (the float 1440)))
-                              (let ((v1-54 gp-0)) (set! (-> v1-54 height) (the float 1380)))
-                              (let ((v1-55 gp-0)) (set! (-> v1-55 scale) 0.2))
-                              (set! (-> gp-0 flags) (font-flags kerning large))
-                              (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDE TO UPDATE ~D~%" *count-close-actors*) 1.0 gp-0 128))))
-                        *kernel-context*)
-  ;; Draw a big sphere at Jaks position to visualize the area we are checking for close actors
-  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 5.0) (static-rgba 0 #xff 0 #x40))
-  ;;reset count for next frame
-  (set! *count-close-actors* 0)
-  (none))
+                          (let* ((p (the process-drawable proc))
+                                 (e (the entity-actor (-> p entity)))
+                                 (type-target process-drawable)
+                                 (distance (meters 10)))
+                            (when (and p
+                                       e
+                                       (type-type? (-> e etype) type-target)
+                                       (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+                                       (type-type? (-> p root type) collide-shape))
+                              (let ((root (the collide-shape (-> p root))))
+                                (when (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
+                                  (return 0))
+                                ;; check if the root prim is a prim group
+                                (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                  ;; if so, we loop through all of its prims and check for prim meshes
+                                  (let ((group (the collide-shape-prim-group (-> root root-prim))))
+                                    (1+! *count-close-actors*)
+                                    (dotimes (i (-> group num-prims))
+                                      (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                        ;; if it is indeed a mesh, we draw it
+                                        (debug-draw-tris (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+                                  ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                  (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                    (debug-draw-tris (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
+                                    (1+! *count-close-actors*)))))))
+                        *null-kernel-context*)
+  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 5) (static-rgba 0 #xff 0 #x40))
+  ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
+  (when (and (< 0 *count-close-actors*) *target*)
+    (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+      (set-width! fnt 1440)
+      (set-height! fnt 1380)
+      (set-scale! fnt 0.2)
+      (set-flags! fnt (font-flags kerning large))
+      (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
+  (set! *count-close-actors* 0))
 
 (deftype sopt-work (structure)
   ((intersect     vector :inline)

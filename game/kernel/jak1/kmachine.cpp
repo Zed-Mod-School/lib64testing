@@ -45,12 +45,18 @@
 #include "game/sce/stubs.h"
 #include "mario1.h"
 
+#include <iostream>
+#include <fstream> // Required for std::ofstream
+#include <cstdint>
+#include <cstdlib>
+
 using namespace ee;
 
 namespace jak1 {
 
 SM64Surface* g_last_updated_surfaces = nullptr;
 int g_combined_last_update_surfaces_count = 0;
+
 
 
 /*!
@@ -477,22 +483,127 @@ std::vector<SM64Surface> g_debug_surfaces;
 
 //test
 
-void pc_mesh_surface_flush_current_actor() {
-    if (g_surface_accumulator_count > 0 && !g_last_surface_actor_name.empty()) {
-        printf("[SURFACE-FLUSH-FINAL] %d surfaces for actor %s\n", g_surface_accumulator_count, g_last_surface_actor_name.c_str());
-
-        g_debug_surfaces.insert(
-            g_debug_surfaces.end(),
-            &g_surface_accumulator[0],
-            &g_surface_accumulator[g_surface_accumulator_count]);
-
-        printf("[SURFACE-DEBUG] g_debug_surfaces size after final flush: %zu\n", g_debug_surfaces.size());
-        g_surface_accumulator_count = 0;
-        g_last_surface_actor_name = ""; // Clear for next batch
-    } else {
+void pc_mesh_surface_flush_current_actor()
+{
+    if (g_surface_accumulator_count == 0 || g_last_surface_actor_name.empty()) {
         printf("[SURFACE-DEBUG] No surfaces to flush or actor name empty during final flush.\n");
+        return;
     }
 
+    printf("[SURFACE-FLUSH-FINAL] %d surfaces for actor %s\n",
+           g_surface_accumulator_count, g_last_surface_actor_name.c_str());
+
+    // Flush surfaces one-by-one with duplicate checking
+    for (int i = 0; i < g_surface_accumulator_count; ++i) {
+        const SM64Surface& s = g_surface_accumulator[i];
+
+        bool exists = false;
+
+        // Check if this surface already exists anywhere in g_debug_surfaces
+        for (const auto& existing : g_debug_surfaces) {
+            if (memcmp(&existing, &s, sizeof(SM64Surface)) == 0) {
+                exists = true;
+                break;
+            }
+        }
+
+        // Only insert if unique
+        if (!exists) {
+            g_debug_surfaces.push_back(s);
+        }
+    }
+
+    printf("[SURFACE-DEBUG] g_debug_surfaces size after final flush: %zu\n",
+           g_debug_surfaces.size());
+
+    // Reset accumulator
+    g_surface_accumulator_count = 0;
+    g_last_surface_actor_name.clear();
+}
+
+static bool has_spawned = false;
+uint32_t spawn_debug_surfaces_object(const float* origin);
+
+void writeSingleSM64Surface(std::ostream& os, const struct SM64Surface& surface);
+
+void writeSM64SurfaceToFile(const std::string& filename, const struct SM64Surface& surface);
+
+void writeSM64SurfaceArrayToFile(const std::string& filename,
+                                 const struct SM64Surface* surfaces,
+                                 size_t count);
+
+
+                                 // --- Core Helper Function: Print a single SM64Surface to any output stream ---
+// We use std::ostream& to make the function versatile. It can take std::cout
+// or an std::ofstream object.
+void writeSingleSM64Surface(std::ostream& os, const struct SM64Surface& surface)
+{
+    os << "struct SM64Surface {\n";
+    os << "    type: " << surface.type << ",\n";
+    os << "    force: " << surface.force << ",\n";
+    os << "    terrain: " << surface.terrain << ",\n";
+    os << "    vertices: {\n";
+
+    for (int i = 0; i < 3; ++i)
+    {
+        os << "        {"
+           << surface.vertices[i][0] << ", "
+           << surface.vertices[i][1] << ", "
+           << surface.vertices[i][2] << "}";
+        if (i < 2) os << ",";
+        os << "\n";
+    }
+
+    os << "    }\n";
+    os << "};\n";
+}
+
+// --- Function to Write a Single SM64Surface to a File ---
+void writeSM64SurfaceToFile(const std::string& filename, const struct SM64Surface& surface)
+{
+    std::ofstream outfile(filename);
+
+    if (outfile.is_open())
+    {
+        writeSingleSM64Surface(outfile, surface);
+        std::cout << "Successfully wrote single SM64Surface to " << filename << "\n";
+    }
+    else
+    {
+        std::cerr << "ERROR: Unable to open file " << filename << " for writing.\n";
+    }
+}
+
+
+// --- Function to Write an Array of SM64Surface objects to a File ---
+void writeSM64SurfaceArrayToFile(const std::string& filename,
+                                 const struct SM64Surface* surfaces,
+                                 size_t count)
+{
+    // The std::ios::app flag opens the file in append mode.
+    // To overwrite the file, remove the std::ios::app flag.
+    std::ofstream outfile(filename);
+
+    if (outfile.is_open())
+    {
+        outfile << "--- Printing Array of " << count << " Surfaces ---\n";
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            outfile << "// Surface Index " << i << "\n";
+            // Call the core helper function
+            writeSingleSM64Surface(outfile, surfaces[i]);
+            outfile << "\n"; // Separator between surfaces
+        }
+
+        outfile << "--------------------------------------------\n";
+
+        std::cout << "Successfully wrote " << count << " surfaces to " << filename << "\n";
+    }
+    else
+    {
+        std::cerr << "ERROR: Unable to open file " << filename << " for writing.\n";
+    }
 }
 
 
@@ -561,6 +672,83 @@ void pc_mesh_surface_add(u32 name_sym, u32 surf_ptr) {
     }
 
     printf("[SURFACE-DEBUG] Exiting pc_mesh_surface_add.\n");
+
+if (!has_spawned && g_debug_surfaces.size() < 15) {
+    float origin[3] = { 0, 0, 0 };
+    spawn_debug_surfaces_object(origin);
+    if (!g_debug_surfaces.empty()) {
+        writeSM64SurfaceArrayToFile("debug_surfaces.txt", &g_debug_surfaces[0], g_debug_surfaces.size());
+    }
+    has_spawned = true;   // prevent future runs
+
+}
+
+
+}
+
+
+
+// Assuming MARIO_SCALE_FACTOR is defined globally or locally.
+// If it's the same as the previous context:
+// const float MARIO_SCALE_FACTOR = 4096.0f / 50.0f; // ~81.92
+// const float MARIO_INVERSE_SCALE = 1.0f / MARIO_SCALE_FACTOR;
+
+// NOTE: You must include the definition of MARIO_SCALE_FACTOR from MarioRenderer.cpp
+// or define it here for this function to compile and work correctly.
+const float MARIO_SCALE_FACTOR = 4096.0f / 50.0f;
+const float MARIO_INVERSE_SCALE = 1.0f / MARIO_SCALE_FACTOR;
+
+
+uint32_t spawn_debug_surfaces_object(const float* origin)
+{
+    if (g_debug_surfaces.empty())
+        return 0;
+
+    SM64SurfaceObject obj{};
+    obj.surfaceCount = g_debug_surfaces.size();
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * obj.surfaceCount);
+
+    // Set the object's origin position in the large world space
+    obj.transform.position[0] = origin[0];
+    obj.transform.position[1] = origin[1];
+    obj.transform.position[2] = origin[2];
+    obj.transform.eulerRotation[0] = 0;
+    obj.transform.eulerRotation[1] = 0;
+    obj.transform.eulerRotation[2] = 0;
+
+    // --- SCALING AND TRANSLATION LOOP ---
+    for (size_t i = 0; i < g_debug_surfaces.size(); i++) {
+        const SM64Surface& world_surface = g_debug_surfaces[i];
+        SM64Surface local_surface = world_surface; // Copy all fields (type, force, terrain)
+
+        for (int j = 0; j < 3; j++) { // Loop over vertices (0, 1, 2)
+            for (int k = 0; k < 3; k++) { // Loop over coordinates (x=0, y=1, z=2)
+
+                // 1. Get the world coordinate (stored as int16_t, so cast to float)
+                float world_coord = (float)world_surface.vertices[j][k];
+
+                // 2. Translate: Make the coordinate local by subtracting the object's origin
+                float translated_coord = world_coord - origin[k];
+
+                // 3. Scale: Shrink the coordinate to SM64's internal unit space
+                float scaled_coord = translated_coord * MARIO_INVERSE_SCALE;
+
+                // 4. Assign: Cast back to int16_t for the SM64 surface struct
+                local_surface.vertices[j][k] = (int16_t)scaled_coord;
+            }
+        }
+
+        // Use the shrunken, local surface
+        obj.surfaces[i] = local_surface;
+    }
+    // --- END SCALING AND TRANSLATION LOOP ---
+
+    uint32_t id = sm64_surface_object_create(&obj);
+
+    // Add to active debug objects for rendering
+    g_active_debug_objects.push_back(obj);
+
+    return id;
 }
 
 
