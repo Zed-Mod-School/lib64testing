@@ -673,15 +673,15 @@ void pc_mesh_surface_add(u32 name_sym, u32 surf_ptr) {
 
     printf("[SURFACE-DEBUG] Exiting pc_mesh_surface_add.\n");
 
-if (!has_spawned && g_debug_surfaces.size() < 15) {
-    float origin[3] = { 0, 0, 0 };
-    spawn_debug_surfaces_object(origin);
-    if (!g_debug_surfaces.empty()) {
-        writeSM64SurfaceArrayToFile("debug_surfaces.txt", &g_debug_surfaces[0], g_debug_surfaces.size());
-    }
-    has_spawned = true;   // prevent future runs
+// if (!has_spawned && g_debug_surfaces.size() < 15) {
+//     float origin[3] = { 0, 0, 0 };
+//     spawn_debug_surfaces_object(origin);
+//     if (!g_debug_surfaces.empty()) {
+//         writeSM64SurfaceArrayToFile("debug_surfaces.txt", &g_debug_surfaces[0], g_debug_surfaces.size());
+//     }
+//     has_spawned = true;   // prevent future runs
 
-}
+// }
 
 
 }

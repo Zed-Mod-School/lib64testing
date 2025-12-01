@@ -332,7 +332,7 @@
     (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
       (pc-spawn-mario-test-collide)
       (cheats-sound-play *cheat-mode*))
-    (print-close-actor-and-draw-collide)
+    ;;(print-close-actor-and-draw-collide)
     ;; Please move these at some point they dont belong here
     (dotimes (i 2)
       (let ((lvl-name (-> *load-state* want i name)))
@@ -381,6 +381,7 @@
     (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*)))
   ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
   (when (= (get-mario-state) 'dead)
+  (when *cheat-mode* (pc-heal-mario))
     (add-debug-text-3d #t
                        (bucket-id debug-no-zbuf)
                        "MARIO GUY HERE"

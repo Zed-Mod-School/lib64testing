@@ -609,6 +609,10 @@
 
 (define-extern pc-spawn-mario-test-collide (function none))
 
+(define-extern pc-mario-says-so-long-gay-bowsa (function none))
+
+(define-extern pc-heal-mario (function none))
+
 (declare-type screen-shot-settings structure)
 
 (define-extern pc-register-screen-shot-settings (function screen-shot-settings none))

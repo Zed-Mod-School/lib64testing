@@ -185,6 +185,18 @@ void pc_set_mario_position_from_goal(u32 x_bits, u32 y_bits, u32 z_bits) {
 
 void pc_spawn_mario_test_collide() {
  MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
+ //sm64_set_mario_action(marioId, ACT_RIDING_SHELL_GROUND);
+//  sm64_mario_interact_cap(marioId, MARIO_WING_CAP, 30*60, 1);
+sm64_play_sound_global(SOUND_MENU_COIN_ITS_A_ME_MARIO);
+}
+
+void pc_mario_says_so_long_gay_bowsa() {
+sm64_play_sound_global(SOUND_MARIO_SO_LONGA_BOWSER);
+}
+
+void pc_heal_mario() {
+sm64_set_mario_health(marioId, 256*8);
+sm64_set_mario_action(marioId, ACT_IDLE);
 }
 // Gross collide stuff just stop reading
 #define CYLINDER_RADIUS 2000.0f

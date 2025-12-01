@@ -6,6 +6,7 @@
 #include "SDL3/SDL.h"
 #include "collide/level.h"
 #include "libsm64.h"
+#include "decomp/include/sm64_hacked.h"
 
 extern uint8_t* marioTexture;
 extern int frame_num;
@@ -21,6 +22,8 @@ uint64_t pc_get_mario_action();
 void pc_set_mario_camera(uint32_t x, uint32_t z);
 void pc_set_mario_position_from_goal(uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
 void pc_spawn_mario_test_collide();
+void pc_mario_says_so_long_gay_bowsa();
+void pc_heal_mario();
 
 void load_combined_static_surfaces(const SM64Surface* surfaces1,
                                    int count1,

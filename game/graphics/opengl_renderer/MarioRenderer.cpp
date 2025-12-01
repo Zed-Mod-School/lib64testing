@@ -416,14 +416,14 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
     this->draw_surface_object(cube.surfaceObj, yellow, render_state, true);
   }
 
-  glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "COLLIDE TESTING");
+//   glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "COLLIDE TESTING");
 
- float rgba[4] = {0.0f, 1.0f, 0.0f, 0.5f}; // semi-transparent green
+//  float rgba[4] = {0.0f, 1.0f, 0.0f, 0.5f}; // semi-transparent green
 
-    for (auto& debug_obj : g_active_debug_objects) {
-        draw_surface_object(debug_obj, rgba, render_state, true);
-    }
-glPopDebugGroup();
+//     for (auto& debug_obj : g_active_debug_objects) {
+//         draw_surface_object(debug_obj, rgba, render_state, true);
+//     }
+// glPopDebugGroup();
 
 
 if (overlayTex == 0) {

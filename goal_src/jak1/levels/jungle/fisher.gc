@@ -16,7 +16,7 @@
    (max-missed int32)))
 
 (define *FISHER-bank*
-  (new 'static 'fisher-bank :width (meters 3.3) :net-radius (meters 0.7) :max-caught #xc8 :max-missed 20))
+  (new 'static 'fisher-bank :width (meters 3.3) :net-radius (meters 1) :max-caught #xc8 :max-missed 20))
 
 (defpartgroup group-bad-fish
   :id 177
@@ -805,7 +805,7 @@
         (ja-no-eval :group! (ja-group) :num! (seek!) :frame-num 0.0)
         (until (ja-done? 0)
           (fisher-fish-move)
-          (if (< (vector-vector-xz-distance (-> self root trans) (-> (the-as fisher (-> self parent 0)) paddle-pos))
+          (if (< (vector-vector-xz-distance (-> self root trans) (target-pos 0))
                  (+ (-> *FISHER-bank* net-radius) (* (-> self size) (-> self root scale x))))
             (go fisher-fish-caught))
           (if (or (>= (-> self pos) (the float (+ (-> (the-as fisher (-> self parent 0)) path curve num-cverts) -1)))
@@ -1156,7 +1156,7 @@
     ((and (< (-> self params vel) 0.0) (>= 0.0 (-> self spawner)))
      (set! (-> self params vel) (- (-> self params vel)))
      (set! (-> self spawner) 0.0)))
-  (when (and (nonzero? (-> self params period)) (time-elapsed? (-> self spawn-time) (-> self params period)))
+  (when (and (nonzero? (-> self params period)) (time-elapsed? (-> self spawn-time) (* 1.85(-> self params period))))
     (let ((gp-0 (cond
                   ((rand-vu-percent? (-> self params powerup-percent))
                    (if (and (time-elapsed? (-> self ambient-big-one) (seconds 30))
@@ -1172,7 +1172,7 @@
       (set-time! (-> self spawn-time))
       (sound-play "fish-spawn" :vol 70)
       (fisher-spawn-ambient)
-      (process-spawn fisher-fish gp-0 (-> self spawner) (* 1.85 (-> self params fish-vel)) :to self)))
+      (process-spawn fisher-fish gp-0 (-> self spawner) (* 1.85 (/ (-> self params fish-vel) 1.65)) :to self)))
   (let ((f1-14 (analog-input (the-as int (-> *cpad-list* cpads 0 leftx)) 128.0 32.0 110.0 28.0)))
     (+! (-> self paddle-vel) (* f1-14 (seconds-per-frame))))
   (seek! (-> self paddle-vel) 0.0 (* 15.0 (seconds-per-frame)))

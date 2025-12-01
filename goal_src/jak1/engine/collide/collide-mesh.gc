@@ -78,7 +78,8 @@
             (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
             (add-sm64-surface0 #t arg0 a2-1 a3-0 t0-0)))
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1)))
-      (pc-mario-surf-flush))
+      ;; (pc-mario-surf-flush)
+      )
     0
     (none)))
 
@@ -172,8 +173,9 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
     #t)
   (let ((actor-name (-> arg0 name)))
     (temp-string-format *temp-string-mario* (-> arg0 name))
-    (pc-mesh-surface-add *temp-string-mario* *surf0*)
-    (pc-mario-surface-update *surf0*))
+    ;;(pc-mesh-surface-add *temp-string-mario* *surf0*)
+    ;;(pc-mario-surface-update *surf0*)
+    )
   #f)
 
 (defmethod debug-dont-draw-tris ((this collide-mesh) (arg0 process-drawable) (arg1 int))
@@ -256,7 +258,7 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
                           (let* ((p (the process-drawable proc))
                                  (e (the entity-actor (-> p entity)))
                                  (type-target process-drawable)
-                                 (distance (meters 10)))
+                                 (distance (meters 25)))
                             (when (and p
                                        e
                                        (type-type? (-> e etype) type-target)
@@ -279,7 +281,7 @@ Now we neeed to make it take the correct triangles and run some logic to see if 
                                     (debug-draw-tris (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
                                     (1+! *count-close-actors*)))))))
                         *null-kernel-context*)
-  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 5) (static-rgba 0 #xff 0 #x40))
+  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 25) (static-rgba 0 #xff 0 #x40))
   ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
   (when (and (< 0 *count-close-actors*) *target*)
     (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))

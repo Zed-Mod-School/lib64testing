@@ -820,6 +820,7 @@ nav-enemy-default-event-handler
                                           1000000000000000.0
                                           600)
       (send-event self 'death-end)
+      (pc-mario-says-so-long-gay-bowsa)
       (if (logtest? (-> self enemy-info options) (fact-options has-power-cell)) (go-virtual nav-enemy-fuel-cell))
       (while (-> self child)
         (suspend))
