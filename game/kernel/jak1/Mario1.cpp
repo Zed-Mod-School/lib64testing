@@ -14,7 +14,6 @@ typedef uint32_t u32;
 
 static uint8_t* g_mario_texture = nullptr;
 int marioId = -1;
-uint8_t* marioTexture;
 SM64MarioState g_mario_state = {0};
 SM64MarioGeometryBuffers g_geom = {0};
 SM64MarioInputs g_mario_inputs = {.camLookX = 0.0f,

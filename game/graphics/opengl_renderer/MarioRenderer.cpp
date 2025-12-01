@@ -310,10 +310,10 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
 
   static GLuint mario_texture_id = 0;
 
-  if (mario_texture_id == 0 && marioTexture) {
+  if (mario_texture_id == 0 && g_mario_texture) {
     glGenTextures(1, &mario_texture_id);
     glBindTexture(GL_TEXTURE_2D, mario_texture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, marioTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, g_mario_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);

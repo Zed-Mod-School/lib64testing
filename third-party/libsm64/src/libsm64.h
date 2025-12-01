@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
+extern uint8_t* g_mario_texture;
 
 #if defined(_WIN32)
     #ifdef SM64_LIB_EXPORT
