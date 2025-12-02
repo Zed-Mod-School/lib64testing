@@ -11,3 +11,32 @@ void tick_mario_frame();
 constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 // convert from float (used in GOAL) to SM64 units (meters 1.0) * METERS_TO_UNITS = pos in SM64
 // the static level collide should be changes from {4926,1392,3379} to {4926 * JAK_SCALE, 1392 * JAK_SCALE, 3379 * JAK_SCALE} at some point to make world space comparasion easier
+
+#include <iostream>
+#include <fstream> // Required for std::ofstream
+#include <cstdint>
+#include <cstdlib>
+
+#include <vector>
+extern std::vector<SM64SurfaceObject> g_active_debug_objects;  // DECLARATION
+uint64_t pc_get_mario_x();
+uint64_t pc_get_mario_y();
+uint64_t pc_get_mario_z();
+uint64_t pc_get_mario_action();
+
+void pc_set_mario_camera(uint32_t x, uint32_t z);
+void pc_set_mario_position_from_goal(uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
+void pc_spawn_mario_test_collide();
+void pc_mario_says_so_long_gay_bowsa();
+void pc_heal_mario();
+
+void load_combined_static_surfaces(const SM64Surface* surfaces1,
+                                   int count1,
+                                   const SM64Surface* surfaces2,
+                                   int count2);
+int load_surfaces_near(float x, float y, float z);
+void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32_t z_bits);
+void maybe_reload_surfaces(const float* mario_pos);
+
+bool point_in_triangle_2d(float px, float pz, const int32_t v[3][3]);
+bool triangle_samples_in_cylinder(float center_x, float center_z, const int32_t v[3][3]);

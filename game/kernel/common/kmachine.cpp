@@ -10,6 +10,7 @@
 #include "common/util/Timer.h"
 #include "common/util/string_util.h"
 
+#include "../jak1/Mario1.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"
@@ -23,6 +24,9 @@
 #include "game/sce/libpad.h"
 #include "game/sce/libscf.h"
 #include "game/sce/sif_ee.h"
+//mariozed move this
+SM64Surface* g_last_updated_surfaces = nullptr;
+int g_combined_last_update_surfaces_count = 0;
 
 /*!
  * Where does OVERLORD load its data from?
@@ -1003,6 +1007,335 @@ void pc_encode_utf8_string(u32 src_str_ptr, u32 str_dest_ptr) {
   strcpy(Ptr<String>(str_dest_ptr).c()->data(), converted.c_str());
 }
 
+void update_mario_surface_from_goal_struct(u32 surface_ptr) {
+  // Print any previously stored surfaces
+  printf("=== BEGIN update_mario_surface_from_goal_struct ===\n");
+  if (g_last_updated_surfaces && g_combined_last_update_surfaces_count > 0) {
+    for (int i = 0; i < g_combined_last_update_surfaces_count; ++i) {
+      const auto& s = g_last_updated_surfaces[i];
+      printf("Stored Surface %d: Type=%d Terrain=%d Force=%d V0=(%d,%d,%d)\n",
+             i, s.type, s.terrain, s.force,
+             s.vertices[0][0], s.vertices[0][1], s.vertices[0][2]);
+    }
+  } else {
+    printf("No previously stored surfaces.\n");
+  }
+
+  // Process the incoming surface
+  auto surf = surface_ptr ? Ptr<SM64Surface>(surface_ptr).c() : NULL;
+
+  if (surf) {
+    // Free any old stored surfaces
+    if (g_last_updated_surfaces) {
+      free(g_last_updated_surfaces);
+      g_last_updated_surfaces = nullptr;
+      g_combined_last_update_surfaces_count = 0;
+    }
+
+    // Allocate new storage for 1 surface
+    g_last_updated_surfaces = (SM64Surface*)malloc(sizeof(SM64Surface));
+    if (g_last_updated_surfaces) {
+      memcpy(&g_last_updated_surfaces[0], surf, sizeof(SM64Surface));
+      g_combined_last_update_surfaces_count = 1;
+    }
+  }
+
+  // Print the updated stored surfaces
+  printf("=== END update_mario_surface_from_goal_struct ===\n");
+  if (g_last_updated_surfaces && g_combined_last_update_surfaces_count > 0) {
+    for (int i = 0; i < g_combined_last_update_surfaces_count; ++i) {
+      const auto& s = g_last_updated_surfaces[i];
+      printf("Stored Surface %d: Type=%d Terrain=%d Force=%d V0=(%d,%d,%d)\n",
+             i, s.type, s.terrain, s.force,
+             s.vertices[0][0], s.vertices[0][1], s.vertices[0][2]);
+    }
+  } else {
+    printf("No stored surfaces after update.\n");
+  }
+
+}
+
+
+
+//test
+SM64Surface g_surface_accumulator[512];
+int g_surface_accumulator_count = 0;
+std::string g_last_surface_actor_name = "";
+
+std::vector<SM64Surface> g_debug_surfaces;
+
+//test
+
+void pc_mesh_surface_flush_current_actor()
+{
+    if (g_surface_accumulator_count == 0 || g_last_surface_actor_name.empty()) {
+        printf("[SURFACE-DEBUG] No surfaces to flush or actor name empty during final flush.\n");
+        return;
+    }
+
+    printf("[SURFACE-FLUSH-FINAL] %d surfaces for actor %s\n",
+           g_surface_accumulator_count, g_last_surface_actor_name.c_str());
+
+    // Flush surfaces one-by-one with duplicate checking
+    for (int i = 0; i < g_surface_accumulator_count; ++i) {
+        const SM64Surface& s = g_surface_accumulator[i];
+
+        bool exists = false;
+
+        // Check if this surface already exists anywhere in g_debug_surfaces
+        for (const auto& existing : g_debug_surfaces) {
+            if (memcmp(&existing, &s, sizeof(SM64Surface)) == 0) {
+                exists = true;
+                break;
+            }
+        }
+
+        // Only insert if unique
+        if (!exists) {
+            g_debug_surfaces.push_back(s);
+        }
+    }
+
+    printf("[SURFACE-DEBUG] g_debug_surfaces size after final flush: %zu\n",
+           g_debug_surfaces.size());
+
+    // Reset accumulator
+    g_surface_accumulator_count = 0;
+    g_last_surface_actor_name.clear();
+}
+
+static bool has_spawned = false;
+uint32_t spawn_debug_surfaces_object(const float* origin);
+
+void writeSingleSM64Surface(std::ostream& os, const struct SM64Surface& surface);
+
+void writeSM64SurfaceToFile(const std::string& filename, const struct SM64Surface& surface);
+
+void writeSM64SurfaceArrayToFile(const std::string& filename,
+                                 const struct SM64Surface* surfaces,
+                                 size_t count);
+
+
+                                 // --- Core Helper Function: Print a single SM64Surface to any output stream ---
+// We use std::ostream& to make the function versatile. It can take std::cout
+// or an std::ofstream object.
+void writeSingleSM64Surface(std::ostream& os, const struct SM64Surface& surface)
+{
+    os << "struct SM64Surface {\n";
+    os << "    type: " << surface.type << ",\n";
+    os << "    force: " << surface.force << ",\n";
+    os << "    terrain: " << surface.terrain << ",\n";
+    os << "    vertices: {\n";
+
+    for (int i = 0; i < 3; ++i)
+    {
+        os << "        {"
+           << surface.vertices[i][0] << ", "
+           << surface.vertices[i][1] << ", "
+           << surface.vertices[i][2] << "}";
+        if (i < 2) os << ",";
+        os << "\n";
+    }
+
+    os << "    }\n";
+    os << "};\n";
+}
+
+// --- Function to Write a Single SM64Surface to a File ---
+void writeSM64SurfaceToFile(const std::string& filename, const struct SM64Surface& surface)
+{
+    std::ofstream outfile(filename);
+
+    if (outfile.is_open())
+    {
+        writeSingleSM64Surface(outfile, surface);
+        std::cout << "Successfully wrote single SM64Surface to " << filename << "\n";
+    }
+    else
+    {
+        std::cerr << "ERROR: Unable to open file " << filename << " for writing.\n";
+    }
+}
+
+
+// --- Function to Write an Array of SM64Surface objects to a File ---
+void writeSM64SurfaceArrayToFile(const std::string& filename,
+                                 const struct SM64Surface* surfaces,
+                                 size_t count)
+{
+    // The std::ios::app flag opens the file in append mode.
+    // To overwrite the file, remove the std::ios::app flag.
+    std::ofstream outfile(filename);
+
+    if (outfile.is_open())
+    {
+        outfile << "--- Printing Array of " << count << " Surfaces ---\n";
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            outfile << "// Surface Index " << i << "\n";
+            // Call the core helper function
+            writeSingleSM64Surface(outfile, surfaces[i]);
+            outfile << "\n"; // Separator between surfaces
+        }
+
+        outfile << "--------------------------------------------\n";
+
+        std::cout << "Successfully wrote " << count << " surfaces to " << filename << "\n";
+    }
+    else
+    {
+        std::cerr << "ERROR: Unable to open file " << filename << " for writing.\n";
+    }
+}
+
+
+void pc_mesh_surface_add(u32 name_sym, u32 surf_ptr) {
+    printf("[SURFACE-DEBUG] pc_mesh_surface_add called. name_sym: %u, surf_ptr: %u\n", name_sym, surf_ptr);
+
+    if (!surf_ptr || !name_sym) {
+        printf("[SURFACE-DEBUG] Exiting early: surf_ptr or name_sym is null.\n");
+        return;
+    }
+
+    const char* name = (Ptr<String>(name_sym))->data();
+    auto* surf = Ptr<SM64Surface>(surf_ptr).c();
+
+    if (!name || !surf) {
+        printf("[SURFACE-DEBUG] Exiting early: name or surf is null after casting.\n");
+        return;
+    }
+
+    printf("[SURFACE-DEBUG] Actor Name: %s, Current Surface Count: %d\n", name, g_surface_accumulator_count);
+    printf("[SURFACE-DEBUG] Last Actor Name: %s, Last Actor Name Empty: %d\n", g_last_surface_actor_name.c_str(), g_last_surface_actor_name.empty());
+
+    // Actor name changed � flush the previous batch
+    if (g_last_surface_actor_name != name && !g_last_surface_actor_name.empty()) {
+        printf("[SURFACE-FLUSH] %d surfaces for actor %s\n", g_surface_accumulator_count, g_last_surface_actor_name.c_str());
+
+        // Append to debug list
+        g_debug_surfaces.insert(
+            g_debug_surfaces.end(),
+            &g_surface_accumulator[0],
+            &g_surface_accumulator[g_surface_accumulator_count]);
+
+        printf("[SURFACE-DEBUG] g_debug_surfaces size after flush: %zu\n", g_debug_surfaces.size());
+        g_surface_accumulator_count = 0;
+    }
+
+    // Update actor name
+    g_last_surface_actor_name = name;
+
+    // ? Only store if not already present
+    bool already_exists = false;
+    for (int i = 0; i < g_surface_accumulator_count; ++i) {
+        if (memcmp(&g_surface_accumulator[i], surf, sizeof(SM64Surface)) == 0) {
+            already_exists = true;
+            break;
+        }
+    }
+
+    if (already_exists) {
+        printf("[SURFACE-DEBUG] Surface already exists for actor %s. Skipping add.\n", name);
+    } else {
+        // Store new surface
+        if (g_surface_accumulator_count < 512) {
+            g_surface_accumulator[g_surface_accumulator_count++] = *surf;
+            printf("[SURFACE-DEBUG] Surface added to accumulator. New count: %d\n", g_surface_accumulator_count);
+            if (g_surface_accumulator_count % 100 == 0) {
+              printf("[SURFACE-DEBUG] === REACHED %d SURFACES ===\n", g_surface_accumulator_count);
+              // You can set a debugger breakpoint on this line or drop __debugbreak() here on MSVC
+              // __debugbreak();   // <- uncomment for actual breakpoint in MSVC
+
+            }
+
+        } else {
+            printf("[SURFACE-WARN] Overflow for actor %s (max 512 surfaces)\n", name);
+        }
+    }
+
+    printf("[SURFACE-DEBUG] Exiting pc_mesh_surface_add.\n");
+
+// if (!has_spawned && g_debug_surfaces.size() < 15) {
+//     float origin[3] = { 0, 0, 0 };
+//     spawn_debug_surfaces_object(origin);
+//     if (!g_debug_surfaces.empty()) {
+//         writeSM64SurfaceArrayToFile("debug_surfaces.txt", &g_debug_surfaces[0], g_debug_surfaces.size());
+//     }
+//     has_spawned = true;   // prevent future runs
+
+// }
+
+
+}
+
+
+
+// Assuming MARIO_SCALE_FACTOR is defined globally or locally.
+// If it's the same as the previous context:
+// const float MARIO_SCALE_FACTOR = 4096.0f / 50.0f; // ~81.92
+// const float MARIO_INVERSE_SCALE = 1.0f / MARIO_SCALE_FACTOR;
+
+// NOTE: You must include the definition of MARIO_SCALE_FACTOR from MarioRenderer.cpp
+// or define it here for this function to compile and work correctly.
+const float MARIO_SCALE_FACTOR = 4096.0f / 50.0f;
+const float MARIO_INVERSE_SCALE = 1.0f / MARIO_SCALE_FACTOR;
+
+
+uint32_t spawn_debug_surfaces_object(const float* origin)
+{
+    if (g_debug_surfaces.empty())
+        return 0;
+
+    SM64SurfaceObject obj{};
+    obj.surfaceCount = g_debug_surfaces.size();
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * obj.surfaceCount);
+
+    // Set the object's origin position in the large world space
+    obj.transform.position[0] = origin[0];
+    obj.transform.position[1] = origin[1];
+    obj.transform.position[2] = origin[2];
+    obj.transform.eulerRotation[0] = 0;
+    obj.transform.eulerRotation[1] = 0;
+    obj.transform.eulerRotation[2] = 0;
+
+    // --- SCALING AND TRANSLATION LOOP ---
+    for (size_t i = 0; i < g_debug_surfaces.size(); i++) {
+        const SM64Surface& world_surface = g_debug_surfaces[i];
+        SM64Surface local_surface = world_surface; // Copy all fields (type, force, terrain)
+
+        for (int j = 0; j < 3; j++) { // Loop over vertices (0, 1, 2)
+            for (int k = 0; k < 3; k++) { // Loop over coordinates (x=0, y=1, z=2)
+
+                // 1. Get the world coordinate (stored as int16_t, so cast to float)
+                float world_coord = (float)world_surface.vertices[j][k];
+
+                // 2. Translate: Make the coordinate local by subtracting the object's origin
+                float translated_coord = world_coord - origin[k];
+
+                // 3. Scale: Shrink the coordinate to SM64's internal unit space
+                float scaled_coord = translated_coord * MARIO_INVERSE_SCALE;
+
+                // 4. Assign: Cast back to int16_t for the SM64 surface struct
+                local_surface.vertices[j][k] = (int16_t)scaled_coord;
+            }
+        }
+
+        // Use the shrunken, local surface
+        obj.surfaces[i] = local_surface;
+    }
+    // --- END SCALING AND TRANSLATION LOOP ---
+
+    uint32_t id = sm64_surface_object_create(&obj);
+
+    // Add to active debug objects for rendering
+    g_active_debug_objects.push_back(obj);
+
+    return id;
+}
+
+
+//end test
 /// Initializes all functions that are common across all game versions
 /// These functions have the same implementation and do not use any game specific functions (other
 /// than the one to create a function in the first place)
@@ -1057,6 +1390,21 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-get-keyboard-enabled?", (void*)pc_get_keyboard_enabled);
   make_func_symbol_func("pc-set-keyboard-enabled!", (void*)pc_set_keyboard_enabled);
   make_func_symbol_func("pc-set-mouse-options!", (void*)pc_set_mouse_options);
+  // mario functions Id like to move these one day but for now they are here.
+  make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
+  make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
+  make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
+  make_func_symbol_func("pc-get-mario-state", (void*)pc_get_mario_action);
+  make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
+  make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
+  make_func_symbol_func("pc-spawn-mario-test-collide", (void*)pc_spawn_mario_test_collide);
+  make_func_symbol_func("pc-mario-says-so-long-gay-bowsa", (void*)pc_mario_says_so_long_gay_bowsa);
+  make_func_symbol_func("pc-heal-mario", (void*)pc_heal_mario);
+  // make_func_symbol_func("pc-load-mario-collide!",
+
+  //                       (void*)pc_call_load_combined_static_surfaces_from_game_idx);
+  //mariozed this went missing somehow go find it later
+  // end mario functions
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);
   make_func_symbol_func("pc-ignore-background-controller-events!",
                         (void*)pc_ignore_background_controller_events);
