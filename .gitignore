@@ -93,3 +93,4 @@ third-party/libsm64/build.bat
 third-party/libsm64/test.bat
 *.z64
 third-party/fmt/support/*
+output.wav
