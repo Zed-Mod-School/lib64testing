@@ -50,7 +50,8 @@
 #ifndef __PRFCHWINTRIN_H
 #define __PRFCHWINTRIN_H
 static __inline__ void __attribute__((__always_inline__, __nodebug__))
-_m_prefetch(void *__P)
+//mariozed 
+_m_prefetcha(void *__P)
 {
   __builtin_prefetch(__P, 0, 3 /* _MM_HINT_T0 */);
 }

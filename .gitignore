@@ -87,3 +87,9 @@ __pycache__/
 unifont-15.0.03.ttf
 *.diff
 goalc-report.html
+.vscode/PythonImportHelper-v2-Completion.json
+.vscode/settings.json
+third-party/libsm64/build.bat
+third-party/libsm64/test.bat
+*.z64
+third-party/fmt/support/*
