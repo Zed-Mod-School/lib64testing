@@ -74,6 +74,7 @@ OpenGLRenderer::OpenGLRenderer(std::shared_ptr<TexturePool> texture_pool,
                                GameVersion version)
     : m_render_state(texture_pool, loader, version),
       m_collide_renderer(version),
+      m_mario_renderer(version),
       m_version(version) {
   // requires OpenGL 4.3
 #ifndef __APPLE__
@@ -1310,6 +1311,11 @@ void OpenGLRenderer::dispatch_buckets_jak1(DmaFollower dma,
     if (bucket_id == 31 - 1 && Gfx::g_global_settings.collision_enable) {
       auto p = prof.make_scoped_child("collision-draw");
       m_collide_renderer.render(&m_render_state, p);
+    }
+    // Same hack to draw the mario mesh in the middle the drawing
+    if (bucket_id == 31 - 1) {
+      auto p = prof.make_scoped_child("collision-draw");
+      m_mario_renderer.render(&m_render_state, p);
     }
   }
 
