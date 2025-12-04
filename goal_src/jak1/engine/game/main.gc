@@ -366,6 +366,8 @@
     (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
     (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
     (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*)
+
+    (print-close-actor-and-draw-collide)
     ;; only run this if the condition passes to lock jak to marios reported position.
     (when (and (not *are-we-in-target-continue*)
                *target*

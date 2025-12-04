@@ -71,6 +71,50 @@
     0
     (none)))
 
+(define *count-close-actors* 0)
+(defun print-close-actor-and-draw-collide ()
+  (declare-type rigid-body-platform process-drawable)
+  (iterate-process-tree *active-pool*
+                        (lambda ((proc process))
+                          (let* ((p (the process-drawable proc))
+                                 (e (the entity-actor (-> p entity)))
+                                 (type-target process-drawable)
+                                 (distance (meters 50)))
+                            (when (and p
+                                       e
+                                       (type-type? (-> e etype) type-target)
+                                       (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+                                       (type-type? (-> p root type) collide-shape))
+                              (let ((root (the collide-shape (-> p root))))
+                                                                (when (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
+                                  (return 0))
+
+                                ;; check if the root prim is a prim group
+                                (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                  ;; if so, we loop through all of its prims and check for prim meshes
+                                  (let ((group (the collide-shape-prim-group (-> root root-prim))))
+                                    (1+! *count-close-actors*)
+                                    (dotimes (i (-> group num-prims))
+                                      (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                        ;; if it is indeed a mesh, we draw it
+                                        (debug-draw-tris (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+                                  ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                  (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                    (debug-draw-tris (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
+                                    (1+! *count-close-actors*)))))))
+                        *null-kernel-context*)
+  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
+  ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
+  (when (and (< 0 *count-close-actors*) *target*)
+    (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+      (set-width! fnt 1440)
+      (set-height! fnt 1380)
+      (set-scale! fnt 0.2)
+      (set-flags! fnt (font-flags kerning large))
+      (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
+  (set! *count-close-actors* 0))
+
+
 (deftype sopt-work (structure)
   ((intersect     vector :inline)
    (sphere-bbox4w bounding-box4w :inline)))
