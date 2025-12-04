@@ -1283,7 +1283,7 @@
   :trans
     (behavior ()
       (set-blackout-frames (seconds 0.017))
-      (if (send-event *target* 'change-mode 'fishing self) (go fisher-playing))))
+      (if #t (go fisher-playing))))
 
 ;; og:preserve-this pc port needs its own implementation of play-anim for cutscene skipping
 (#when PC_PORT
