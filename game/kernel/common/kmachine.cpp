@@ -1400,9 +1400,9 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-spawn-mario-test-collide", (void*)pc_spawn_mario_test_collide);
   make_func_symbol_func("pc-mario-says-so-long-gay-bowsa", (void*)pc_mario_says_so_long_gay_bowsa);
   make_func_symbol_func("pc-heal-mario", (void*)pc_heal_mario);
-  // make_func_symbol_func("pc-load-mario-collide!",
+  make_func_symbol_func("pc-load-mario-collide!",
 
-  //                       (void*)pc_call_load_combined_static_surfaces_from_game_idx);
+                        (void*)pc_call_load_combined_static_surfaces_from_game_idx);
   //mariozed this went missing somehow go find it later
   // end mario functions
   make_func_symbol_func("pc-set-mouse-camera-sens!", (void*)pc_set_mouse_camera_sens);

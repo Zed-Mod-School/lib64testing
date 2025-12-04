@@ -358,7 +358,8 @@
           ((name= lvl-name "citadel") (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
           ((name= lvl-name "finalboss") (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0))))))
     (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
-      ;; Missing for some reason(pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
+      ;; Missing for some reason
+      (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
       (set! last-arg1-mario-lvl arg1-mario-lvl)
       (set! last-arg2-mario-lvl arg2-mario-lvl))
     ;; update cam-look x and z
