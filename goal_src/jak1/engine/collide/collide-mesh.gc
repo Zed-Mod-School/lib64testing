@@ -82,6 +82,7 @@
                                  (distance (meters 50)))
                             (when (and p
                                        e
+                                       (nonzero? (-> p root))
                                        (type-type? (-> e etype) type-target)
                                        (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
                                        (type-type? (-> p root type) collide-shape))
