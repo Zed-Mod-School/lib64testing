@@ -86,8 +86,15 @@
                                        (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
                                        (type-type? (-> p root type) collide-shape))
                               (let ((root (the collide-shape (-> p root))))
-                                                                (when (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
-                                  (return 0))
+                                                                (when
+
+                                                                (or
+                                                                (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
+                                                                (type-type? (-> e etype) periscope)
+                                                                )
+                                  (return 0)
+
+                                  )
 
                                 ;; check if the root prim is a prim group
                                 (if (type-type? (-> root root-prim type) collide-shape-prim-group)
