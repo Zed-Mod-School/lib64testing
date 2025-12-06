@@ -12,6 +12,8 @@
 (require "engine/gfx/background/subdivide-h.gc")
 (require "engine/collide/collide-touch.gc")
 
+(defun-extern get-mario-state symbol)
+
 ;; DECOMP BEGINS
 
 ;; The collide shape system is used to handle collision reactions.
@@ -683,7 +685,9 @@
       (((pat-event burnup))
        ;; burnup (like fire canyon lava).
        ;; only send if we don't have racer (on zoomer)
-       (if (zero? (logand (-> (the-as target (-> obj process)) control root-prim prim-core action) (collide-action racer)))
+       (when (not (= (get-mario-state) 'shell))
+       ;;(zero? (logand (-> (the-as target (-> obj process)) control root-prim prim-core action) (collide-action racer)))
+         (pc-spawn-mario-test-collide)
          (target-attack-up (the-as target (-> obj process)) 'attack-or-shove 'burnup)))
       (((pat-event melt))
        ;; just send melt

@@ -294,12 +294,31 @@
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x20810446)) 'shell)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21315)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21316)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21311)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21312)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x10111)) 'dead) ;;temp custom hack
     (else 'unknown)))
+
+(defun get-mario-state ()
+  (cond
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping) ; ACT_SLEEPING
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)     ; ACT_IDLE
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)  ; ACT_WALKING
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)  ; ACT_GROUND_POUND
+    (else 'unknown)))
+
+(defun update-mario-state-symbol ((new-state symbol))
+  (cond
+    ((eq? new-state 'sleeping) (update-mario-state (the-as int #x0C000203)))
+    ((eq? new-state 'idle) (update-mario-state (the-as int #x0C400201)))
+    ((eq? new-state 'walking) (update-mario-state (the-as int #x04000440)))
+    ((eq? new-state 'groundpound) (update-mario-state (the-as int #x008008a9)))
+    ((eq? new-state 'dead) (update-mario-state (the-as int #x21315)))
+    ((eq? new-state 'shell) (update-mario-state (the-as int #x20810446)))
+    (else (update-mario-state (the-as int #x0C400201))))) ;;default to idle
 
 (define *MARIO-STATE-STRING* (new 'global 'string 128 (the-as string #f)))
 
@@ -363,7 +382,7 @@
           ((name= lvl-name "snow") (if (= i 0) (set! arg1-mario-lvl 15.0) (set! arg2-mario-lvl 15.0)))
           ((name= lvl-name "maincave") (if (= i 0) (set! arg1-mario-lvl 16.0) (set! arg2-mario-lvl 16.0)))
           ((name= lvl-name "darkcave") (if (= i 0) (set! arg1-mario-lvl 17.0) (set! arg2-mario-lvl 17.0)))
-          ((name= lvl-name "robotcave") (if (= i 0) (set! arg1-mario-lvl 18.0) (set! arg2-mario-lvl 18.0)))
+          ((name= lvl-name "robocave") (if (= i 0) (set! arg1-mario-lvl 18.0) (set! arg2-mario-lvl 18.0)))
           ((name= lvl-name "lavatube") (if (= i 0) (set! arg1-mario-lvl 19.0) (set! arg2-mario-lvl 19.0)))
           ((name= lvl-name "citadel") (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
           ((name= lvl-name "finalboss") (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0))))))

@@ -128,6 +128,8 @@ void tick_mario_frame() {
 
 // Mario functions we call in GOAL
 uint64_t pc_get_mario_action() {
+  g_mario_state.action;
+
   return static_cast<uint64_t>(g_mario_state.action);
 }
 
@@ -187,12 +189,24 @@ void pc_set_mario_water_level_from_goal(u32 level_bits) {
   );
 }
 
+void pc_change_mario_state(u32 act_bits) {
+  int act;
+  memcpy(&act, &act_bits, sizeof(u32));
+  sm64_set_mario_action(marioId, act);
+}
+
+void pc_burn_marios_butt() { // does not shoot mario up as much as we'd like. it's a start
+  if (g_mario_state.action != ACT_BURNING_GROUND && g_mario_state.action != ACT_BURNING_FALL && g_mario_state.action != ACT_BURNING_JUMP)
+                sm64_set_mario_action(marioId, ACT_BURNING_JUMP);
+}
+
 void pc_spawn_mario_test_collide() {
 //This is a artifact of collide testing, its unsure where this will eventually reside.
 //MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
 //sm64_set_mario_action(marioId, ACT_RIDING_SHELL_GROUND);
 //sm64_mario_interact_cap(marioId, MARIO_WING_CAP, 30*60, 1);
-sm64_play_sound_global(SOUND_MENU_COIN_ITS_A_ME_MARIO);
+//sm64_play_sound_global(SOUND_MENU_COIN_ITS_A_ME_MARIO);
+pc_burn_marios_butt();
 // sm64_set_mario_water_level(marioId, 
 //   //(ped->m_nPhysicalFlags.bTouchingWater) ? // add valid function call to check if jak is in/close to water
 //   //ped->m_pPlayerData->m_fWaterHeight/MARIO_SCALE // call a c++ function that returns target's water height
@@ -206,8 +220,8 @@ sm64_play_sound_global(SOUND_MARIO_SO_LONGA_BOWSER);
 }
 
 void pc_heal_mario() {
-sm64_set_mario_health(marioId, 256*8);
-sm64_set_mario_action(marioId, ACT_IDLE);
+  sm64_set_mario_health(marioId, 256*8);
+  sm64_set_mario_action(marioId, ACT_IDLE);
 }
 
 
