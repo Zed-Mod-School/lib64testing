@@ -320,7 +320,7 @@
     (else (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "unknown"))))
 
 (defun mario-glue-override ()
-  (when (or (close? "fishermans-boat-2" (meters 15.0)) (= (get-mario-state) 'dead))
+  (when (or (close? "fishermans-boat-2" (meters 15.0)) (close? "gondola-1" (meters 15.0)) (= (get-mario-state) 'dead))
     (return #f))
   *move-jak-to-mario?*)
 (defun main-cheats ()
@@ -334,9 +334,9 @@
       (cheats-sound-play *cheat-mode*))
     ;;(print-close-actor-and-draw-collide)
     ;; Please move these at some point they dont belong here
-    (if (logtest? (-> *target* water flags) (water-flags wt11))
+    (if (logtest? (-> *target* water flags) (water-flags wt09))
     (update-mario-water-height (-> *target* water height))
-      (update-mario-water-height -600000.0))
+      (update-mario-water-height -999999.0))
     (dotimes (i 2)
       (let ((lvl-name (-> *load-state* want i name)))
         (cond

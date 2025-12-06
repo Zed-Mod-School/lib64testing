@@ -337,8 +337,8 @@ nav-enemy-default-event-handler
           (else (if (time-elapsed? (-> self free-time) (seconds 3)) (go-virtual nav-enemy-patrol)))))
       (let ((a0-10 (-> self nav target-poly)))
         (if (and a0-10 (logtest? (-> a0-10 pat) 2))
-          (set! (-> self target-speed) (* 2.0 (-> self chase-speed)))
-          (set! (-> self target-speed) (-> self chase-speed)))))
+          (set! (-> self target-speed) (* 1.75 (-> self chase-speed)))
+          (set! (-> self target-speed) (* 0.85 (-> self chase-speed))))))
   :code
     (behavior ()
       (set-time! (-> self player-water-time))
