@@ -261,15 +261,15 @@
   (and (process-by-ename actor-ename)
        (<= (vector-vector-distance (target-pos 0) (-> (the process-drawable (process-by-ename actor-ename)) root trans)) dist)))
 
-(define *move-jak-to-mario?* #t)
+(define *mario-global-glue-state* #t)
 
 (defun turn-off-mario-glue ()
   (process-spawn-function process
     (lambda :behavior process ()
       (when (not #f)
-        (set! *move-jak-to-mario?* #f)
+        (set! *mario-global-glue-state* 'jak)
         (suspend-for (seconds 10))
-        (set! *move-jak-to-mario?* #t)
+        (set! *mario-global-glue-state* 'mario)
         (teleport-mario-to-pos (-> (target-pos 0) x) (+ (-> (target-pos 0) y) (meters 1.0)) (-> (target-pos 0) z))
         ;;(false! *auto-saving?*)
         )))
@@ -279,9 +279,9 @@
   (process-spawn-function process
     (lambda :behavior process ((time2 seconds))
       (when (not #f)
-        (set! *move-jak-to-mario?* #f)
+        (set! *mario-global-glue-state* 'jak)
         (suspend-for time2)
-        (set! *move-jak-to-mario?* #t)
+        (set! *mario-global-glue-state* 'mario)
         (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
         ;;(false! *auto-saving?*)
         ))
@@ -321,7 +321,98 @@
 (defun mario-glue-override ()
   (when (or (close? "fishermans-boat-2" (meters 15.0)) (= (get-mario-state) 'dead))
     (return #f))
-  *move-jak-to-mario?*)
+
+(when (= *mario-global-glue-state* 'jak)
+(if (movie?)
+(teleport-mario-to-pos (-> (vector<-cspace! (new-stack-vector0) (-> *target* node-list data (joint-node-index eichar-lod0-jg main))) x)
+(-> (vector<-cspace! (new-stack-vector0) (-> *target* node-list data (joint-node-index eichar-lod0-jg main))) y)
+(-> (vector<-cspace! (new-stack-vector0) (-> *target* node-list data (joint-node-index eichar-lod0-jg main))) z)
+)
+
+
+ (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+))
+(when (= *mario-global-glue-state* 'mario)
+(set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
+(set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
+(set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*))
+)
+
+  *mario-global-glue-state*)
+
+  (defun toggle-mario-glue-state-for-time ((time1 int))
+  (protect (*mario-global-glue-state*)
+      ;; swap language and load new text files
+     (process-spawn-function process
+    (lambda :behavior process ((time2 seconds))
+      (when (not #f)
+
+      (when (= *mario-global-glue-state* 'mario)
+        (set! *mario-global-glue-state* 'jak)
+        (suspend-for time2)
+        (set! *mario-global-glue-state* 'mario)
+        (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+      )
+
+
+      (when (= *mario-global-glue-state* 'jak)
+        (set! *mario-global-glue-state* 'mario)
+        (suspend-for time2)
+        (set! *mario-global-glue-state* 'jak)
+        (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+      )
+
+        ;;(false! *auto-saving?*)
+        ))
+    time1)
+  )
+  )
+
+;;(lambda () (not (task-complete? *game-info* (game-task jungle-eggtop))))
+  (defun toggle-mario-glue-state-until-true ((condition-fn symbol) (poll-time seconds))
+  ;; Protect the original *mario-global-glue-state* while we operate
+  (protect (*mario-global-glue-state*)
+    (let ((original-state *mario-global-glue-state*))
+      (process-spawn-function process
+        (lambda :behavior process ((time2 seconds))
+          ;; Toggle state immediately
+          (cond
+            ((= *mario-global-glue-state* 'mario)
+             (set! *mario-global-glue-state* 'jak))
+            ((= *mario-global-glue-state* 'jak)
+             (set! *mario-global-glue-state* 'mario))
+            ;; (t
+            ;;  ;; fallback: set to mario if something else
+            ;;  (set! *mario-global-glue-state* 'mario))
+             )
+
+          ;; Teleport after switching
+          (teleport-mario-to-pos
+            (-> (target-pos 0) x)
+            (-> (target-pos 0) y)
+            (-> (target-pos 0) z))
+
+          ;; WAIT here until the condition-fn becomes true, polling with suspend-for.
+          ;; `until` repeatedly evaluates body until condition is true.
+          (until condition-fn
+            (suspend))
+
+          ;; Condition satisfied: restore original state
+          (set! *mario-global-glue-state* original-state)
+
+          ;; Teleport back to target-pos again if desired
+          (teleport-mario-to-pos
+            (-> (target-pos 0) x)
+            (-> (target-pos 0) y)
+            (-> (target-pos 0) z))
+
+          ;; finished
+          ))
+        ;; pass poll-time into the spawned process (used by suspend-for)
+        poll-time)))
+
+
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
  (when *target*
@@ -373,9 +464,7 @@
                *target*
                (mario-glue-override) ;;(cpad-hold? 0 up)
                )
-      (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
-      (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
-      (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
+      )
     ;; run this all the time no matter what, so we can see where mario *should* be
     ;; update his position vector on the GOAL side
     (set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) *mario-scale-mult*))
