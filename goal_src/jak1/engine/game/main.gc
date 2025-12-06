@@ -295,19 +295,13 @@
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x20810446)) 'shell)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0081089B)) 'shell) ;; shell fall
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0281089A)) 'shell) ;; shell jump
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21315)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21316)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21311)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21312)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x10111)) 'dead) ;;temp custom hack
-    (else 'unknown)))
-
-(defun get-mario-state ()
-  (cond
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping) ; ACT_SLEEPING
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)     ; ACT_IDLE
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)  ; ACT_WALKING
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)  ; ACT_GROUND_POUND
     (else 'unknown)))
 
 (defun update-mario-state-symbol ((new-state symbol))

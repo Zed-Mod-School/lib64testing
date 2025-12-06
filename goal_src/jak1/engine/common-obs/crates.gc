@@ -935,6 +935,7 @@
         (spawn (-> self part) (-> self root trans))
         (activate! (-> self smush) 0.2 90 150 1.0 1.0)
         (logclear! (-> self mask) (process-mask sleep-code)))
+        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 2.5)) (or (= (get-mario-state) 'groundpound) (= (get-mario-state) 'shell))) (go-virtual die #f 0))
       (if (nonzero? (-> self sound)) (update! (-> self sound)))
       (if (and *target* (>= (-> *target* fact buzzer) 6.0)) (spool-push *art-control* (-> self victory-anim name) 0 self -99.0)))
   :code

@@ -173,6 +173,7 @@
      (when (>= (-> self y-offset) (-> self y-offset-desired))
        (set! (-> self y-offset) (-> self y-offset-desired))
        (set! (-> self y-vel) 0.0))))
+       (when (and (< (vector-vector-xz-distance (-> self root trans) (-> *target* control trans)) (meters 7)) (or (= (get-mario-state) 'groundpound) (= (get-mario-state) 'shell))) (pc-mario-says-so-long-gay-bowsa)(go robber-die))
   (set! (-> self root trans y) (+ (-> self root trans y) (-> self y-offset))))
 
 (defbehavior robber-calc-speed robber ((arg0 float) (arg1 float) (arg2 float) (arg3 float) (arg4 symbol))
@@ -342,6 +343,7 @@
       (set! (-> self y-offset-desired) 0.0))
   :trans
     (behavior ()
+    
       (if (not (and *target* (>= 163840.0 (vector-vector-xz-distance (-> self root trans) (-> *target* control trans)))))
         (go robber-got-away))
       (when (and *target* (>= 102400.0 (vector-vector-xz-distance (-> self root trans) (-> *target* control trans))))

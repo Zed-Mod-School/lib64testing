@@ -619,6 +619,7 @@
 (defstate balloonlurker-pilot-idle (balloonlurker-pilot)
   :event
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
+    (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 4)) (or (= (get-mario-state) 'groundpound) (= (get-mario-state) 'shell))) (go balloonlurker-pilot-die))
       (case message
         (('attack) (send-event (ppointer->process (-> self parent-override)) 'die) (go balloonlurker-pilot-die))))
   :code
