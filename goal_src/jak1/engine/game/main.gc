@@ -337,6 +337,12 @@
     (if (logtest? (-> *target* water flags) (water-flags wt09))
     (update-mario-water-height (-> *target* water height))
       (update-mario-water-height -999999.0))
+
+      ;;hack to improve the cam rubber band when you warp mario needs improvement but its better than not having it
+(when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
+(send-event *camera* 'change-state cam-stick 0)
+(send-event *camera* 'change-state cam-string 0)
+)
     (dotimes (i 2)
       (let ((lvl-name (-> *load-state* want i name)))
         (cond
