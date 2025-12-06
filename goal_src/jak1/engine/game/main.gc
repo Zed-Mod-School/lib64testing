@@ -298,6 +298,7 @@
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21316)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21311)) 'dead) ;;temp custom hack
     ((= (the-as int (pc-get-mario-state)) (the-as int #x21312)) 'dead) ;;temp custom hack
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x10111)) 'dead) ;;temp custom hack
     (else 'unknown)))
 
 (define *MARIO-STATE-STRING* (new 'global 'string 128 (the-as string #f)))
@@ -333,6 +334,9 @@
       (cheats-sound-play *cheat-mode*))
     ;;(print-close-actor-and-draw-collide)
     ;; Please move these at some point they dont belong here
+    (if (logtest? (-> *target* water flags) (water-flags wt11))
+    (update-mario-water-height (-> *target* water height))
+      (update-mario-water-height -600000.0))
     (dotimes (i 2)
       (let ((lvl-name (-> *load-state* want i name)))
         (cond

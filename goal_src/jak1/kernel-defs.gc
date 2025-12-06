@@ -571,6 +571,8 @@
 
 (define-extern teleport-mario-to-pos (function float float float none))
 
+(define-extern update-mario-water-height (function float none))
+
 (define-extern pc-spawn-mario-test-collide (function none))
 
 (define-extern pc-mario-says-so-long-gay-bowsa (function none))

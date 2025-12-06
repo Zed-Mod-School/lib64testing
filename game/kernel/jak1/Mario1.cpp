@@ -174,12 +174,30 @@ void pc_set_mario_position_from_goal(u32 x_bits, u32 y_bits, u32 z_bits) {
   sm64_set_mario_position(marioId, x, y, z);
 }
 
+void pc_set_mario_water_level_from_goal(u32 level_bits) {
+  float level;
+  memcpy(&level, &level_bits, sizeof(u32));
+
+  level *= METERS_TO_UNITS;
+  
+  sm64_set_mario_water_level(marioId, 
+  true ? //  hardcode this func to always accept true bc we check on the goal side and only call this func if close to water
+  level
+   : INT16_MIN
+  );
+}
+
 void pc_spawn_mario_test_collide() {
 //This is a artifact of collide testing, its unsure where this will eventually reside.
 //MarioRenderer::spawn_cube_under_mario(g_mario_state.position);
 //sm64_set_mario_action(marioId, ACT_RIDING_SHELL_GROUND);
 //sm64_mario_interact_cap(marioId, MARIO_WING_CAP, 30*60, 1);
 sm64_play_sound_global(SOUND_MENU_COIN_ITS_A_ME_MARIO);
+// sm64_set_mario_water_level(marioId, 
+//   //(ped->m_nPhysicalFlags.bTouchingWater) ? // add valid function call to check if jak is in/close to water
+//   //ped->m_pPlayerData->m_fWaterHeight/MARIO_SCALE // call a c++ function that returns target's water height
+//   // : INT16_MIN
+//   );
 }
 
 void pc_mario_says_so_long_gay_bowsa() {

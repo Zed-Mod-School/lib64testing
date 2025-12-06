@@ -94,3 +94,4 @@ third-party/libsm64/test.bat
 *.z64
 third-party/fmt/support/*
 output.wav
+/sm64-san-andreas
