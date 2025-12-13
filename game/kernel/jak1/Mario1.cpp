@@ -365,7 +365,7 @@ gTempVerts[idx][2] = (int32_t)z;
 void pc_burn_marios_butt() { // does not shoot mario up as much as we'd like. it's a start
   if (g_mario_state.action != ACT_BURNING_GROUND && g_mario_state.action != ACT_BURNING_FALL && g_mario_state.action != ACT_BURNING_JUMP)
                 sm64_set_mario_action(marioId, ACT_BURNING_JUMP);
-              //  pc_dump_debug_surfaces_to_file();
+                pc_dump_debug_surfaces_to_file();
 }
 
 

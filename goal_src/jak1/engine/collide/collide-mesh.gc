@@ -133,14 +133,13 @@
 
 
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
-             (pc-spawn-mario-test-collide "fart")
+
              0
     (none)))
 
 ;; Create a function that we can call, and pass a process to, it checks if that process is there, and if it is, we do some checks to get its collide mesh, and call debug-draw-tris on it.
 
 (defun generate-collide-mesh-txt-from-name ((proc-name string))
-
 (when (process-by-ename proc-name)
                           (let* ((p (the-as process-drawable (process-by-ename proc-name)))
                                  (e (the entity-actor (-> p entity)))
@@ -178,6 +177,7 @@
                                     (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
                                     )))))
 )
+
 (none))
 
 
@@ -189,12 +189,20 @@
                           (let* ((p (the process-drawable proc))
                                  (e (the entity-actor (-> p entity)))
                                  (type-target process-drawable)
-                                 (distance (meters 50)))
+                                 (distance (meters 50))) ;;30 too small
                             (when (and p
                                        e
                                        (nonzero? (-> p root))
                                        (type-type? (-> e etype) type-target)
-                                       (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+                                       ;;more conditionals here
+                                       (or (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+                                       ;; checks here are to ignore the distance limit and always load the collide
+                                       (type-type? (-> e etype) citb-arm)
+                                       (type-type? (-> e etype) citb-arm-section)
+                                       (type-type? (-> e etype) citb-arm-shoulder)
+                                       )
+
+
                                        (type-type? (-> p root type) collide-shape))
                               (let ((root (the collide-shape (-> p root))))
                                                                 (when
@@ -231,6 +239,7 @@
       (set-scale! fnt 0.2)
       (set-flags! fnt (font-flags kerning large))
       (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
+       (when *target* (pc-spawn-mario-test-collide "fart"))
   (set! *count-close-actors* 0))
 
 
