@@ -129,8 +129,12 @@
             (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
 
             ))
+            ;; pc-spawn-mario-collide-if-needed?
+
+
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
-    0
+             (pc-spawn-mario-test-collide "fart")
+             0
     (none)))
 
 ;; Create a function that we can call, and pass a process to, it checks if that process is there, and if it is, we do some checks to get its collide mesh, and call debug-draw-tris on it.
@@ -175,6 +179,8 @@
                                     )))))
 )
 (none))
+
+
 (define *count-close-actors* 0)
 (defun print-close-actor-and-draw-collide ()
   (declare-type rigid-body-platform process-drawable)
@@ -210,10 +216,10 @@
                                     (dotimes (i (-> group num-prims))
                                       (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
                                         ;; if it is indeed a mesh, we draw it
-                                        (debug-draw-tris (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+                                        (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
                                   ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
                                   (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
-                                    (debug-draw-tris (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
+                                    (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
                                     (1+! *count-close-actors*)))))))
                         *null-kernel-context*)
   (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))

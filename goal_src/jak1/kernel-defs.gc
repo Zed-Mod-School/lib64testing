@@ -575,7 +575,7 @@
 
 (define-extern update-mario-state (function int none))
 
-(define-extern pc-spawn-mario-test-collide (function none))
+(define-extern pc-spawn-mario-test-collide (function string none))
 
 (define-extern pc-mario-says-so-long-gay-bowsa (function none))
 

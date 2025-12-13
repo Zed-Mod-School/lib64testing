@@ -687,7 +687,7 @@
        ;; only send if we don't have racer (on zoomer)
        (when (not (= (get-mario-state) 'shell))
        ;;(zero? (logand (-> (the-as target (-> obj process)) control root-prim prim-core action) (collide-action racer)))
-         (pc-spawn-mario-test-collide)
+         ;;(pc-spawn-mario-test-collide)
          (inspect (pc-get-mario-state))
          (target-attack-up (the-as target (-> obj process)) 'attack-or-shove 'burnup)))
       (((pat-event melt))

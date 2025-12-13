@@ -339,12 +339,13 @@
 (defun main-cheats ()
   "Handle cheat codes and timeout"
  (when *target*
+  ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
     (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
       (turn-off-mario-glue)
       (cheats-sound-play *cheat-mode*))
-    (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
-      (pc-spawn-mario-test-collide)
-      (cheats-sound-play *cheat-mode*))
+    ;; (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
+    ;;   (pc-spawn-mario-test-collide)
+    ;;   (cheats-sound-play *cheat-mode*))
     ;;(print-close-actor-and-draw-collide)
     ;; Please move these at some point they dont belong here
     (if (logtest? (-> *target* water flags) (water-flags wt09))

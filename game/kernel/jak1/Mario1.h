@@ -34,7 +34,7 @@ void pc_add_tris_to_surface(
       uint32_t z_bits,
       uint32_t vert_index_bits
   );
-void pc_spawn_mario_test_collide();
+void pc_spawn_mario_test_collide(uint32_t name_ptr);
 void pc_mario_says_so_long_gay_bowsa();
 void pc_heal_mario();
 
