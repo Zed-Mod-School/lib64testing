@@ -181,8 +181,8 @@ void pc_set_mario_water_level_from_goal(u32 level_bits) {
   memcpy(&level, &level_bits, sizeof(u32));
 
   level *= METERS_TO_UNITS;
-  
-  sm64_set_mario_water_level(marioId, 
+
+  sm64_set_mario_water_level(marioId,
   true ? //  hardcode this func to always accept true bc we check on the goal side and only call this func if close to water
   level
    : INT16_MIN
@@ -194,6 +194,129 @@ void pc_change_mario_state(u32 act_bits) {
   memcpy(&act, &act_bits, sizeof(u32));
   sm64_set_mario_action(marioId, act);
 }
+
+
+// // const struct SM64Surface beach_surfaces[] = {
+// //     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5709,1433,-5201}, {-5564,1604,-5050}, {-5695,1687,-5018}}},
+// //     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5572,1832,-4936}, {-5695,1687,-5018}, {-5564,1604,-5050}}},
+// //     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5695,1687,-5018}, {-5572,1832,-4936}, {-5676,1884,-4989}}},
+// //     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5648,1979,-5029}, {-5676,1884,-4989}, {-5572,1832,-4936}}},
+// //     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5676,1884,-4989}, {-5648,1979,-5029}, {-5798,1803,-5049}}}
+// // };
+
+// void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 increment_num) {
+//   // This function is called from GOAL to add a triangle to the surface list for debug drawing
+//   float x, y, z, increment_num;
+//   memcpy(&x, &x_bits, sizeof(u32));
+//   memcpy(&y, &y_bits, sizeof(u32));
+//   memcpy(&z, &z_bits, sizeof(u32));
+//   memcpy(&increment_num, &increment_num, sizeof(u32));
+//   x *= METERS_TO_UNITS;
+//   y *= METERS_TO_UNITS;
+//   z *= METERS_TO_UNITS;
+//   // we need to define a global SM64Surface array and add to it here, if the increment_num is 1.0 we copy the positions into the first triangle, 2.0 into second triangle, etc once we fill the third triangle, we add to the next index
+
+// }
+
+#define MAX_DEBUG_SURFACES 1024
+
+static struct SM64Surface gDebugSurfaces[MAX_DEBUG_SURFACES];
+static int gDebugSurfaceCount = 0;
+
+static int16_t gTempVerts[3][3];
+
+static int gTempVertIndex = 0;
+
+void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_bits) {
+  float x, y, z, vert_index_f;
+
+  printf("[pc_add_tris] ENTER\n");
+  printf("  raw bits: x=0x%08X y=0x%08X z=0x%08X vi=0x%08X\n",
+         x_bits, y_bits, z_bits, vert_index_bits);
+
+  // Decode floats
+  memcpy(&x, &x_bits, sizeof(float));
+  memcpy(&y, &y_bits, sizeof(float));
+  memcpy(&z, &z_bits, sizeof(float));
+  memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
+
+  printf("  decoded floats: x=%f y=%f z=%f vert_index_f=%f\n",
+         x, y, z, vert_index_f);
+
+  // Unit conversion
+  x *= METERS_TO_UNITS;
+  y *= METERS_TO_UNITS;
+  z *= METERS_TO_UNITS;
+
+  printf("  scaled to units: x=%f y=%f z=%f\n", x, y, z);
+
+  // Convert float selector → int
+  int vert_index = (int)(vert_index_f + 0.5f);
+  printf("  vert_index rounded = %d\n", vert_index);
+
+  // Validate index
+  if (vert_index < 1 || vert_index > 3) {
+    printf("  ERROR: vert_index out of range (must be 1–3), aborting\n");
+    return;
+  }
+
+  int idx = vert_index - 1;
+  printf("  writing vertex slot %d\n", idx);
+
+  // Store vertex
+  gTempVerts[idx][0] = (s16)x;
+  gTempVerts[idx][1] = (s16)y;
+  gTempVerts[idx][2] = (s16)z;
+
+  printf("  stored gTempVerts[%d] = (%d, %d, %d)\n",
+         idx,
+         gTempVerts[idx][0],
+         gTempVerts[idx][1],
+         gTempVerts[idx][2]);
+
+  // Commit triangle
+  if (vert_index == 3) {
+    printf("  vert_index == 3 → committing triangle\n");
+
+    if (gDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
+      printf("  ERROR: surface buffer full (%d), aborting\n",
+             gDebugSurfaceCount);
+      return;
+    }
+
+    struct SM64Surface* surf = &gDebugSurfaces[gDebugSurfaceCount];
+
+    printf("  writing surface index %d\n", gDebugSurfaceCount);
+
+    surf->type = SURFACE_DEFAULT;
+    surf->force = 0;
+    surf->terrain = TERRAIN_STONE;
+
+    memcpy(surf->vertices, gTempVerts, sizeof(gTempVerts));
+
+    printf("  surface vertices:\n");
+    printf("    v0 = (%d, %d, %d)\n",
+           surf->vertices[0][0],
+           surf->vertices[0][1],
+           surf->vertices[0][2]);
+    printf("    v1 = (%d, %d, %d)\n",
+           surf->vertices[1][0],
+           surf->vertices[1][1],
+           surf->vertices[1][2]);
+    printf("    v2 = (%d, %d, %d)\n",
+           surf->vertices[2][0],
+           surf->vertices[2][1],
+           surf->vertices[2][2]);
+
+    gDebugSurfaceCount++;
+
+    printf("  triangle committed, new surface count = %d\n",
+           gDebugSurfaceCount);
+  }
+
+  printf("[pc_add_tris] EXIT\n");
+}
+
 
 void pc_burn_marios_butt() { // does not shoot mario up as much as we'd like. it's a start
   if (g_mario_state.action != ACT_BURNING_GROUND && g_mario_state.action != ACT_BURNING_FALL && g_mario_state.action != ACT_BURNING_JUMP)
@@ -207,7 +330,7 @@ void pc_spawn_mario_test_collide() {
 //sm64_mario_interact_cap(marioId, MARIO_WING_CAP, 30*60, 1);
 //sm64_play_sound_global(SOUND_MENU_COIN_ITS_A_ME_MARIO);
 pc_burn_marios_butt();
-// sm64_set_mario_water_level(marioId, 
+// sm64_set_mario_water_level(marioId,
 //   //(ped->m_nPhysicalFlags.bTouchingWater) ? // add valid function call to check if jak is in/close to water
 //   //ped->m_pPlayerData->m_fWaterHeight/MARIO_SCALE // call a c++ function that returns target's water height
 //   // : INT16_MIN

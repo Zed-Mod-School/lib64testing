@@ -1401,6 +1401,7 @@ void init_common_pc_port_functions(
   make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
   make_func_symbol_func("update-mario-water-height", (void*)pc_set_mario_water_level_from_goal);
   make_func_symbol_func("update-mario-state", (void*)pc_change_mario_state);
+  make_func_symbol_func("pc-add-tris-to-surface", (void*)pc_add_tris_to_surface);
   make_func_symbol_func("pc-spawn-mario-test-collide", (void*)pc_spawn_mario_test_collide);
   make_func_symbol_func("pc-mario-says-so-long-gay-bowsa", (void*)pc_mario_says_so_long_gay_bowsa);
   make_func_symbol_func("pc-heal-mario", (void*)pc_heal_mario);

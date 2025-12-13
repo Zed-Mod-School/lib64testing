@@ -66,11 +66,115 @@
             (.svf (&-> a2-1 quad) vf1)
             (.svf (&-> a3-0 quad) vf2)
             (.svf (&-> t0-0 quad) vf3)
-            (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)))
+            ;; jump in here and add this tris to a cpp list
+            ;; goal-cpp funciton call here
+            (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
+
+            ))
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
     0
     (none)))
 
+    (defmethod debug-draw-tris-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
+  "Draw a collide-mesh."
+  (rlet ((acc :class vf)
+         (vf0 :class vf)
+         (vf1 :class vf)
+         (vf2 :class vf)
+         (vf3 :class vf)
+         (vf4 :class vf)
+         (vf5 :class vf)
+         (vf6 :class vf)
+         (vf7 :class vf))
+    (init-vf0-vector)
+    (let ((s5-0 (the-as object (-> this tris)))
+          (s4-0 (-> arg0 node-list data arg1 bone transform)))
+      (countdown (s3-0 (-> this num-tris))
+        (let ((a2-1 (new 'stack-no-clear 'vector))
+              (a3-0 (new 'stack-no-clear 'vector))
+              (t0-0 (new 'stack-no-clear 'vector)))
+          (.lvf vf4 (&-> s4-0 vector 0 quad))
+          (.lvf vf5 (&-> s4-0 vector 1 quad))
+          (.lvf vf6 (&-> s4-0 vector 2 quad))
+          (.lvf vf7 (&-> s4-0 vector 3 quad))
+          (.lvf vf1 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 0)) quad))
+          (.lvf vf2 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 1)) quad))
+          (.lvf vf3 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 2)) quad))
+          (let ((t1-0 (copy-and-set-field (-> *pat-mode-info* (-> (the-as collide-mesh-tri s5-0) pat mode) color) a 16)))
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf1 acc)
+            (.add.mul.y.vf acc vf5 vf1 acc)
+            (.add.mul.z.vf vf1 vf6 vf1 acc)
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf2 acc)
+            (.add.mul.y.vf acc vf5 vf2 acc)
+            (.add.mul.z.vf vf2 vf6 vf2 acc)
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf3 acc)
+            (.add.mul.y.vf acc vf5 vf3 acc)
+            (.add.mul.z.vf vf3 vf6 vf3 acc)
+            (.svf (&-> a2-1 quad) vf1)
+            (.svf (&-> a3-0 quad) vf2)
+            (.svf (&-> t0-0 quad) vf3)
+            ;; jump in here and add this tris to a cpp list
+            ;; goal-cpp funciton call here
+
+            ;;vanilla
+            ;;(add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
+
+            ;;(pc-add-tris-to-surface a2-1 a3-0 t0-0)
+            ;; these are cordinate vectors, so we need to extract x, y, z components of each cord
+            (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
+            (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
+            (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
+
+            ))
+        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
+    0
+    (none)))
+
+;; Create a function that we can call, and pass a process to, it checks if that process is there, and if it is, we do some checks to get its collide mesh, and call debug-draw-tris on it.
+
+(defun generate-collide-mesh-txt-from-name ((proc-name string))
+
+(when (process-by-ename proc-name)
+                          (let* ((p (the-as process-drawable (process-by-ename proc-name)))
+                                 (e (the entity-actor (-> p entity)))
+                                 (type-target process-drawable)
+                                 (distance (meters 50)))
+                            (when (and p
+                                       e
+                                       (nonzero? (-> p root))
+                                       (type-type? (-> e etype) type-target)
+                                      ;;  (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+                                       (type-type? (-> p root type) collide-shape))
+                              (let ((root (the collide-shape (-> p root))))
+                                                                (when
+
+                                                                (or
+                                                                (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
+                                                                (= (-> e etype symbol) 'periscope)
+
+                                                                )
+                                  (return 0)
+
+                                  )
+
+                                ;; check if the root prim is a prim group
+                                (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                  ;; if so, we loop through all of its prims and check for prim meshes
+                                  (let ((group (the collide-shape-prim-group (-> root root-prim))))
+
+                                    (dotimes (i (-> group num-prims))
+                                      (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                        ;; if it is indeed a mesh, we draw it
+                                        (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+                                  ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                  (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                    (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
+                                    )))))
+)
+(none))
 (define *count-close-actors* 0)
 (defun print-close-actor-and-draw-collide ()
   (declare-type rigid-body-platform process-drawable)

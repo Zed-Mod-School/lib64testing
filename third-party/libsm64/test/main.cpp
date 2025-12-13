@@ -31,10 +31,16 @@ extern "C" {
 
 #define MAX_CUBES 64
 
+
+
+
+
 struct Cube {
     float pos[3];
     float size;
     SM64SurfaceObject surfaceObj;
+    const char* name;
+    uint32_t id;
 };
 
 Cube spawnedCubes[MAX_CUBES];
@@ -142,6 +148,128 @@ uint32_t spawn_cube_under_mario(const float* marioPos, float size = 1000.0f) {
     return id;
 }
 
+const struct SM64Surface beach_surfaces[] = {
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5709,1433,-5201}, {-5564,1604,-5050}, {-5695,1687,-5018}}},
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5572,1832,-4936}, {-5695,1687,-5018}, {-5564,1604,-5050}}},
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5695,1687,-5018}, {-5572,1832,-4936}, {-5676,1884,-4989}}},
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5648,1979,-5029}, {-5676,1884,-4989}, {-5572,1832,-4936}}},
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5676,1884,-4989}, {-5648,1979,-5029}, {-5798,1803,-5049}}}
+};
+// (create-sm64-collide-mesh-from-actor (process-by-ename "crate-32"))
+// crate-32.Txt
+// const struct SM64Surface crate_32_surfaces[] = {
+//     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5709,1433,-5201}, {-5564,1604,-5050}, {-5695,1687,-5018}}},
+//     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5572,1832,-4936}, {-5695,1687,-5018}, {-5564,1604,-5050}}},
+//     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5695,1687,-5018}, {-5572,1832,-4936}, {-5676,1884,-4989}}},
+//     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5648,1979,-5029}, {-5676,1884,-4989}, {-5572,1832,-4936}}},
+//     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5676,1884,-4989}, {-5648,1979,-5029}, {-5798,1803,-5049}}}
+// };
+template <size_t N>
+
+uint32_t spawn_surfaces_under_mario(
+    const float* marioPos,
+    const SM64Surface (&surfaces)[N], // Array passed by reference (size N is deduced)
+    const char* objectName,
+    float y_offset = 0.0f
+) {
+    if (numCubes >= MAX_CUBES) return 0;
+
+    SM64SurfaceObject obj;
+    memset(&obj, 0, sizeof(SM64SurfaceObject));
+
+    Cube& c = spawnedCubes[numCubes++];
+
+    // Store the object name
+    c.name = objectName; // <-- STORE NAME
+    // Set object transform (position) - this is the object's origin
+    obj.transform.position[0] = marioPos[0];
+    obj.transform.position[1] = marioPos[1] + y_offset;
+    obj.transform.position[2] = marioPos[2];
+
+    // Use the deduced size N directly
+    obj.surfaceCount = N;
+
+    // Allocate memory for the surfaces and copy the data
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * obj.surfaceCount);
+    if (!obj.surfaces) {
+        numCubes--;
+        return 0;
+    }
+
+    // Copy the input array data
+    memcpy(obj.surfaces, surfaces, sizeof(SM64Surface) * obj.surfaceCount);
+
+    // Calculate a rough bounding box center and size for visualization/debugging (optional, but good practice)
+    float min_coords[3] = {1e9f, 1e9f, 1e9f};
+    float max_coords[3] = {-1e9f, -1e9f, -1e9f};
+
+    for (size_t i = 0; i < N; ++i) {
+        for (int j = 0; j < 3; ++j) { // Vertices
+            for (int k = 0; k < 3; ++k) { // XYZ coordinates
+                float v = (float)surfaces[i].vertices[j][k];
+                if (v < min_coords[k]) min_coords[k] = v;
+                if (v > max_coords[k]) max_coords[k] = v;
+            }
+        }
+    }
+
+    // Set Cube pos/size based on world coordinates of the array for drawing/tracking
+    c.pos[0] = (max_coords[0] + min_coords[0]) / 2.0f;
+    c.pos[1] = (max_coords[1] + min_coords[1]) / 2.0f;
+    c.pos[2] = (max_coords[2] + min_coords[2]) / 2.0f;
+
+    c.size = fmaxf(fmaxf(max_coords[0] - min_coords[0], max_coords[1] - min_coords[1]), max_coords[2] - min_coords[2]);
+
+    uint32_t id = sm64_surface_object_create(&obj);
+
+
+c.id = id;
+c.surfaceObj = obj;
+    return id;
+}
+
+
+void delete_surface_object_by_name(const char* name) {
+    if (!name || numCubes == 0) return;
+
+    int index_to_remove = -1;
+
+    // 1. Find the object by name
+    for (int i = 0; i < numCubes; ++i) {
+        const Cube& c = spawnedCubes[i];
+        // Check if the object has a name and if it matches the requested name
+        if (c.name != NULL && strcmp(c.name, name) == 0) {
+            index_to_remove = i;
+            break; // Found the object, stop searching
+        }
+    }
+
+    if (index_to_remove != -1) {
+        Cube& c = spawnedCubes[index_to_remove];
+
+        // 2. De-register the collision object using the stored ID
+        sm64_surface_object_delete(c.id);
+
+        // 3. Free the surface memory that was malloc'd in spawn_surfaces_under_mario
+        if (c.surfaceObj.surfaces != NULL) {
+            free(c.surfaceObj.surfaces);
+            c.surfaceObj.surfaces = NULL;
+        }
+
+        // 4. Remove the object from the tracking array (Swap-and-Pop)
+
+        // Decrement the total count
+        numCubes--;
+
+        // If the object being removed wasn't the last one,
+        // copy the last Cube structure over the one we are removing.
+        if (index_to_remove < numCubes) {
+            spawnedCubes[index_to_remove] = spawnedCubes[numCubes];
+        }
+
+        // The object is now removed from the array and its collision is deleted.
+    }
+}
 
 
 void draw_surface_object(const SM64SurfaceObject& obj, const float rgba[4], bool outline = true) {
@@ -223,6 +351,107 @@ if (outline) {
 }
 
 
+// --- Text Drawing Functions ---
+
+// Scale factor for the text size
+#define TEXT_SCALE 50.0f
+// Function to render a single stroke of a character
+void draw_line_segment(float x1, float y1, float x2, float y2) {
+    glVertex3f(x1 * TEXT_SCALE, y1 * TEXT_SCALE, 0.0f);
+    glVertex3f(x2 * TEXT_SCALE, y2 * TEXT_SCALE, 0.0f);
+}
+
+// Function to draw a character 'c' relative to (0,0,0)
+void draw_char(char c) {
+    glPushMatrix();
+    glTranslatef(-0.5f * TEXT_SCALE, -0.5f * TEXT_SCALE, 0.0f); // Center characters slightly
+
+    // Define simple geometry for key characters as line segments (stroke font)
+    switch (c) {
+        case 'O':
+        case '0':
+            draw_line_segment(0.0f, 0.0f, 1.0f, 0.0f);
+            draw_line_segment(1.0f, 0.0f, 1.0f, 1.0f);
+            draw_line_segment(1.0f, 1.0f, 0.0f, 1.0f);
+            draw_line_segment(0.0f, 1.0f, 0.0f, 0.0f);
+            break;
+        case 'N':
+            draw_line_segment(0.0f, 0.0f, 0.0f, 1.0f);
+            draw_line_segment(0.0f, 1.0f, 1.0f, 0.0f);
+            draw_line_segment(1.0f, 0.0f, 1.0f, 1.0f);
+            break;
+        case 'E':
+            draw_line_segment(1.0f, 0.0f, 0.0f, 0.0f);
+            draw_line_segment(0.0f, 0.0f, 0.0f, 1.0f);
+            draw_line_segment(0.0f, 1.0f, 1.0f, 1.0f);
+            draw_line_segment(0.0f, 0.5f, 0.7f, 0.5f);
+            break;
+        case 'T':
+            draw_line_segment(0.0f, 1.0f, 1.0f, 1.0f);
+            draw_line_segment(0.5f, 1.0f, 0.5f, 0.0f);
+            break;
+        case 'W':
+            draw_line_segment(0.0f, 0.0f, 0.33f, 1.0f);
+            draw_line_segment(0.33f, 1.0f, 0.66f, 0.0f);
+            draw_line_segment(0.66f, 0.0f, 1.0f, 1.0f);
+            break;
+        case 'S':
+            draw_line_segment(1.0f, 1.0f, 0.0f, 1.0f);
+            draw_line_segment(0.0f, 1.0f, 0.0f, 0.5f);
+            draw_line_segment(0.0f, 0.5f, 1.0f, 0.5f);
+            draw_line_segment(1.0f, 0.5f, 1.0f, 0.0f);
+            draw_line_segment(1.0f, 0.0f, 0.0f, 0.0f);
+            break;
+        case 'I':
+            draw_line_segment(0.5f, 0.0f, 0.5f, 1.0f);
+            break;
+        case 'V':
+            draw_line_segment(0.0f, 1.0f, 0.5f, 0.0f);
+            draw_line_segment(0.5f, 0.0f, 1.0f, 1.0f);
+            break;
+        case 'R':
+            draw_line_segment(0.0f, 0.0f, 0.0f, 1.0f);
+            draw_line_segment(0.0f, 1.0f, 1.0f, 1.0f);
+            draw_line_segment(1.0f, 1.0f, 1.0f, 0.5f);
+            draw_line_segment(1.0f, 0.5f, 0.0f, 0.5f);
+            draw_line_segment(0.5f, 0.5f, 1.0f, 0.0f);
+            break;
+        // ... (Add more characters like F, U, etc. if needed for "four" and "five")
+        default:
+            // Placeholder for unsupported characters
+            draw_line_segment(0.0f, 0.0f, 1.0f, 1.0f);
+            draw_line_segment(0.0f, 1.0f, 1.0f, 0.0f);
+            break;
+    }
+    glPopMatrix();
+}
+
+// Function to draw a 3D string (name) at a world position
+void draw_3d_string(const char* str, float x, float y, float z) {
+    if (!str) return;
+
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    glLineWidth(2.0f);
+    glColor3f(1.0f, 1.0f, 1.0f); // White text
+
+    // Calculate total width of the string to center it
+    size_t len = strlen(str);
+    float total_width = (float)len * TEXT_SCALE;
+    glTranslatef(-total_width / 2.0f, 0.0f, 0.0f); // Center horizontally
+
+    glBegin(GL_LINES);
+    for (size_t i = 0; i < len; ++i) {
+        char c = toupper(str[i]); // Convert to uppercase for simplicity
+        draw_char(c);
+        glTranslatef(TEXT_SCALE * 1.2f, 0.0f, 0.0f); // Move to the next character position
+    }
+    glEnd();
+
+    glPopMatrix();
+}
+
+
 
 int main( void )
 {
@@ -285,7 +514,10 @@ int main( void )
     audio_init();
 
     sm64_play_music(0, 0x05 | 0x80, 0); // from decomp/include/seq_ids.h: SEQ_LEVEL_WATER | SEQ_VARIATION
+    static int surface_spawn_count = 0; // The missing declaration!
 bool prevSquarePressed = false;
+
+bool prevTrianglePressed = false;
     do
     {
         float dt = (SDL_GetTicks() - lastTicks) / 1000.f;
@@ -358,12 +590,31 @@ bool prevSquarePressed = false;
 
             marioInputs.buttonA = SDL_GameControllerGetButton( controller, SDL_CONTROLLER_BUTTON_A );
             marioInputs.buttonB = SDL_GameControllerGetButton( controller, SDL_CONTROLLER_BUTTON_X );
-            bool squarePressed = SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X);  // SDL 2.x doesn't define BUTTON_SQUARE
+            bool squarePressed = SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X);
+            bool trianglePressed = SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y); // Assuming Y button for deletion  // SDL 2.x doesn't define BUTTON_SQUARE
             if (squarePressed && !prevSquarePressed) {
-    spawn_cube_under_mario(marioState.position);
+    //spawn_cube_under_mario(marioState.position);
+    // spawn_surfaces_under_mario(marioState.position, beach_surfaces);
+
+    const char* objectName;
+                if (surface_spawn_count == 0) objectName = "one"; //money-32
+                else if (surface_spawn_count == 1) objectName = "two";
+                else if (surface_spawn_count == 2) objectName = "three";
+                else if (surface_spawn_count == 3) objectName = "four";
+                else objectName = "five"; // All subsequent ones are "five"
+
+                spawn_surfaces_under_mario(marioState.position, beach_surfaces, objectName);
+                surface_spawn_count++; // Increment counter
 }
 prevSquarePressed = squarePressed;
 
+if (trianglePressed && !prevTrianglePressed) {
+                // Example: Delete the object named "one"
+                delete_surface_object_by_name("one");
+                // Or you could cycle through names to delete:
+                // delete_surface_object_by_name(get_next_name_to_delete());
+            }
+            prevTrianglePressed = trianglePressed;
 
             marioInputs.buttonZ = SDL_GameControllerGetButton( controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER );
         }
@@ -409,7 +660,13 @@ for (int i = 0; i < numCubes; ++i) {
     const Cube& cube = spawnedCubes[i];
     float yellow[] = {1.0f, 1.0f, 0.0f, 0.4f};
     draw_surface_object(cube.surfaceObj, yellow, true);
+    if (cube.name != NULL) {
+        // Draw the name at the center of the cube, lifted by half its size + a buffer
+        float text_y = cube.pos[1] + (cube.size / 2.0f) + TEXT_SCALE;
+        draw_3d_string(cube.name, cube.pos[0], text_y, cube.pos[2]);
+    }
 }
+
 
 // for (int i = 0; i < numCubes; ++i) {
 //     const Cube& cube = spawnedCubes[i];
