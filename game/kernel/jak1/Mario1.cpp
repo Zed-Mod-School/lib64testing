@@ -223,9 +223,48 @@ void pc_change_mario_state(u32 act_bits) {
 static struct SM64Surface gDebugSurfaces[MAX_DEBUG_SURFACES];
 static int gDebugSurfaceCount = 0;
 
-static int16_t gTempVerts[3][3];
+static int32_t gTempVerts[3][3];
+
 
 static int gTempVertIndex = 0;
+
+
+void pc_dump_debug_surfaces_to_file(void) {
+  const char* filename = "debug_surfaces.c";
+
+  FILE* f = fopen(filename, "w");
+  if (!f) {
+    perror("pc_dump_debug_surfaces_to_file fopen failed");
+    return;
+  }
+
+  fprintf(f, "const struct SM64Surface debug_surfaces[] = {\n");
+
+  for (int i = 0; i < gDebugSurfaceCount; i++) {
+    SM64Surface* s = &gDebugSurfaces[i];
+
+    fprintf(
+      f,
+      "  {SURFACE_DEFAULT, %d, TERRAIN_STONE, {{%d,%d,%d}, {%d,%d,%d}, {%d,%d,%d}}},\n",
+      s->force,
+      s->vertices[0][0], s->vertices[0][1], s->vertices[0][2],
+      s->vertices[1][0], s->vertices[1][1], s->vertices[1][2],
+      s->vertices[2][0], s->vertices[2][1], s->vertices[2][2]
+    );
+  }
+
+  fprintf(f, "};\n");
+
+  fclose(f);
+
+  // Reset buffers
+  gDebugSurfaceCount = 0;
+  memset(gDebugSurfaces, 0, sizeof(gDebugSurfaces));
+  memset(gTempVerts, 0, sizeof(gTempVerts));
+
+  printf("[pc_dump_debug_surfaces] wrote %d surfaces to %s\n",
+         gDebugSurfaceCount, filename);
+}
 
 void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_bits) {
   float x, y, z, vert_index_f;
@@ -264,9 +303,10 @@ void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_b
   printf("  writing vertex slot %d\n", idx);
 
   // Store vertex
-  gTempVerts[idx][0] = (s16)x;
-  gTempVerts[idx][1] = (s16)y;
-  gTempVerts[idx][2] = (s16)z;
+gTempVerts[idx][0] = (int32_t)x;
+gTempVerts[idx][1] = (int32_t)y;
+gTempVerts[idx][2] = (int32_t)z;
+
 
   printf("  stored gTempVerts[%d] = (%d, %d, %d)\n",
          idx,
@@ -318,9 +358,13 @@ void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_b
 }
 
 
+
+
+
 void pc_burn_marios_butt() { // does not shoot mario up as much as we'd like. it's a start
   if (g_mario_state.action != ACT_BURNING_GROUND && g_mario_state.action != ACT_BURNING_FALL && g_mario_state.action != ACT_BURNING_JUMP)
                 sm64_set_mario_action(marioId, ACT_BURNING_JUMP);
+                pc_dump_debug_surfaces_to_file();
 }
 
 void pc_spawn_mario_test_collide() {

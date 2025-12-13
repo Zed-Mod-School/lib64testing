@@ -155,6 +155,29 @@ const struct SM64Surface beach_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5648,1979,-5029}, {-5676,1884,-4989}, {-5572,1832,-4936}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5676,1884,-4989}, {-5648,1979,-5029}, {-5798,1803,-5049}}}
 };
+
+const struct SM64Surface crate_surfaces[] = {
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6766,187,-3897}, {-6862,111,-3852}, {-6860,186,-3846}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6766,187,-3897}, {-6769,112,-3903}, {-6862,111,-3852}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6850,212,-3827}, {-6734,209,-3838}, {-6756,212,-3878}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6850,212,-3827}, {-6827,208,-3787}, {-6734,209,-3838}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6725,181,-3822}, {-6827,208,-3787}, {-6819,180,-3771}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6725,181,-3822}, {-6734,209,-3838}, {-6827,208,-3787}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6862,111,-3852}, {-6727,106,-3826}, {-6820,105,-3775}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6862,111,-3852}, {-6769,112,-3903}, {-6727,106,-3826}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6756,212,-3878}, {-6725,181,-3822}, {-6766,187,-3897}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6756,212,-3878}, {-6734,209,-3838}, {-6725,181,-3822}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6819,180,-3771}, {-6727,106,-3826}, {-6725,181,-3822}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6819,180,-3771}, {-6820,105,-3775}, {-6727,106,-3826}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6860,186,-3846}, {-6820,105,-3775}, {-6819,180,-3771}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6860,186,-3846}, {-6862,111,-3852}, {-6820,105,-3775}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6756,212,-3878}, {-6860,186,-3846}, {-6850,212,-3827}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6756,212,-3878}, {-6766,187,-3897}, {-6860,186,-3846}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6860,186,-3846}, {-6827,208,-3787}, {-6850,212,-3827}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6860,186,-3846}, {-6819,180,-3771}, {-6827,208,-3787}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6766,187,-3897}, {-6727,106,-3826}, {-6769,112,-3903}}},
+  {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-6766,187,-3897}, {-6725,181,-3822}, {-6727,106,-3826}}},
+};
 // (create-sm64-collide-mesh-from-actor (process-by-ename "crate-32"))
 // crate-32.Txt
 // const struct SM64Surface crate_32_surfaces[] = {
@@ -603,7 +626,8 @@ bool prevTrianglePressed = false;
                 else if (surface_spawn_count == 3) objectName = "four";
                 else objectName = "five"; // All subsequent ones are "five"
 
-                spawn_surfaces_under_mario(marioState.position, beach_surfaces, objectName);
+                //spawn_surfaces_under_mario(marioState.position, beach_surfaces, objectName);
+                spawn_surfaces_under_mario(marioState.position, crate_surfaces, objectName); // Offset crate above beach
                 surface_spawn_count++; // Increment counter
 }
 prevSquarePressed = squarePressed;
