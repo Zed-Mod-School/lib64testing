@@ -184,6 +184,9 @@
 (define *count-close-actors* 0)
 (defun print-close-actor-and-draw-collide ()
   (declare-type rigid-body-platform process-drawable)
+  (declare-type citb-arm process-drawable)
+  (declare-type citb-arm-section process-drawable)
+  (declare-type citb-arm-shoulder process-drawable)
   (iterate-process-tree *active-pool*
                         (lambda ((proc process))
                           (let* ((p (the process-drawable proc))
@@ -197,9 +200,9 @@
                                        ;;more conditionals here
                                        (or (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
                                        ;; checks here are to ignore the distance limit and always load the collide
-                                       (type-type? (-> e etype) citb-arm)
-                                       (type-type? (-> e etype) citb-arm-section)
-                                       (type-type? (-> e etype) citb-arm-shoulder)
+                                        (type-type? (-> e etype) citb-arm)
+                                        (type-type? (-> e etype) citb-arm-section)
+                                        (type-type? (-> e etype) citb-arm-shoulder)
                                        )
 
 
