@@ -6,7 +6,9 @@
 (require "pc/util/pc-anim-util.gc")
 (require "engine/level/level.gc")
 (require "engine/camera/camera.gc")
+(defun-extern turn-off-mario-glue none)
 
+(defun-extern turn-off-mario-glue-for-specific-time int none)
 ;; note: changed for high fps
 
 (define-extern convert-to-hud-object (function process-drawable hud none :behavior process-drawable))
