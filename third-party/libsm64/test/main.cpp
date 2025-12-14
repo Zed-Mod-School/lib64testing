@@ -862,7 +862,12 @@ void draw_3d_string(const char* str, float x, float y, float z) {
     glPopMatrix();
 }
 
-
+static const struct SM64Surface psuedo_floor_surfaces[] = {
+    // Triangle 1: (-10, 0, 10), (10, 0, 10), (10, 0, -10)
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-100, 0, 100}, {100, 0, 100}, {100, 0, -100}}},
+    // Triangle 2: (10, 0, -10), (-10, 0, -10), (-10, 0, 10)
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{100, 0, -100}, {-100, 0, -100}, {-100, 0, 100}}}
+};
 
 int main( void )
 {
@@ -1003,6 +1008,11 @@ bool prevTrianglePressed = false;
             marioInputs.buttonB = SDL_GameControllerGetButton( controller, SDL_CONTROLLER_BUTTON_X );
             bool squarePressed = SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X);
             bool trianglePressed = SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y); // Assuming Y button for deletion  // SDL 2.x doesn't define BUTTON_SQUARE
+            const char* floorName;
+            floorName = "floor";
+            delete_surface_object_by_name("floor");
+            spawn_surfaces_under_mario(marioState.position,psuedo_floor_surfaces, floorName, -300.0f);
+
             if (squarePressed && !prevSquarePressed) {
     //spawn_cube_under_mario(marioState.position);
     // spawn_surfaces_under_mario(marioState.position, beach_surfaces);

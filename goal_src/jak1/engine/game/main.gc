@@ -263,6 +263,17 @@
 
 (define *move-jak-to-mario?* #t)
 
+(defun are-we-in-target-continue-hack ()
+(when (or (process-by-ename "scarecrow-a-1")
+    (process-by-ename "warp-gate-switch-3")
+    (process-by-ename "warp-gate-switch-7")
+    (process-by-ename "warp-gate-switch-2")
+    (process-by-ename "warp-gate-switch-12")
+
+    )
+    (set! *are-we-in-target-continue* #f)
+    )
+)
 (defun turn-off-mario-glue ()
   (process-spawn-function process
     (lambda :behavior process ()
@@ -336,10 +347,12 @@
   (when (or (close? "fishermans-boat-2" (meters 15.0)) (close? "gondola-1" (meters 15.0)) (= (get-mario-state) 'dead))
     (return #f))
   *move-jak-to-mario?*)
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
  (when *target*
   ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
+  (are-we-in-target-continue-hack)
     (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
       (turn-off-mario-glue)
       (cheats-sound-play *cheat-mode*))

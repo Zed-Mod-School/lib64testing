@@ -1204,6 +1204,7 @@
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))
       (when (or (= message 'touch) (= message 'attack))
         (set-time! (-> self state-time))
+        (turn-off-mario-glue-for-specific-time (seconds 12.0))
         (send-event proc 'launch (-> self spring-height) (-> self camera) (-> self dest) (-> self seek-time)))
       (cond
         ((= message 'instant-death) (go launcher-deactivated))

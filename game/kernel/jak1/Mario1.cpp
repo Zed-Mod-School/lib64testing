@@ -118,7 +118,7 @@ void tick_mario_frame() {
     //      g_mario_state.position[0],
     //      g_mario_state.position[1],
     //      g_mario_state.position[2]);
-
+    update_psuedo_floor_under_mario();
     //TODO this is the function resposible for updating mario collide dynamically
     maybe_reload_surfaces(g_mario_state.position);  // Add back with dynamic collide update
     frame_num = 0;
@@ -219,7 +219,7 @@ void pc_change_mario_state(u32 act_bits) {
 
 // }
 
-#define MAX_DEBUG_SURFACES 1024
+#define MAX_DEBUG_SURFACES 1024 * 3
 
 static struct SM64Surface gDebugSurfaces[MAX_DEBUG_SURFACES];
 static int gDebugSurfaceCount = 0;
@@ -381,6 +381,12 @@ struct Cuben {
 Cuben spawnedCubes[MAX_CUBES];
 int numCubes = 0;
 
+static const struct SM64Surface psuedo_floor_surfaces[] = {
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-100, 0, 100}, {100, 0, 100}, {100, 0, -100}}},
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{100, 0, -100}, {-100, 0, -100}, {-100, 0, 100}}}
+};
+
+
 template <size_t N>
 uint32_t spawn_surfaces_under_mario(
     const float* marioPos,
@@ -505,6 +511,14 @@ void pc_mario_spawn_updated_tris(const char* name){
   gDebugSurfaceCount = 0;
   memset(gDebugSurfaces, 0, sizeof(gDebugSurfaces));
   memset(gTempVerts, 0, sizeof(gTempVerts));
+
+}
+
+void update_psuedo_floor_under_mario(){
+const char* floorName;
+            floorName = "floor";
+            delete_surface_object_by_name("floor");
+            spawn_surfaces_under_mario(g_mario_state.position,psuedo_floor_surfaces, floorName, -300.0f);
 
 }
 
