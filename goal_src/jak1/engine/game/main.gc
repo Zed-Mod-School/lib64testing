@@ -345,7 +345,11 @@
     (else (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "unknown"))))
 
 (defun mario-glue-override ()
-  (when (or (close? "fishermans-boat-2" (meters 15.0)) (close? "gondola-1" (meters 15.0)) (= (get-mario-state) 'dead))
+  (when (or
+  #t
+  ;;(close? "fishermans-boat-2" (meters 15.0))
+  ;;(close? "gondola-1" (meters 15.0))
+  (= (get-mario-state) 'dead))
     (return #f))
   *move-jak-to-mario?*)
 
