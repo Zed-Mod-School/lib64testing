@@ -292,8 +292,9 @@
       (when (not #f)
         (set! *move-jak-to-mario?* #f)
         (suspend-for time2)
-        (set! *move-jak-to-mario?* #t)
+
         (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+        (set! *move-jak-to-mario?* #t)
         ;;(false! *auto-saving?*)
         ))
     time1)
