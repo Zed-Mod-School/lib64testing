@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  bool force_debug_next_time = false;
+  bool force_debug_next_time = true;
   // always start with an empty arg, as internally kmachine starts at `1` not `0`
   std::vector<const char*> arg_ptrs = {""};
   for (auto& str : game_args) {
