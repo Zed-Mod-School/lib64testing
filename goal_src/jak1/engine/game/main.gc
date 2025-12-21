@@ -291,9 +291,9 @@
     (lambda :behavior process ((time2 seconds))
       (when (not #f)
         (set! *move-jak-to-mario?* #f)
-        (suspend-for time2)
-
+        (suspend-for (- time2 (seconds 1.0)))
         (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+        (suspend-for (seconds 1.0))
         (set! *move-jak-to-mario?* #t)
         ;;(false! *auto-saving?*)
         ))
