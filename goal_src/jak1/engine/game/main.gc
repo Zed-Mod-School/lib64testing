@@ -261,7 +261,7 @@
   (and (process-by-ename actor-ename)
        (<= (vector-vector-distance (target-pos 0) (-> (the process-drawable (process-by-ename actor-ename)) root trans)) dist)))
 
-(define *move-jak-to-mario?* #t)
+(define *mario-global-glue-state* #t)
 
 (defun are-we-in-target-continue-hack ()
 (when (or (process-by-ename "scarecrow-a-1")
@@ -278,9 +278,9 @@
   (process-spawn-function process
     (lambda :behavior process ()
       (when (not #f)
-        (set! *move-jak-to-mario?* #f)
+        (set! *mario-global-glue-state* #f)
         (suspend-for (seconds 10))
-        (set! *move-jak-to-mario?* #t)
+        (set! *mario-global-glue-state* #t)
         (teleport-mario-to-pos (-> (target-pos 0) x) (+ (-> (target-pos 0) y) (meters 1.0)) (-> (target-pos 0) z))
         ;;(false! *auto-saving?*)
         )))
@@ -290,11 +290,11 @@
   (process-spawn-function process
     (lambda :behavior process ((time2 seconds))
       (when (not #f)
-        (set! *move-jak-to-mario?* #f)
+        (set! *mario-global-glue-state* #f)
         (suspend-for (- time2 (seconds 1.0)))
         (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
         (suspend-for (seconds 1.0))
-        (set! *move-jak-to-mario?* #t)
+        (set! *mario-global-glue-state* #t)
         ;;(false! *auto-saving?*)
         ))
     time1)
@@ -351,7 +351,7 @@
   ;;(close? "gondola-1" (meters 15.0))
   (= (get-mario-state) 'dead)
     (return #f))
-  *move-jak-to-mario?*)
+  *mario-global-glue-state*)
 
 (defun main-cheats ()
   "Handle cheat codes and timeout"

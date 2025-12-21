@@ -343,9 +343,9 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
       }
 
       bool has_texture = !(g_geom.uv[i * 2 + 0] == 1 && g_geom.uv[i * 2 + 1] == 1);
-      float r = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 0] : 1.0f);
-      float g = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 1] : 1.0f);
-      float b = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 2] : 1.0f);
+    float r = (g_geom.color ? g_geom.color[i * 3 + 0] : 23.0f);
+float g = (g_geom.color ? g_geom.color[i * 3 + 1] : 23.0f);
+float b = (g_geom.color ? g_geom.color[i * 3 + 2] : 23.0f);
 
       MarioVertex vtx = {{x, y, z}, {r, g, b}, {u, v}};
       if (has_texture)
@@ -373,11 +373,9 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
       glDisableVertexAttribArray(3);
 
       if (textured) {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glActiveTexture(GL_TEXTURE0);
+
         glBindTexture(GL_TEXTURE_2D, mario_texture_id);
-        glUniform1i(glGetUniformLocation(shader, "u_texture"), 0);
+
       } else {
         glBindTexture(GL_TEXTURE_2D, 0);
       }
@@ -425,7 +423,7 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
 //     }
 // glPopDebugGroup();
 
-
+//does a overlay if a png is in the root for some reason
 if (overlayTex == 0) {
     int n;
     unsigned char* data = stbi_load("overlay.png", &overlayW, &overlayH, &n, 4);

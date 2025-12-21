@@ -181,6 +181,11 @@
 (none))
 
 
+
+#|TODO this logic gets all actor collide and uploads it ALL into a single SM64 surface object on the cpp side, then it spawns it. We use this to get actor collide,
+ however it does have some drawbacks and needs some improvements at some time, current SM64 does not get any information whatsoever about moving objects, it just thinks the mesh changes in place
+ every frame. We need to check the etype of the process, and if its something that moves ina manor that mario needs to move with, we need to skip the collide here and call a function that properly spawns the object and updates the collide with its root trans istead
+ |#
 (define *count-close-actors* 0)
 (defun print-close-actor-and-draw-collide ()
   (declare-type rigid-body-platform process-drawable)
@@ -203,6 +208,7 @@
                                         (type-type? (-> e etype) citb-arm)
                                         (type-type? (-> e etype) citb-arm-section)
                                         (type-type? (-> e etype) citb-arm-shoulder)
+
                                        )
 
 
