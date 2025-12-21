@@ -45,12 +45,12 @@ on:
       skipLinux:
         description: "Whether to skip Linux builds, defaults to `false`"
         required: false
-        default: false
+        default: true
         type: "boolean"
       skipMacOS:
         description: "Whether to skip macOS builds, defaults to `false`"
         required: false
-        default: false
+        default: true
         type: "boolean"
     secrets:
       token:
@@ -170,7 +170,7 @@ jobs:
   build_linux_clang:
     name: "Linux Build"
     needs: create_release
-    if: ${{ true && inputs.buildBinaries }}
+    if: ${{ !inputs.skipLinux && inputs.buildBinaries }}
     # assumes that this file is defined in your mod repo
     uses: ./.github/workflows/linux-build-clang.yaml
     with:
@@ -184,7 +184,7 @@ jobs:
     needs:
       - create_release
       - build_linux_clang
-    if: ${{ true && inputs.buildBinaries }}
+    if: ${{ !inputs.skipLinux && inputs.buildBinaries }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -229,7 +229,7 @@ jobs:
   build_macos_intel:
     name: "MacOS Build"
     needs: create_release
-    if: ${{ true && inputs.buildBinaries }}
+    if: ${{ !inputs.skipMacOS && inputs.buildBinaries }}
     # assumes that this file is defined in your mod repo
     uses: ./.github/workflows/macos-build.yaml
     with:
@@ -243,7 +243,7 @@ jobs:
     needs:
       - create_release
       - build_macos_intel
-    if: ${{ true && inputs.buildBinaries }}
+    if: ${{ !inputs.skipMacOS && inputs.buildBinaries }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -314,7 +314,7 @@ jobs:
   bundle_linux_no_build:
     name: "Bundle Linux (no build)"
     needs: create_release
-    if: ${{ true && !inputs.buildBinaries }}
+    if: ${{ !inputs.skipLinux && !inputs.buildBinaries }}
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Repository"
@@ -338,7 +338,7 @@ jobs:
   bundle_macos_no_build:
     name: "Bundle macOS Intel (no build)"
     needs: create_release
-    if: ${{ true && !inputs.buildBinaries }}
+    if: ${{ !inputs.skipMacOS && !inputs.buildBinaries }}
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Repository"
@@ -395,7 +395,7 @@ jobs:
         run: ls -Rl ${{ inputs.outputDir }}
 
       - name: Move Linux Assets
-        if: ${{ true }}
+        if: ${{ !inputs.skipLinux }}
         run: mv ${{ inputs.outputDir }}/artifacts/linux/* ${{ inputs.outputDir }}/dist
 
       - name: Move Windows Assets
@@ -403,7 +403,7 @@ jobs:
         run: mv ${{ inputs.outputDir }}/artifacts/windows/* ${{ inputs.outputDir }}/dist
 
       - name: Move MacOS Assets
-        if: ${{ true }}
+        if: ${{ !inputs.skipMacOS }}
         run: mv ${{ inputs.outputDir }}/artifacts/macos-intel/* ${{ inputs.outputDir }}/dist
 
       - name: Prepare Release Metadata
