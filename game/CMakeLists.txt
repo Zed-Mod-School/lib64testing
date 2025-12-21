@@ -42,6 +42,7 @@ set(RUNTIME_SOURCE
         graphics/opengl_renderer/BucketRenderer.cpp
         graphics/opengl_renderer/CollideMeshRenderer.cpp
         graphics/opengl_renderer/MarioRenderer.cpp
+         graphics/opengl_renderer/MarioRenderer2.cpp
         graphics/opengl_renderer/debug_gui.cpp
         graphics/opengl_renderer/DepthCue.cpp
         graphics/opengl_renderer/DirectRenderer.cpp
@@ -345,7 +346,7 @@ if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
         DEPENDS build_libsm64
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
-            "${CMAKE_BINARY_DIR}/bin/sm64.dll"  
+            "${CMAKE_BINARY_DIR}/bin/sm64.dll"
         COMMENT "Copying sm64.dll to output bin directory"
     )
 

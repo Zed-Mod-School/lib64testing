@@ -1,11 +1,11 @@
-#include "MarioRenderer.h"
+#include "MarioRenderer2.h"
 
 #include <vector>
 
 #include "game/graphics/gfx.h"
 #include "game/kernel/jak1/Mario1.h"
 #include "third-party/stb_image/stb_image.h"
-std::vector<SM64SurfaceObject> g_active_debug_objects;
+//std::vector<SM64SurfaceObject> g_active_debug_objects;
   static GLuint overlayTex = 0;
 static int overlayW = 0, overlayH = 0;
 
@@ -60,20 +60,20 @@ static GLuint buildShader(const char* vs, const char* fs) {
 
 
 
-MarioRenderer::MarioRenderer(GameVersion version) {
+MarioRenderer2::MarioRenderer2(GameVersion version) {
   glGenVertexArrays(1, &m_vao);
   glGenBuffers(1, &m_ubo);
   glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-MarioRenderer::~MarioRenderer() {
+MarioRenderer2::~MarioRenderer2() {
   glDeleteVertexArrays(1, &m_vao);
   glDeleteBuffers(1, &m_ubo);
 }
 const float MARIO_SCALE_FACTOR = 4096.0f / 50.0f;
-// Change the function signature to be a member of MarioRenderer
-void MarioRenderer::draw_surface_object(const SM64SurfaceObject& obj,
+// Change the function signature to be a member of MarioRenderer2
+void MarioRenderer2::draw_surface_object(const SM64SurfaceObject& obj,
                                         const float rgba[4],
                                         SharedRenderState* render_state,
                                         bool outline) {
@@ -115,8 +115,8 @@ void MarioRenderer::draw_surface_object(const SM64SurfaceObject& obj,
   }
 
   // Use the same shader as Mario for consistency in transformations
-  render_state->shaders[ShaderId::MARIO].activate();
-  auto shader = render_state->shaders[ShaderId::MARIO].id();
+  render_state->shaders[ShaderId::MARIO2].activate();
+  auto shader = render_state->shaders[ShaderId::MARIO2].id();
 
   // Set uniform values for the camera matrix etc. just like for Mario
   glUniformMatrix4fv(glGetUniformLocation(shader, "camera"), 1, GL_FALSE,
@@ -177,14 +177,14 @@ void MarioRenderer::draw_surface_object(const SM64SurfaceObject& obj,
   glBindVertexArray(0);  // Unbind VAO
 }
 
-uint32_t MarioRenderer::spawn_cube_under_mario(const float* marioPos, float size) {
+uint32_t MarioRenderer2::spawn_cube_under_mario(const float* marioPos, float size) {
   if (numCubes >= MAX_CUBES)
     return 0;
 
   SM64SurfaceObject obj;
   memset(&obj, 0, sizeof(SM64SurfaceObject));
 
-  Cube& c = spawnedCubes[numCubes++];
+  Cubee& c = spawnedCubes[numCubes++];
   // Set the position of the cube (its center) relative to Mario's position
   // The 'size' here is in internal units, consistent with Mario's internal units
   c.pos[0] = marioPos[0];
@@ -254,8 +254,8 @@ uint32_t MarioRenderer::spawn_cube_under_mario(const float* marioPos, float size
   return id;
 }
 
-void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& prof) {
-  render_state->shaders[ShaderId::MARIO].activate();
+void MarioRenderer2::render(SharedRenderState* render_state, ScopedProfilerNode& prof) {
+  render_state->shaders[ShaderId::MARIO2].activate();
 
   if (m_overlayShader == 0) {
     m_overlayShader = buildShader(overlayVertSrc, overlayFragSrc);
@@ -283,7 +283,7 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
 
 
   glBindVertexArray(m_vao);
-  auto shader = render_state->shaders[ShaderId::MARIO].id();
+  auto shader = render_state->shaders[ShaderId::MARIO2].id();
   GLuint block_index = glGetUniformBlockIndex(shader, "PatColors");
   if (block_index != GL_INVALID_INDEX) {
     glUniformBlockBinding(shader, block_index, 0);
@@ -342,14 +342,14 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
         v /= 65535.0f;
       }
 
-      bool has_texture = !(g_geom.uv[i * 2 + 0] == 1 && g_geom.uv[i * 2 + 1] == 1);
-    float r = (g_geom.color ? g_geom.color[i * 3 + 0] : 23.0f);
-float g = (g_geom.color ? g_geom.color[i * 3 + 1] : 23.0f);
-float b = (g_geom.color ? g_geom.color[i * 3 + 2] : 23.0f);
+      bool has_texture = true;
+      float r = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 0] : 1.0f);
+      float g = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 1] : 1.0f);
+      float b = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 2] : 1.0f);
 
       MarioVertex vtx = {{x, y, z}, {r, g, b}, {u, v}};
       if (has_texture)
-        untextured_verts.push_back(vtx);
+        textured_verts.push_back(vtx);
       else
         untextured_verts.push_back(vtx);
     }
@@ -373,9 +373,11 @@ float b = (g_geom.color ? g_geom.color[i * 3 + 2] : 23.0f);
       glDisableVertexAttribArray(3);
 
       if (textured) {
-
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mario_texture_id);
-
+        glUniform1i(glGetUniformLocation(shader, "u_texture"), 0);
       } else {
         glBindTexture(GL_TEXTURE_2D, 0);
       }
@@ -384,8 +386,8 @@ float b = (g_geom.color ? g_geom.color[i * 3 + 2] : 23.0f);
       glDrawArrays(GL_TRIANGLES, 0, verts.size());
     };
 
-    draw_mario_vbo(untextured_verts, m_vbo_untextured, false);
-    //draw_mario_vbo(textured_verts, m_vbo_textured, true);
+    //draw_mario_vbo(untextured_verts, m_vbo_untextured, false);
+    draw_mario_vbo(textured_verts, m_vbo_textured, true);
   }
 
   // Save GL state manually
@@ -409,7 +411,7 @@ float b = (g_geom.color ? g_geom.color[i * 3 + 2] : 23.0f);
 
   // Loop through spawnedCubes and call draw_surface_object
   for (int i = 0; i < numCubes; ++i) {
-    const Cube& cube = spawnedCubes[i];
+    const Cubee& cube = spawnedCubes[i];
     float yellow[4] = {1.0f, 1.0f, 0.0f, 0.4f};  // Alpha is 0.4f, indicating transparency
     this->draw_surface_object(cube.surfaceObj, yellow, render_state, true);
   }
@@ -423,7 +425,7 @@ float b = (g_geom.color ? g_geom.color[i * 3 + 2] : 23.0f);
 //     }
 // glPopDebugGroup();
 
-//does a overlay if a png is in the root for some reason
+
 if (overlayTex == 0) {
     int n;
     unsigned char* data = stbi_load("overlay.png", &overlayW, &overlayH, &n, 4);

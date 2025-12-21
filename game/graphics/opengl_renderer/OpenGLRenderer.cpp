@@ -75,6 +75,7 @@ OpenGLRenderer::OpenGLRenderer(std::shared_ptr<TexturePool> texture_pool,
     : m_render_state(texture_pool, loader, version),
       m_collide_renderer(version),
       m_mario_renderer(version),
+      m_mario_renderer2(version),
       m_version(version) {
   // requires OpenGL 4.3
 #ifndef __APPLE__
@@ -1316,6 +1317,11 @@ void OpenGLRenderer::dispatch_buckets_jak1(DmaFollower dma,
     if (bucket_id == 31 - 1) {
       auto p = prof.make_scoped_child("collision-draw");
       m_mario_renderer.render(&m_render_state, p);
+    }
+
+    if (bucket_id == 31 - 1) {
+      auto p = prof.make_scoped_child("collision-draw");
+      m_mario_renderer2.render(&m_render_state, p);
     }
   }
 

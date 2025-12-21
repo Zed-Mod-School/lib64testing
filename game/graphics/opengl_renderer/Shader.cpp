@@ -133,6 +133,8 @@ ShaderLibrary::ShaderLibrary(GameVersion version) {
   at(ShaderId::PLAIN_TEXTURE) = {"plain_texture", version};
   at(ShaderId::TIE_WIND) = {"tie_wind", version};
   at(ShaderId::MARIO) = {"mario", version};
+  at(ShaderId::MARIO2) = {"mario2", version};
+
 
   for (auto& shader : m_shaders) {
     ASSERT_MSG(shader.okay(), "error compiling shader");

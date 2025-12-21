@@ -9,6 +9,7 @@
 #include "game/graphics/opengl_renderer/CollideMeshRenderer.h"
 #include "game/graphics/opengl_renderer/Fbo.h"
 #include "game/graphics/opengl_renderer/MarioRenderer.h"
+#include "game/graphics/opengl_renderer/MarioRenderer2.h"
 #include "game/graphics/opengl_renderer/Profiler.h"
 #include "game/graphics/opengl_renderer/Shader.h"
 #include "game/graphics/opengl_renderer/TextureAnimator.h"
@@ -122,6 +123,7 @@ class OpenGLRenderer {
   FullScreenDraw m_blackout_renderer;
   CollideMeshRenderer m_collide_renderer;
   MarioRenderer m_mario_renderer;
+  MarioRenderer2 m_mario_renderer2;
 
   float m_last_pmode_alp = 1.;
   bool m_enable_fast_blackout_loads = true;

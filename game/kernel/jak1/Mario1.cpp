@@ -1,5 +1,6 @@
 #include "Mario1.h"
 #include "game/graphics/opengl_renderer/MarioRenderer.h"
+//#include "game/graphics/opengl_renderer/MarioRenderer2.h"
 #include "common/util/FileUtil.h"
 #include "game/kernel/common/kscheme.h"
 
