@@ -333,26 +333,27 @@ else()
 endif()
 
 add_executable(gk main.cpp)
-if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
-    add_custom_target(build_libsm64 ALL
-        COMMAND ${CMAKE_COMMAND} -E echo "Running libsm64 build.bat..."
-        COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}/third-party/libsm64" "${CMAKE_SOURCE_DIR}/third-party/libsm64/build.bat"
-        BYPRODUCTS "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/libsm64"
-        COMMENT "Building libsm64 using build.bat"
-    )
+# this used to build libsm64 from source on Windows, but now we just use the prebuilt dll
+# if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
+#     add_custom_target(build_libsm64 ALL
+#         COMMAND ${CMAKE_COMMAND} -E echo "Running libsm64 build.bat..."
+#         COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}/third-party/libsm64" "${CMAKE_SOURCE_DIR}/third-party/libsm64/build.bat"
+#         BYPRODUCTS "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+#         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/libsm64"
+#         COMMENT "Building libsm64 using build.bat"
+#     )
 
-    add_custom_target(copy_sm64_dll ALL
-        DEPENDS build_libsm64
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
-            "${CMAKE_BINARY_DIR}/bin/sm64.dll"
-        COMMENT "Copying sm64.dll to output bin directory"
-    )
+#     add_custom_target(copy_sm64_dll ALL
+#         DEPENDS build_libsm64
+#         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#             "${CMAKE_SOURCE_DIR}/third-party/libsm64/dist/sm64.dll"
+#             "${CMAKE_BINARY_DIR}/bin/sm64.dll"
+#         COMMENT "Copying sm64.dll to output bin directory"
+#     )
 
-    add_dependencies(runtime build_libsm64 copy_sm64_dll)
-    add_dependencies(gk build_libsm64 copy_sm64_dll)
-endif()
+#     add_dependencies(runtime build_libsm64 copy_sm64_dll)
+#     add_dependencies(gk build_libsm64 copy_sm64_dll)
+# endif()
 target_link_libraries(gk runtime)
 if(WIN32)
     set_target_properties(gk PROPERTIES VS_DPI_AWARE "PerMonitor")
