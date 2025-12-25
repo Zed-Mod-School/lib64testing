@@ -353,6 +353,12 @@
     (return #f))
   *mario-global-glue-state*)
 
+(define *last-target-in-water* 0)
+(defconstant LOWEST_WATER_HEIGHT -3000000.0)
+(define *last-water-height* LOWEST_WATER_HEIGHT)
+(define *water-exit-frames* 0)
+
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
  (when *target*
@@ -366,15 +372,44 @@
     ;;   (cheats-sound-play *cheat-mode*))
     ;;(print-close-actor-and-draw-collide)
     ;; Please move these at some point they dont belong here
-    (if (logtest? (-> *target* water flags) (water-flags wt09))
-    (update-mario-water-height (-> *target* water height))
-      (update-mario-water-height -999999.0))
+
+
+(let* ((in-water
+         (if (logtest? (-> *target* water flags)
+                       (water-flags wt09))
+             1
+             0)))
+
+  (cond
+    ;; ─────────────────────────────
+    ;; Target is in water
+    ((= in-water 1)
+     (let ((h (-> *target* water height)))
+       ;; reset exit hysteresis
+       (set! *water-exit-frames* 0)
+       (when (or (= *last-target-in-water* 0)
+                 (not (= h *last-water-height*)))
+         (update-mario-water-height h)
+         (set! *last-water-height* h)
+         (set! *last-target-in-water* 1))))
+
+    ;; ─────────────────────────────
+    ;; Target is NOT in water
+    (else
+     (when (= *last-target-in-water* 1)
+       (set! *water-exit-frames* (+ *water-exit-frames* 1))
+       (when (>= *water-exit-frames* (* 60.0 2))
+         (update-mario-water-height LOWEST_WATER_HEIGHT)
+         (set! *last-water-height* LOWEST_WATER_HEIGHT)
+         (set! *last-target-in-water* 0)))))) 
+
+
 
       ;;hack to improve the cam rubber band when you warp mario needs improvement but its better than not having it
-(when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
-(send-event *camera* 'change-state cam-stick 0)
-(send-event *camera* 'change-state cam-string 0)
-)
+;; (when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
+;; (send-event *camera* 'change-state cam-stick 0)
+;; (send-event *camera* 'change-state cam-string 0)
+;; )
     (dotimes (i 2)
       (let ((lvl-name (-> *load-state* want i name)))
         (cond

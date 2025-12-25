@@ -808,6 +808,8 @@ void pc_call_load_combined_static_surfaces_from_game_idx(u32 x_bits, u32 z_bits)
   }
 
   load_combined_static_surfaces(surfaces1, count1, surfaces2, count2);
+  // might not be necessary, might help zed's framerate
+  maybe_reload_surfaces(g_mario_state.position);
 }
 void maybe_reload_surfaces(const float* mario_pos) {
   float dx = mario_pos[0] - g_cylinder_center[0];

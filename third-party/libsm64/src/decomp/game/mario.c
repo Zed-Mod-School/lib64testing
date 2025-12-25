@@ -652,6 +652,7 @@ s32 mario_floor_is_steep(struct MarioState *m) {
     // slide terrain type. This means that steep behavior persists for
     // non-slippery and slippery surfaces.
     // This does not matter in vanilla game practice.
+    // maybe where mario slides a lot due to slopes? slippery
     if (!mario_facing_downhill(m, FALSE)) {
         switch (mario_get_floor_class(m)) {
             case SURFACE_VERY_SLIPPERY:

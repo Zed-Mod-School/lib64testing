@@ -535,17 +535,24 @@
                   (!= (-> self root trans y) (-> self base y))))
        (go-virtual notice-blue (process->handle arg0))))))
 
+
 (defstate wait (crate)
   :virtual #t
-  :event crate-standard-event-handler
-  :code
+  :trans
     (behavior ()
+
+        (when (or (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 2.9)) (= (get-mario-state) 'groundpound))  (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 5.0)) (= (get-mario-state) 'shell))) (go-virtual die #f 0))
+        
+    )
+      :code
+    (behavior ()
+    (set-time! (-> self state-time))
       (suspend)
       (update-transforms! (-> self root))
-      (logior! (-> self mask) (process-mask sleep))
+      (logior! (-> self mask) (process-mask sleep-code))
       (loop
         (suspend)))
-  :post ja-post)
+  :post #f)
 
 (defstate bounce-on (crate)
   :virtual #t
@@ -632,7 +639,7 @@
       (clear-collide-with-as (-> self root))
       (if (nonzero? (-> self sound)) (stop! (-> self sound)))
       (if (and *target*
-               (and (logtest? (-> *target* control root-prim prim-core action) (collide-action racer snowball tube flut))
+               (and (or (= (get-mario-state) 'shell) (logtest? (-> *target* control root-prim prim-core action) (collide-action racer snowball tube flut)))
                     (!= (-> self fact pickup-type) 6)
                     (not arg0)))
         (logior! (-> self fact options) (fact-options instant-collect)))
@@ -935,7 +942,7 @@
         (spawn (-> self part) (-> self root trans))
         (activate! (-> self smush) 0.2 90 150 1.0 1.0)
         (logclear! (-> self mask) (process-mask sleep-code)))
-        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 2.5)) (or (= (get-mario-state) 'groundpound) (= (get-mario-state) 'shell))) (go-virtual die #f 0))
+        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 3)) (or (= (get-mario-state) 'groundpound) (= (get-mario-state) 'shell))) (go-virtual die #f 0))
       (if (nonzero? (-> self sound)) (update! (-> self sound)))
       (if (and *target* (>= (-> *target* fact buzzer) 6.0)) (spool-push *art-control* (-> self victory-anim name) 0 self -99.0)))
   :code
