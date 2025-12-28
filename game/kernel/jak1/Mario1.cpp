@@ -128,6 +128,16 @@ void tick_mario_frame() {
   frame_num++;
 }
 
+bool run_and_render_mario() {
+  //this is how we determine if we should run mario for this frame
+  // note that this COMPLETELY bypasses mario thread so NOTHING WILL UPDATE
+  //if jakstate == pushed triangle
+  //return fales; lets skip this render frame for mario as jak is in periscope
+
+  return true;
+}
+
+
 // Mario functions we call in GOAL
 uint64_t pc_get_mario_action() {
   g_mario_state.action;

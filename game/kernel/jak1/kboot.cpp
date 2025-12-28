@@ -112,7 +112,11 @@ void KernelCheckAndDispatch() {
   load_and_init_mario();
   while (MasterExit == RuntimeExitStatus::RUNNING) {
   // each frame, tick mario this "runs" his world/physics
-  tick_mario_frame();
+
+  if (run_and_render_mario()) {
+  // player is riding Flut Flut
+    tick_mario_frame();
+}
     // try to get a message from the listener, and process it if needed
     Ptr<char> new_message = WaitForMessageAndAck();
     if (new_message.offset) {

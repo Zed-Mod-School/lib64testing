@@ -358,6 +358,17 @@
 (define *last-water-height* LOWEST_WATER_HEIGHT)
 (define *water-exit-frames* 0)
 
+(defun mario-water-level-override ()
+;;this is a hack to force a standard mario water level if a condition is detected,
+;; if a condition is detected, make sure to return #t so we skip the dynamic update this frame
+(if   (= (-> (level-get-target-inside *level*) name) 'midsty)
+(update-mario-water-height -12207.019531)
+(return #t)
+)
+#f
+)
+
+
 
 (defun main-cheats ()
   "Handle cheat codes and timeout"
@@ -379,7 +390,7 @@
                        (water-flags wt09))
              1
              0)))
-
+(when  (mario-water-level-override)
   (cond
     ;; ─────────────────────────────
     ;; Target is in water
@@ -401,7 +412,10 @@
        (when (>= *water-exit-frames* (* 60.0 2))
          (update-mario-water-height LOWEST_WATER_HEIGHT)
          (set! *last-water-height* LOWEST_WATER_HEIGHT)
-         (set! *last-target-in-water* 0)))))) 
+         (set! *last-target-in-water* 0)))))
+
+)
+)
 
 
 
