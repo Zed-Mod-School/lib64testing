@@ -3,6 +3,9 @@
 //#include "game/graphics/opengl_renderer/MarioRenderer2.h"
 #include "common/util/FileUtil.h"
 #include "game/kernel/common/kscheme.h"
+#include "kscheme.h"
+
+#include "game/kernel/common/kmachine.h"
 
 //int variables here
 static uint8_t* g_mario_texture = nullptr;
@@ -101,8 +104,7 @@ int load_and_init_mario() {
 // Mario frame updating stuff now yippie, this is the "main" loop on the mario side.
 
 int frame_num = 0;
-
-
+int global_mario_frame_count = 0;
 void tick_mario_frame() {
   // This function is called every frame and controls updating the mario engine.
   // Revist this later once we have *some* mario collide to test, probably can /64 where we set .stickX instead and remove all this junk
@@ -113,19 +115,47 @@ void tick_mario_frame() {
     SM64MarioInputs inputs = g_mario_inputs;
     inputs.stickX = scaled_stick_x;
     inputs.stickY = -scaled_stick_y;
-
+    jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
     //  printf("[Mario Pos] X = %.2f, Y = %.2f, Z = %.2f\n",
     //      g_mario_state.position[0],
     //      g_mario_state.position[1],
     //      g_mario_state.position[2]);
-    update_psuedo_floor_under_mario();
-    //TODO this is the function resposible for updating mario collide dynamically
-    maybe_reload_surfaces(g_mario_state.position);  // Add back with dynamic collide update
+    update_mario_collide();
     frame_num = 0;
   }
 
   frame_num++;
+  global_mario_frame_count++;
+}
+
+void update_mario_collide(){
+//This function contains the logic to update marios collide every frame
+
+//first this we always make sure there is a fake floor under mario
+update_psuedo_floor_under_mario();
+
+jak1::call_goal_function_by_name("update-mario-water-height-from-goal");
+//update the level surfaces near mario from goal if they changed.
+jak1::call_goal_function_by_name("update-mario-loaded-surfaces");
+
+//This updates the level geometery near mario from surfaces we currently have loaded
+maybe_reload_surfaces(g_mario_state.position);
+
+// //now we update all the "normal actor" collide mesh by deleting them and respawning them in their new location
+// //this calls a function in GOAL called GOAL_NAME and when it returns we do stuff
+// update_mario_actor_collide_mesh();
+// not my favorite, but the only way I can currently find to make this not crash when called from cpp
+// This call doesnt actually "run" the goal function like the other calls but instead it spawns a process that runs it.
+// so if you stop/avoid this call mid run time the function will still execute.
+if (global_mario_frame_count % 30 == 0) {
+  jak1::call_goal_function_by_name("load-goal-actor-collide-to-sm64-2");
+}
+
+// //This is the final step, and we update special actors here by properly moving their collide in the mario engine (platforms, etc)
+// //this calls a function in GOAL called GOAL_NAME and when it returns we do stuff
+// update_mario_spec_actor_collide();
+
 }
 
 bool run_and_render_mario() {
@@ -133,6 +163,11 @@ bool run_and_render_mario() {
   // note that this COMPLETELY bypasses mario thread so NOTHING WILL UPDATE
   //if jakstate == pushed triangle
   //return fales; lets skip this render frame for mario as jak is in periscope
+auto sym = jak1::intern_from_c("*run-mario-code*");
+
+if (sym->value == offset_of_s7()) {
+  return false;
+}
 
   return true;
 }

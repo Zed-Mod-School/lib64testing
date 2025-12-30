@@ -7,6 +7,7 @@
 // Keep this mostly in the order they are used in the gameplay loop please
 int load_and_init_mario();
 void tick_mario_frame();
+void update_mario_collide();
 
 constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 // convert from float (used in GOAL) to SM64 units (meters 1.0) * METERS_TO_UNITS = pos in SM64

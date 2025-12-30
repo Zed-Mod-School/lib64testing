@@ -368,22 +368,7 @@
 #f
 )
 
-
-
-(defun main-cheats ()
-  "Handle cheat codes and timeout"
- (when *target*
-  ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
-  (are-we-in-target-continue-hack)
-    (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
-      (turn-off-mario-glue)
-      (cheats-sound-play *cheat-mode*))
-    ;; (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
-    ;;   (pc-spawn-mario-test-collide)
-    ;;   (cheats-sound-play *cheat-mode*))
-    ;;(print-close-actor-and-draw-collide)
-    ;; Please move these at some point they dont belong here
-
+(defun update-mario-water-height-from-goal ()
 
 (let* ((in-water
          (if (logtest? (-> *target* water flags)
@@ -415,15 +400,10 @@
          (set! *last-target-in-water* 0)))))
 
 )
-)
+))
 
 
-
-      ;;hack to improve the cam rubber band when you warp mario needs improvement but its better than not having it
-;; (when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
-;; (send-event *camera* 'change-state cam-stick 0)
-;; (send-event *camera* 'change-state cam-string 0)
-;; )
+(defun update-mario-loaded-surfaces ()
     (dotimes (i 2)
       (let ((lvl-name (-> *load-state* want i name)))
         (cond
@@ -453,12 +433,43 @@
       (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
       (set! last-arg1-mario-lvl arg1-mario-lvl)
       (set! last-arg2-mario-lvl arg2-mario-lvl))
+)
+(define *run-mario-code* #t)
+
+(defun update-sm64-camera-from-goal ()
     ;; update cam-look x and z
     (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
     (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
-    (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*)
+    (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*))
 
-    (when (not (movie?)) (print-close-actor-and-draw-collide))
+(defun main-cheats ()
+  "Handle cheat codes and timeout"
+ (when *target*
+  ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
+  (are-we-in-target-continue-hack)
+    (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
+      (turn-off-mario-glue)
+      (cheats-sound-play *cheat-mode*))
+    ;; (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
+    ;;   (pc-spawn-mario-test-collide)
+    ;;   (cheats-sound-play *cheat-mode*))
+    ;;(print-close-actor-and-draw-collide)
+    ;; Please move these at some point they dont belong here
+
+
+;; (print-close-actor-and-draw-collide)
+
+
+
+;;hack to improve the cam rubber band when you warp mario needs improvement but its better than not having it
+;; (when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
+;; (send-event *camera* 'change-state cam-stick 0)
+;; (send-event *camera* 'change-state cam-string 0)
+;; )
+
+
+
+    ;; (when (not (movie?)) (print-close-actor-and-draw-collide))
     ;; only run this if the condition passes to lock jak to marios reported position.
     (when (and (not *are-we-in-target-continue*)
                *target*

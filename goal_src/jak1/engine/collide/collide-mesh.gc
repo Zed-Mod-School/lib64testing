@@ -186,12 +186,15 @@
  however it does have some drawbacks and needs some improvements at some time, current SM64 does not get any information whatsoever about moving objects, it just thinks the mesh changes in place
  every frame. We need to check the etype of the process, and if its something that moves ina manor that mario needs to move with, we need to skip the collide here and call a function that properly spawns the object and updates the collide with its root trans istead
  |#
-(define *count-close-actors* 0)
-(defun print-close-actor-and-draw-collide ()
-  (declare-type rigid-body-platform process-drawable)
+   (declare-type rigid-body-platform process-drawable)
   (declare-type citb-arm process-drawable)
   (declare-type citb-arm-section process-drawable)
   (declare-type citb-arm-shoulder process-drawable)
+(define *count-close-actors* 0)
+(defun load-goal-actor-collide-to-sm64 ()
+
+
+
   (iterate-process-tree *active-pool*
                         (lambda ((proc process))
                           (let* ((p (the process-drawable proc))
@@ -237,7 +240,9 @@
                                   ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
                                   (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
                                     (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh) p (-> root root-prim transform-index))
-                                    (1+! *count-close-actors*)))))))
+                                    (1+! *count-close-actors*)))))
+
+                                    ))
                         *null-kernel-context*)
   (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
   ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
@@ -251,6 +256,16 @@
        (when *target* (pc-spawn-mario-test-collide "fart"))
   (set! *count-close-actors* 0))
 
+(defun load-goal-actor-collide-to-sm64-2 ()
+(when (not  (process-by-name "proc-mask" *active-pool*))
+(process-spawn-function process
+  :name "proc-mask"
+  (lambda :behavior process ()
+    (loop
+     (load-goal-actor-collide-to-sm64)
+      (suspend))))
+)
+)
 
 (deftype sopt-work (structure)
   ((intersect     vector :inline)
