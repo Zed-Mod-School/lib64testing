@@ -257,12 +257,14 @@
   (set! *count-close-actors* 0))
 
 (defun load-goal-actor-collide-to-sm64-2 ()
-(when (not  (process-by-name "proc-mask" *active-pool*))
+(when (and (not  (process-by-name "proc-mask" *active-pool*))  (or *debug-segment* (< 0 (the int (-> *game-info* money-total))) ))
 (process-spawn-function process
   :name "proc-mask"
   (lambda :behavior process ()
     (loop
+
      (load-goal-actor-collide-to-sm64)
+
       (suspend))))
 )
 )
