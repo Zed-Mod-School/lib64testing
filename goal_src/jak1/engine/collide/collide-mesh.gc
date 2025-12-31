@@ -244,15 +244,15 @@
 
                                     ))
                         *null-kernel-context*)
-  (add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
+  ;;(add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
   ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
-  (when (and (< 0 *count-close-actors*) *target*)
-    (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
-      (set-width! fnt 1440)
-      (set-height! fnt 1380)
-      (set-scale! fnt 0.2)
-      (set-flags! fnt (font-flags kerning large))
-      (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
+  ;; (when (and (< 0 *count-close-actors*) *target*)
+  ;;   (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+  ;;     (set-width! fnt 1440)
+  ;;     (set-height! fnt 1380)
+  ;;     (set-scale! fnt 0.2)
+  ;;     (set-flags! fnt (font-flags kerning large))
+  ;;     (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
        (when *target* (pc-spawn-mario-test-collide "fart"))
   (set! *count-close-actors* 0))
 
