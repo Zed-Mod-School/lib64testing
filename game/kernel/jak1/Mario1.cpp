@@ -71,13 +71,7 @@ int load_and_init_mario() {
   audio_init();
   //This is "test" music to make sure audio is working
   sm64_play_music(0, 0x80 | SEQ_LEVEL_SNOW, 0);
-
   //sm64_play_music(0, 0x05 | 0x80, 0);
-  // for (int i = 0; i < 10; ++i) {
-  //   printf("marioId = %d\n", marioId);
-  // }
-
-
   // This stuff is needed to avoid a null pointer dereference for some reason
   const int maxTris = SM64_GEO_MAX_TRIANGLES;
   g_geom.position = new float[3 * 3 * maxTris];
@@ -90,15 +84,6 @@ int load_and_init_mario() {
   memset(g_geom.uv, 0, sizeof(float) * 2 * 3 * maxTris);
   g_geom.numTrianglesUsed = 0;
 
-  // mario functions that I wish we could somehow register from this file instead of kmachine
-  // g_pc_port_funcs.make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
-  // g_pc_port_funcs.make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
-  // g_pc_port_funcs.make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
-  // g_pc_port_funcs.make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
-  // g_pc_port_funcs.make_func_symbol_func("teleport-mario-to-pos",
-  // (void*)pc_set_mario_position_from_goal);
-  // g_pc_port_funcs.make_func_symbol_func("pc-load-mario-collide!",
-  // (void*)pc_call_load_combined_static_surfaces_from_game_idx);
   delete[] romBuffer;
   return marioId;
 }
@@ -119,14 +104,9 @@ void tick_mario_frame() {
     inputs.stickY = -scaled_stick_y;
     jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
-    //  printf("[Mario Pos] X = %.2f, Y = %.2f, Z = %.2f\n",
-    //      g_mario_state.position[0],
-    //      g_mario_state.position[1],
-    //      g_mario_state.position[2]);
     update_mario_collide();
     frame_num = 0;
   }
-
   frame_num++;
   global_mario_frame_count++;
 }
@@ -178,7 +158,6 @@ if (sym->value == offset_of_s7()) {
 // Mario functions we call in GOAL
 uint64_t pc_get_mario_action() {
   g_mario_state.action;
-
   return static_cast<uint64_t>(g_mario_state.action);
 }
 
@@ -277,7 +256,7 @@ static int32_t gTempVerts[3][3];
 
 static int gTempVertIndex = 0;
 
-
+// DEBUGGING: Dump the current debug surfaces to a C file to view in the test program
 void pc_dump_debug_surfaces_to_file(void) {
   const char* filename = "debug_surfaces.c";
 
@@ -318,29 +297,18 @@ void pc_dump_debug_surfaces_to_file(void) {
 void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_bits) {
   float x, y, z, vert_index_f;
 
-  // printf("[pc_add_tris] ENTER\n");
-  // printf("  raw bits: x=0x%08X y=0x%08X z=0x%08X vi=0x%08X\n",
-  //        x_bits, y_bits, z_bits, vert_index_bits);
-
   // Decode floats
   memcpy(&x, &x_bits, sizeof(float));
   memcpy(&y, &y_bits, sizeof(float));
   memcpy(&z, &z_bits, sizeof(float));
   memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
 
-  //printf("  decoded floats: x=%f y=%f z=%f vert_index_f=%f\n",
-        // x, y, z, vert_index_f);
-
   // Unit conversion
   x *= METERS_TO_UNITS;
   y *= METERS_TO_UNITS;
   z *= METERS_TO_UNITS;
 
-  //printf("  scaled to units: x=%f y=%f z=%f\n", x, y, z);
-
-  // Convert float selector → int
   int vert_index = (int)(vert_index_f + 0.5f);
-  //printf("  vert_index rounded = %d\n", vert_index);
 
   // Validate index
   if (vert_index < 1 || vert_index > 3) {
@@ -349,60 +317,27 @@ void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_b
   }
 
   int idx = vert_index - 1;
-//  printf("  writing vertex slot %d\n", idx);
-
   // Store vertex
 gTempVerts[idx][0] = (int32_t)x;
 gTempVerts[idx][1] = (int32_t)y;
 gTempVerts[idx][2] = (int32_t)z;
 
 
-//  printf("  stored gTempVerts[%d] = (%d, %d, %d)\n",
-        //  idx,
-        //  gTempVerts[idx][0],
-        //  gTempVerts[idx][1],
-        //  gTempVerts[idx][2]);
-
-  // Commit triangle
+  // Commit triangle if this is the last vertex, we trust GOAL to send the 3rd vertex last lol
   if (vert_index == 3) {
-   // printf("  vert_index == 3 → committing triangle\n");
-
     if (gDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
       printf("  ERROR: surface buffer full (%d), aborting\n",
              gDebugSurfaceCount);
       return;
     }
-
     struct SM64Surface* surf = &gDebugSurfaces[gDebugSurfaceCount];
-
-   // printf("  writing surface index %d\n", gDebugSurfaceCount);
-
     surf->type = SURFACE_DEFAULT;
     surf->force = 0;
     surf->terrain = TERRAIN_STONE;
-
     memcpy(surf->vertices, gTempVerts, sizeof(gTempVerts));
 
-    // printf("  surface vertices:\n");
-    // printf("    v0 = (%d, %d, %d)\n",
-    //        surf->vertices[0][0],
-    //        surf->vertices[0][1],
-    //        surf->vertices[0][2]);
-    // printf("    v1 = (%d, %d, %d)\n",
-    //        surf->vertices[1][0],
-    //        surf->vertices[1][1],
-    //        surf->vertices[1][2]);
-    // printf("    v2 = (%d, %d, %d)\n",
-    //        surf->vertices[2][0],
-    //        surf->vertices[2][1],
-    //        surf->vertices[2][2]);
-
     gDebugSurfaceCount++;
-
-    // printf("  triangle committed, new surface count = %d\n",
-    //        gDebugSurfaceCount);
   }
-
  // printf("[pc_add_tris] EXIT\n");
 }
 
@@ -583,12 +518,6 @@ void pc_spawn_mario_test_collide(u32 name_ptr) {
 
 
 // this is called after we finish uploading triangles to mario enginge and it spawns the object and resets the debug buffers
-
-// sm64_set_mario_water_level(marioId,
-//   //(ped->m_nPhysicalFlags.bTouchingWater) ? // add valid function call to check if jak is in/close to water
-//   //ped->m_pPlayerData->m_fWaterHeight/MARIO_SCALE // call a c++ function that returns target's water height
-//   // : INT16_MIN
-//   );
 }
 
 void pc_mario_says_so_long_gay_bowsa() {
