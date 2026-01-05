@@ -937,6 +937,16 @@ void pc_heal_mario() {
   sm64_set_mario_action(marioId, ACT_IDLE);
 }
 
+void pc_damage_mario() {
+  // Damage Mario by reducing health
+  int current_health = g_mario_state.health;
+  int new_health = current_health - 256; // reduce by 1 heart or something
+  if (new_health < 0) new_health = 0;
+  sm64_set_mario_health(marioId, new_health);
+  // Maybe set action to hurt
+  sm64_set_mario_action(marioId, ACT_BACKWARD_GROUND_KB);
+}
+
 
 // Gross collide stuff just stop reading
 #define CYLINDER_RADIUS 2000.0f

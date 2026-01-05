@@ -582,6 +582,8 @@
 
 (define-extern pc-heal-mario (function none))
 
+(define-extern pc-damage-mario (function none))
+
 (define-extern pc-add-tris-to-surface (function float float float float none))
 
 (define-extern pc-discord-rpc-set (function int none))

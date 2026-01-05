@@ -41,6 +41,7 @@ void pc_spawn_mario_test_collide(uint32_t name_ptr);
 void update_psuedo_floor_under_mario();
 void pc_mario_says_so_long_gay_bowsa(uint32_t music_bits);
 void pc_heal_mario();
+void pc_damage_mario();
 
 void load_combined_static_surfaces(const SM64Surface* surfaces1,
                                    int count1,
