@@ -70,7 +70,7 @@ int load_and_init_mario() {
   }
   audio_init();
   //This is "test" music to make sure audio is working
-  sm64_play_music(0, 0x80 | SEQ_LEVEL_SNOW, 0);
+  //sm64_play_music(0, 0x80 | SEQ_LEVEL_SNOW, 0);
   //sm64_play_music(0, 0x05 | 0x80, 0);
   // This stuff is needed to avoid a null pointer dereference for some reason
   const int maxTris = SM64_GEO_MAX_TRIANGLES;
@@ -712,6 +712,7 @@ void pc_call_load_combined_static_surfaces_from_game_idx(u32 x_bits, u32 z_bits)
   // might not be necessary, might help zed's framerate
   maybe_reload_surfaces(g_mario_state.position);
 }
+
 void maybe_reload_surfaces(const float* mario_pos) {
   float dx = mario_pos[0] - g_cylinder_center[0];
   float dz = mario_pos[2] - g_cylinder_center[2];
