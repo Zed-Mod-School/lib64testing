@@ -1396,6 +1396,7 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
   make_func_symbol_func("pc-get-mario-state", (void*)pc_get_mario_action);
   make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
+  make_func_symbol_func("pc-set-mario-music", (void*)pc_set_mario_music_from_goal);
   // make_func_symbol_func("pc-get-jak-water-height", (void*)pc_get_jak_water_height);
   // make_func_symbol_func("pc-jak-close-to-water", (void*)pc_jak_close_to_water);
   make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);

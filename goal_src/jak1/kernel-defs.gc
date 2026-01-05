@@ -566,6 +566,7 @@
 (define-extern pc-get-mario-state (function float))
 
 (define-extern pc-set-mario-look-angles! (function float float none))
+(define-extern pc-set-mario-music (function float none))
 
 (define-extern pc-load-mario-collide! (function float float none))
 
@@ -577,7 +578,7 @@
 
 (define-extern pc-spawn-mario-test-collide (function string none))
 
-(define-extern pc-mario-says-so-long-gay-bowsa (function none))
+(define-extern pc-mario-says-so-long-gay-bowsa (function int none))
 
 (define-extern pc-heal-mario (function none))
 

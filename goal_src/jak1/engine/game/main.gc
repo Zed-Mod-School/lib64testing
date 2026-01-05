@@ -230,6 +230,54 @@
 ;; Cheat Codes
 ;;;;;;;;;;;;;;;;;;;;;;
 
+
+(defun set-no-fricked-on ()
+  (when #t
+    (process-spawn-function process
+      (lambda :behavior process ()
+        (let ((i 0)) ;; Start at sound ID 0
+          (loop ;; Run indefinitely
+
+            ;; 1. Check for button presses to cycle the ID
+            (cond
+              ((cpad-pressed? 0 r1) (set! i (+ i 1)))
+              ((cpad-pressed? 0 l1) (set! i (- i 1)))
+              ;; Optional: Support D-pad as well as requested
+              ((cpad-pressed? 0 right) (set! i (+ i 1)))
+              ((cpad-pressed? 0 left) (set! i (- i 1)))
+              )
+
+            ;; 2. Bounds checking (keep i between 0 and 380)
+            (if (< i 0) (set! i 380))
+            (if (> i 380) (set! i 0))
+
+            ;; 3. Trigger sound if X or Circle is pressed (so it doesn't spam)
+            ;; Or remove the 'if' to make it play instantly when cycling
+            (if (cpad-pressed? 0 up)
+                (pc-mario-says-so-long-gay-bowsa i))
+
+            ;; 4. Draw the UI (This happens every frame)
+            (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+              (set-width! fnt 1440)
+              (set-height! fnt 1380)
+              (set-scale! fnt 0.4) ;; Made slightly larger for readability
+              (set-flags! fnt (font-flags kerning large))
+              (print-game-text-scaled (string-format "SOUND ID: ~D~%PRESS UP TO PLAY~%L1/R1 TO CYCLE" i) 1.0 fnt 128))
+
+            ;; 5. Wait for the next frame
+            (suspend)
+            )
+          )
+        ))))
+
+(defun play-all-mario-sounds ()
+(dotimes (i 380)
+(pc-mario-says-so-long-gay-bowsa i)
+(suspend-for (seconds 4.0))
+)
+
+
+)
 (define *cheat-temp* (the-as (pointer int32) (malloc 'global 20))) ;; 16 -> 20 (PAL)
 
 (define *master-exit* #f)
