@@ -493,6 +493,7 @@
 (defun main-cheats ()
   "Handle cheat codes and timeout"
  (when *target*
+ (load-goal-actor-collide-to-sm64)
   ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
   (are-we-in-target-continue-hack)
     (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))

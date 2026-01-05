@@ -131,9 +131,10 @@ maybe_reload_surfaces(g_mario_state.position);
 // not my favorite, but the only way I can currently find to make this not crash when called from cpp
 // This call doesnt actually "run" the goal function like the other calls but instead it spawns a process that runs it.
 // so if you stop/avoid this call mid run time the function will still execute.
-if (global_mario_frame_count % 30 == 0) {
-  jak1::call_goal_function_by_name("load-goal-actor-collide-to-sm64-2");
-}
+// crashes on cutscenes unless called directly from goal
+// if (global_mario_frame_count % 30 == 0) {
+//   jak1::call_goal_function_by_name("load-goal-actor-collide-to-sm64-2");
+// }
 
 // //This is the final step, and we update special actors here by properly moving their collide in the mario engine (platforms, etc)
 // //this calls a function in GOAL called GOAL_NAME and when it returns we do stuff
