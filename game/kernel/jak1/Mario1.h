@@ -1,6 +1,7 @@
 #include "libsm64.h"
 //mariozed
 #include "decomp/include/sm64_hacked.h"
+#include "decomp/include/seq_ids.h"
 #include "audio.h"
 #include "SDL3/SDL.h"
 #include "collide/level.h"
