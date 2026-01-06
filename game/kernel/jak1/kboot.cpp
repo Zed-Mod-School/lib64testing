@@ -116,6 +116,10 @@ void KernelCheckAndDispatch() {
   if (run_and_render_mario()) {
   // player is riding Flut Flut
     tick_mario_frame();
+    if( has_blue_eco() ) {
+      // only render mario if we have blue eco
+      tick_mario_frame();
+    }
 }
     // try to get a message from the listener, and process it if needed
     Ptr<char> new_message = WaitForMessageAndAck();

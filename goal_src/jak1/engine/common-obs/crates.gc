@@ -538,21 +538,15 @@
 
 (defstate wait (crate)
   :virtual #t
-  :trans
+  :event crate-standard-event-handler
+  :code
     (behavior ()
-
-        (when (or (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 2.9)) (= (get-mario-state) 'groundpound))  (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 5.0)) (= (get-mario-state) 'shell))) (go-virtual die #f 0))
-        
-    )
-      :code
-    (behavior ()
-    (set-time! (-> self state-time))
       (suspend)
       (update-transforms! (-> self root))
-      (logior! (-> self mask) (process-mask sleep-code))
+      (logior! (-> self mask) (process-mask sleep))
       (loop
         (suspend)))
-  :post #f)
+  :post ja-post)
 
 (defstate bounce-on (crate)
   :virtual #t
@@ -942,7 +936,7 @@
         (spawn (-> self part) (-> self root trans))
         (activate! (-> self smush) 0.2 90 150 1.0 1.0)
         (logclear! (-> self mask) (process-mask sleep-code)))
-        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 3)) (or (= (get-mario-state) 'groundpound) (= (get-mario-state) 'shell))) (go-virtual die #f 0))
+        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 3)) (= (get-mario-state) 'shell)) (go-virtual die #f 0))
       (if (nonzero? (-> self sound)) (update! (-> self sound)))
       (if (and *target* (>= (-> *target* fact buzzer) 6.0)) (spool-push *art-control* (-> self victory-anim name) 0 self -99.0)))
   :code

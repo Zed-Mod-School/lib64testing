@@ -156,6 +156,26 @@ if (sym->value == offset_of_s7()) {
   return true;
 }
 
+bool has_blue_eco() {
+  // Run only once every X frames
+  if ((global_mario_frame_count % 4) != 0) {
+    return false;
+  }
+
+  // this is how we determine if we should run mario for this frame
+  // note that this COMPLETELY bypasses mario thread so NOTHING WILL UPDATE
+  // if jakstate == pushed triangle
+  // return false; lets skip this render frame for mario as jak is in periscope
+  auto sym = jak1::intern_from_c("*has-blue-eco*");
+
+  if (sym->value == offset_of_s7()) {
+    return false;
+  }
+
+  return true;
+}
+
+
 
 // Mario functions we call in GOAL
 uint64_t pc_get_mario_action() {

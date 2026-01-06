@@ -353,7 +353,7 @@
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C000203)) 'sleeping)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0C400201)) 'idle)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440)) 'walking)
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9)) 'groundpound)
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0080023C)) 'groundpound) ;;0080023C gp jump, 0080023C gp land
     ((= (the-as int (pc-get-mario-state)) (the-as int #x20810446)) 'shell)
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0081089B)) 'shell) ;; shell fall
     ((= (the-as int (pc-get-mario-state)) (the-as int #x0281089A)) 'shell) ;; shell jump
@@ -369,7 +369,7 @@
     ((eq? new-state 'sleeping) (update-mario-state (the-as int #x0C000203)))
     ((eq? new-state 'idle) (update-mario-state (the-as int #x0C400201)))
     ((eq? new-state 'walking) (update-mario-state (the-as int #x04000440)))
-    ((eq? new-state 'groundpound) (update-mario-state (the-as int #x008008a9)))
+    ((eq? new-state 'groundpound) (update-mario-state (the-as int #x0080023C)))
     ((eq? new-state 'dead) (update-mario-state (the-as int #x21315)))
     ((eq? new-state 'shell) (update-mario-state (the-as int #x20810446)))
     (else (update-mario-state (the-as int #x0C400201))))) ;;default to idle
@@ -387,7 +387,7 @@
     ((= (the-as int (pc-get-mario-state)) (the-as int #x04000440))
      (clear *MARIO-STATE-STRING*)
      (format *MARIO-STATE-STRING* "walking"))
-    ((= (the-as int (pc-get-mario-state)) (the-as int #x008008a9))
+    ((= (the-as int (pc-get-mario-state)) (the-as int #x0080023C))
      (clear *MARIO-STATE-STRING*)
      (format *MARIO-STATE-STRING* "groundpound"))
     (else (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "unknown"))))
@@ -487,6 +487,7 @@
       (set! last-arg2-mario-lvl arg2-mario-lvl))
 )
 (define *run-mario-code* #t)
+(define *has-blue-eco* #f)
 
 (defun update-sm64-camera-from-goal ()
     ;; update cam-look x and z
@@ -506,12 +507,17 @@
       (turn-off-mario-glue)
       (cheats-sound-play *cheat-mode*))
 
-(when (and (= (get-mario-state) 'groundpound) (logtest? (-> *target* control status) (cshape-moving-flags onsurf)))
+      (if (send-event *target* 'query 'powerup (pickup-type eco-blue)) (set! *has-blue-eco* #t) (set! *has-blue-eco* #f))
+
+(when (and (= (get-mario-state) 'groundpound) 
+;; (logtest? (-> *target* control status) (cshape-moving-flags onsurf))
+#t
+)
   ;; Spawn the tracker
   (let ((s5-1 (process-spawn touch-tracker
                              :init touch-tracker-init
                              (-> *target* root trans)
-                              1096.0 ;; Radius: 1 meter (4096 units)
+                              1536.0 ;; Radius: 1 meter (4096 units)
                              15             ;; Duration: 15 ticks
                              :to *target*)))
 
