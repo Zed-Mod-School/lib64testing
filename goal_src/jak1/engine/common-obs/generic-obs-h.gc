@@ -128,15 +128,18 @@
 
 ;; a touch tracker waits to be touched, then calls some callback function.
 (deftype touch-tracker (process-drawable)
-  ((root         collide-shape-moving :override)
-   (duration     time-frame)
-   (target       handle)
-   (event        symbol)
-   (run-function (function object))
-   (callback     (function touch-tracker none))
-   (event-mode   basic))
+  ((root          collide-shape-moving :override)
+   (duration      time-frame)
+   (target        handle)
+   (event         symbol)
+   (run-function  (function object))
+   (callback      (function touch-tracker none))
+   (event-mode    basic)
+   )
   (:states
-   touch-tracker-idle))
+    touch-tracker-idle
+    )
+  )
 
 ;; the classic pole
 (deftype swingpole (process)

@@ -416,6 +416,10 @@
 #f
 )
 
+
+
+
+
 (defun update-mario-water-height-from-goal ()
 
 (let* ((in-water
@@ -490,6 +494,8 @@
     (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
     (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*))
 
+
+
 (defun main-cheats ()
   "Handle cheat codes and timeout"
  (when *target*
@@ -499,6 +505,33 @@
     (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
       (turn-off-mario-glue)
       (cheats-sound-play *cheat-mode*))
+
+(when (and (= (get-mario-state) 'groundpound) (logtest? (-> *target* control status) (cshape-moving-flags onsurf)))
+  ;; Spawn the tracker
+  (let ((s5-1 (process-spawn touch-tracker
+                             :init touch-tracker-init
+                             (-> *target* root trans)
+                              1096.0 ;; Radius: 1 meter (4096 units)
+                             15             ;; Duration: 15 ticks
+                             :to *target*)))
+
+    ;; 1. Setup Attack Event
+    (send-event (ppointer->process s5-1) 'event 'attack 'flop)
+
+    ;; 2. Visual Debugging
+    (let ((proc (the-as touch-tracker (ppointer->process s5-1))))
+      (when proc
+        (add-debug-sphere #t
+                          (bucket-id debug-no-zbuf)
+                          (-> proc root trans)
+                          (-> proc root root-prim local-sphere w)
+                          (new 'static 'rgba :r #xff :g #xff :a #x40))
+        )
+      )
+    )
+  )
+
+
     ;; (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
     ;;   (pc-spawn-mario-test-collide)
     ;;   (cheats-sound-play *cheat-mode*))

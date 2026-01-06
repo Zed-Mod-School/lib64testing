@@ -194,6 +194,9 @@
 (defun load-goal-actor-collide-to-sm64 ()
 
 
+(when (not (movie?))
+
+
 
   (iterate-process-tree *active-pool*
                         (lambda ((proc process))
@@ -254,7 +257,7 @@
   ;;     (set-flags! fnt (font-flags kerning large))
   ;;     (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
        (when *target* (pc-spawn-mario-test-collide "fart"))
-  (set! *count-close-actors* 0))
+  (set! *count-close-actors* 0)))
 
 (defun load-goal-actor-collide-to-sm64-2 ()
 (when (and (not  (process-by-name "proc-mask" *active-pool*))  (or *debug-segment* (< 0 (the int (-> *game-info* money-total))) ))
