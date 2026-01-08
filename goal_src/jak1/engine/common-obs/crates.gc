@@ -545,6 +545,13 @@
       (update-transforms! (-> self root))
       (logior! (-> self mask) (process-mask sleep))
       (loop
+      (let ((v0-0 (the-as object (logclear (-> self mask) (process-mask sleep)))))
+       (set! (-> self mask) (the-as process-mask v0-0))
+       v0-0)
+       (when (= (-> self defense) 'steel)
+      (if (<= (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 10.0))
+      (go-virtual die #f 0))
+      )
         (suspend)))
   :post ja-post)
 
