@@ -548,10 +548,10 @@
       (let ((v0-0 (the-as object (logclear (-> self mask) (process-mask sleep)))))
        (set! (-> self mask) (the-as process-mask v0-0))
        v0-0)
-       (when (= (-> self defense) 'steel)
-      (if (<= (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 10.0))
+      ;;  (when (= (-> self defense) 'steel)
+      (if ( and (= (get-mario-state) 'shell)(<= (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 3.5)))
       (go-virtual die #f 0))
-      )
+      ;; )
         (suspend)))
   :post ja-post)
 
@@ -943,7 +943,7 @@
         (spawn (-> self part) (-> self root trans))
         (activate! (-> self smush) 0.2 90 150 1.0 1.0)
         (logclear! (-> self mask) (process-mask sleep-code)))
-        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 3)) (= (get-mario-state) 'shell)) (go-virtual die #f 0))
+        (when (and (< (vector-vector-distance (-> self root trans) (-> *target* root trans)) (meters 3.5)) (= (get-mario-state) 'shell)) (go-virtual die #f 0))
       (if (nonzero? (-> self sound)) (update! (-> self sound)))
       (if (and *target* (>= (-> *target* fact buzzer) 6.0)) (spool-push *art-control* (-> self victory-anim name) 0 self -99.0)))
   :code

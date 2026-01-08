@@ -457,7 +457,7 @@
   (when (not (water-deep-enough-to-swim?))
     (when (= *last-target-in-water* 1)
       (set! *water-exit-frames* (+ *water-exit-frames* 1))
-      (when (>= *water-exit-frames* (* 60.0 2))
+      (when (>= *water-exit-frames* (* 60.0 2.0))
         (update-mario-water-height LOWEST_WATER_HEIGHT)
         (set! *last-water-height* LOWEST_WATER_HEIGHT)
         (set! *last-target-in-water* 0)))
@@ -487,10 +487,11 @@
     (else
      (when (= *last-target-in-water* 1)
        (set! *water-exit-frames* (+ *water-exit-frames* 1))
-       (when (>= *water-exit-frames* (* 60.0 2))
+       (when (>= *water-exit-frames* (* 60.0 0.5))
          (update-mario-water-height LOWEST_WATER_HEIGHT)
          (set! *last-water-height* LOWEST_WATER_HEIGHT)
-         (set! *last-target-in-water* 0))))))
+         (set! *last-target-in-water* 0)))))
+         )
 
 )
 )
