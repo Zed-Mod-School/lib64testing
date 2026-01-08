@@ -417,10 +417,51 @@
 )
 
 
+(defun water-deep-enough-to-swim? ()
+  (let* ((wc (-> *target* water))
+         (surface-y (-> wc surface-height))
+         (stand-y   (-> wc bottom 0 y))
+         (required-depth (-> wc swim-height))
+         (effective-depth (- surface-y stand-y))
+         (threshold (- required-depth 204.8)))
+
+    ;; (format #t
+    ;;   "[WATER] eff=~f thresh=~f surf=~f stand=~f~%"
+    ;;   effective-depth threshold surface-y stand-y)
+
+    (>= effective-depth threshold)))
+
+
+
+
+(defun should-wade? ()
+  (let* ((wc (-> *target* water))
+        (surface-y (-> wc surface-height))
+         (bottom-y  (-> wc bottom 0 y))
+         (wade-plane (- (-> wc height) (-> wc wade-height))))
+
+    (and
+      ;; water above feet
+      (>= surface-y bottom-y)
+
+      ;; but not deep enough to swim
+      (< surface-y wade-plane)
+
+      ;; not already swimming
+      (not (logtest? (-> wc flags) (water-flags wt11))))))
+
 
 
 
 (defun update-mario-water-height-from-goal ()
+  (when (not (water-deep-enough-to-swim?))
+    (when (= *last-target-in-water* 1)
+      (set! *water-exit-frames* (+ *water-exit-frames* 1))
+      (when (>= *water-exit-frames* (* 60.0 2))
+        (update-mario-water-height LOWEST_WATER_HEIGHT)
+        (set! *last-water-height* LOWEST_WATER_HEIGHT)
+        (set! *last-target-in-water* 0)))
+    (return #f))
 
 (let* ((in-water
          (if (logtest? (-> *target* water flags)
@@ -449,10 +490,10 @@
        (when (>= *water-exit-frames* (* 60.0 2))
          (update-mario-water-height LOWEST_WATER_HEIGHT)
          (set! *last-water-height* LOWEST_WATER_HEIGHT)
-         (set! *last-target-in-water* 0)))))
+         (set! *last-target-in-water* 0))))))
 
 )
-))
+)
 
 
 (defun update-mario-loaded-surfaces ()
@@ -509,7 +550,7 @@
 
       (if (send-event *target* 'query 'powerup (pickup-type eco-blue)) (set! *has-blue-eco* #t) (set! *has-blue-eco* #f))
 
-(when (and (= (get-mario-state) 'groundpound) 
+(when (and (= (get-mario-state) 'groundpound)
 ;; (logtest? (-> *target* control status) (cshape-moving-flags onsurf))
 #t
 )
