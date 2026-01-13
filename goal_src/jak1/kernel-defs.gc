@@ -262,6 +262,7 @@
 (declare-type cpad-info basic)
 
 (declare-type discord-info structure)
+(declare-type platform-info structure)
 
 (define-extern cpad-open (function cpad-info int cpad-info))
 
@@ -564,6 +565,8 @@
 (define-extern pc-get-mario-z (function float))
 
 (define-extern pc-get-mario-state (function float))
+
+(define-extern pc-update-platform-info-from-goal (function platform-info none))
 
 (define-extern pc-set-mario-look-angles! (function float float none))
 (define-extern pc-set-mario-music (function float none))

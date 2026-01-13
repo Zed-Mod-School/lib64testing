@@ -1,5 +1,6 @@
 #include "libsm64.h"
 //mariozed
+#include "game/kernel/common/kscheme.h"
 #include "decomp/include/sm64_hacked.h"
 #include "decomp/include/seq_ids.h"
 #include "audio.h"
@@ -37,6 +38,8 @@ void pc_add_tris_to_surface(
       uint32_t z_bits,
       uint32_t vert_index_bits
   );
+void update_platform_info_from_goal(u32 platform_info_ptr);
+void update_moving_platform();
 void pc_spawn_mario_test_collide(uint32_t name_ptr);
 void update_psuedo_floor_under_mario();
 void pc_mario_says_so_long_gay_bowsa(uint32_t music_bits);
@@ -55,3 +58,13 @@ bool point_in_triangle_2d(float px, float pz, const int32_t v[3][3]);
 bool triangle_samples_in_cylinder(float center_x, float center_z, const int32_t v[3][3]);
 bool run_and_render_mario();
 bool has_blue_eco();
+
+struct PlatformInfo {
+  u32 x_pos;
+  u32 y_pos;
+  u32 z_pos;
+  u32 rot_x;
+  u32 rot_y;
+  u32 rot_z;
+};
+

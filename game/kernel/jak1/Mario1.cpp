@@ -8,6 +8,15 @@
 #include "game/kernel/common/kmachine.h"
 
 //int variables here
+
+// Near the top of Mario1.cpp, with other globals
+
+static PlatformInfo g_platform_info = {0};  // persisted global - zero-initialized
+
+// Optional: flag to know if we ever received valid data
+static bool g_platform_info_valid = false;
+
+
 static uint8_t* g_mario_texture = nullptr;
 int marioId = -1;
 SM64MarioState g_mario_state = {0};
@@ -92,6 +101,55 @@ int load_and_init_mario() {
 
 int frame_num = 0;
 int global_mario_frame_count = 0;
+void update_platform_info_from_goal(u32 platform_info_ptr) {
+  if (!platform_info_ptr) {
+    printf("[PLATFORM] Warning: null pointer from GOAL\n");
+    g_platform_info_valid = false;
+    return;
+  }
+
+  auto info = Ptr<PlatformInfo>(platform_info_ptr).c();
+
+  // Copy the raw bits into our persisted global
+  g_platform_info.x_pos  = info->x_pos;
+  g_platform_info.y_pos  = info->y_pos;
+  g_platform_info.z_pos  = info->z_pos;
+  g_platform_info.rot_x  = info->rot_x;
+  g_platform_info.rot_y  = info->rot_y;
+  g_platform_info.rot_z  = info->rot_z;
+
+  g_platform_info_valid = true;
+
+  // Debug print (remove later if not needed)
+  float tx, ty, tz, rx, ry, rz;
+  memcpy(&tx, &info->x_pos, sizeof(u32));
+  memcpy(&ty, &info->y_pos, sizeof(u32));
+  memcpy(&tz, &info->z_pos, sizeof(u32));
+  memcpy(&rx, &info->rot_x, sizeof(u32));
+  memcpy(&ry, &info->rot_y, sizeof(u32));
+  memcpy(&rz, &info->rot_z, sizeof(u32));
+
+  tx *= METERS_TO_UNITS;
+  ty *= METERS_TO_UNITS;
+  tz *= METERS_TO_UNITS;
+
+  printf("[PLATFORM] Updated global from GOAL: pos(%.2f, %.2f, %.2f) rot(%.1f, %.1f, %.1f)\n",
+         tx, ty, tz, rx, ry, rz);
+}
+
+bool ready_to_update_plat() {
+  //this is how we determine if we should run mario for this frame
+  // note that this COMPLETELY bypasses mario thread so NOTHING WILL UPDATE
+  //if jakstate == pushed triangle
+  //return fales; lets skip this render frame for mario as jak is in periscope
+auto sym = jak1::intern_from_c("*ready-to-update-plat*");
+
+if (sym->value == offset_of_s7()) {
+  return false;
+}
+
+  return true;
+}
 void tick_mario_frame() {
   // This function is called every frame and controls updating the mario engine.
   // Revist this later once we have *some* mario collide to test, probably can /64 where we set .stickX instead and remove all this junk
@@ -103,6 +161,7 @@ void tick_mario_frame() {
     inputs.stickX = scaled_stick_x;
     inputs.stickY = -scaled_stick_y;
     jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
+    update_moving_platform();
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
     update_mario_collide();
     frame_num = 0;
@@ -525,7 +584,7 @@ void pc_mario_spawn_updated_tris(const char* name){
                 objectName = name; //money-32
 
 
-                //spawn_surfaces_under_mario(marioState.position, beach_surfaces, objectName);
+                //spawn_surfaces_under_mario(g_mario_state.position, beach_surfaces, objectName);
                 const float zero_pos_array[3] = {0.0f, 0.0f, 0.0f};
                 spawn_surfaces_under_mario(zero_pos_array, gDebugSurfaces, objectName); // Offset crate above beach
                 surface_spawn_count++; // Increment counter
@@ -541,6 +600,181 @@ const char* floorName;
             floorName = "floor";
             delete_surface_object_by_name("floor");
             spawn_surfaces_under_mario(g_mario_state.position,psuedo_floor_surfaces, floorName, -300.0f);
+
+}
+
+// ─────────────────────────────────────────────
+// Moving platform config (Jak-style sliding floor)
+#define PLAT_MOVE_FRAMES  120
+#define PLAT_MOVE_SPEED   20.0f
+
+// Globals for the moving platform
+static uint32_t           gPlatId    = 0;
+static SM64ObjectTransform gPlatXf   = {};  // Authoritative transform (libsm64 uses this)
+static int32_t            gPlatTimer = 0;
+static float              gPlatDir   = 1.0f;
+static float gPlatYaw = 0.0f;           // current visual yaw rotation (degrees)
+static float gPlatSpinSpeed = 90.0f;    // degrees per second when spinning
+static bool gPlatShouldSpin = false;    // true when we just reversed
+
+uint32_t spawn_flat_platform_under_mario(const float* marioPos, float size = 600.0f)
+{
+    if (numCubes >= MAX_CUBES) return 0;
+    SM64SurfaceObject obj = {};
+    float half = size / 2.0f;
+    obj.transform.position[0] = marioPos[0];
+    obj.transform.position[1] = marioPos[1];
+    obj.transform.position[2] = marioPos[2];
+    obj.surfaceCount = 2;
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * 2);
+
+    #define ADD_TRI(i, ax,ay,az, bx,by,bz, cx,cy,cz) do { \
+        obj.surfaces[i].vertices[0][0] = ax; obj.surfaces[i].vertices[0][1] = ay; obj.surfaces[i].vertices[0][2] = az; \
+        obj.surfaces[i].vertices[1][0] = bx; obj.surfaces[i].vertices[1][1] = by; obj.surfaces[i].vertices[1][2] = bz; \
+        obj.surfaces[i].vertices[2][0] = cx; obj.surfaces[i].vertices[2][1] = cy; obj.surfaces[i].vertices[2][2] = cz; \
+        obj.surfaces[i].type = SURFACE_DEFAULT; \
+        obj.surfaces[i].force = 0; \
+        obj.surfaces[i].terrain = TERRAIN_STONE; \
+    } while(0)
+
+    float x0 = -half, x1 = half;
+    float z0 = -half, z1 = half;
+    float y = 0.0f;
+    ADD_TRI(0, x0,y,z1, x1,y,z1, x1,y,z0);
+    ADD_TRI(1, x1,y,z0, x0,y,z0, x0,y,z1);
+    #undef ADD_TRI
+
+    uint32_t id = sm64_surface_object_create(&obj);
+    // ────────────── REMOVE THIS LINE ──────────────
+    // free(obj.surfaces);   // ← DELETE or COMMENT OUT
+
+    if (!id) return 0;
+
+    gPlatXf.position[0] = obj.transform.position[0];
+    gPlatXf.position[1] = obj.transform.position[1];
+    gPlatXf.position[2] = obj.transform.position[2];
+    gPlatXf.eulerRotation[0] = obj.transform.eulerRotation[0];
+    gPlatXf.eulerRotation[1] = obj.transform.eulerRotation[1];
+    gPlatXf.eulerRotation[2] = obj.transform.eulerRotation[2];
+
+    gPlatId = id;
+    gPlatTimer = 0;
+    gPlatDir = 1.0f;
+
+    Cuben& c = spawnedCubes[numCubes++];
+    c.pos[0] = marioPos[0];
+    c.pos[1] = marioPos[1];
+    c.pos[2] = marioPos[2];
+    c.size = size;
+    c.name = "MovingPlat";
+    c.id = id;
+    c.surfaceObj = obj;           // now safe – surfaces still valid
+
+    return id;
+}
+
+
+
+
+
+// ─────────────────────────────────────────────
+// Moving platform logic
+// ─────────────────────────────────────────────
+// In Mario1.cpp (implementation)
+void update_moving_platform() {
+  if (!gPlatId) {
+    // Spawn if missing (fallback)
+    float spawnPos[3] = {
+        g_mario_state.position[0],
+        g_mario_state.position[1] - 80.0f,
+        g_mario_state.position[2]
+    };
+    spawn_flat_platform_under_mario(spawnPos, 200.0f);
+    return;  // wait until next frame for valid info
+  }
+
+  if (!g_platform_info_valid) {
+    // No valid data yet → don't move/rotate this frame
+    return;
+  }
+
+  // Unpack from global
+  float targetX, targetY, targetZ;
+  memcpy(&targetX, &g_platform_info.x_pos, sizeof(u32));
+  memcpy(&targetY, &g_platform_info.y_pos, sizeof(u32));
+  memcpy(&targetZ, &g_platform_info.z_pos, sizeof(u32));
+
+  targetX *= METERS_TO_UNITS;
+  targetY *= METERS_TO_UNITS;
+  targetZ *= METERS_TO_UNITS;
+
+  float baseRotX, baseRotY, baseRotZ;
+  memcpy(&baseRotX, &g_platform_info.rot_x, sizeof(u32));
+  memcpy(&baseRotY, &g_platform_info.rot_y, sizeof(u32));
+  memcpy(&baseRotZ, &g_platform_info.rot_z, sizeof(u32));
+
+  // Apply to physics transform
+  gPlatXf.position[0] = targetX;
+  gPlatXf.position[1] = targetY;
+  gPlatXf.position[2] = targetZ;
+
+  gPlatXf.eulerRotation[0] = baseRotX;
+  gPlatXf.eulerRotation[1] = baseRotY;
+  gPlatXf.eulerRotation[2] = baseRotZ;
+
+  // ─── Your existing spin/flip logic ───
+  // static float lastDir = 1.0f;
+  // if (gPlatDir != lastDir) {
+  //   gPlatShouldSpin = true;
+  //   gPlatYaw = 0.0f;
+  //   lastDir = gPlatDir;
+  // }
+
+  // if (gPlatShouldSpin) {
+  //   gPlatYaw += gPlatSpinSpeed * (1.f / 30.f);
+  //   if (gPlatYaw >= 180.0f) {
+  //     gPlatYaw = 180.0f;
+  //     gPlatShouldSpin = false;
+  //   }
+  // }
+
+  // gPlatXf.eulerRotation[1] += gPlatYaw;
+
+  // Apply to libsm64
+  sm64_surface_object_move(gPlatId, &gPlatXf);
+
+  // Sync visual Cube
+  for (int i = 0; i < numCubes; i++) {
+    if (spawnedCubes[i].id == gPlatId) {
+      Cuben& c = spawnedCubes[i];
+      c.pos[0] = gPlatXf.position[0];
+      c.pos[1] = gPlatXf.position[1];
+      c.pos[2] = gPlatXf.position[2];
+
+      c.surfaceObj.transform.position[0] = gPlatXf.position[0];
+      c.surfaceObj.transform.position[1] = gPlatXf.position[1];
+      c.surfaceObj.transform.position[2] = gPlatXf.position[2];
+
+      c.surfaceObj.transform.eulerRotation[0] = gPlatXf.eulerRotation[0];
+      c.surfaceObj.transform.eulerRotation[1] = gPlatXf.eulerRotation[1];
+      c.surfaceObj.transform.eulerRotation[2] = gPlatXf.eulerRotation[2];
+      break;
+    }
+  }
+
+  // Internal timer (optional - remove if GOAL controls direction fully)
+  gPlatTimer++;
+  if (gPlatTimer >= PLAT_MOVE_FRAMES) {
+    gPlatTimer = 0;
+    gPlatDir = -gPlatDir;
+  }
+}
+
+void update_platform_under_mario(){
+const char* floorName;
+            floorName = "floor";
+            delete_surface_object_by_name("floor");
+            //spawn_flat_platform_under_mario(zero_pos_array, 200.0f);
 
 }
 

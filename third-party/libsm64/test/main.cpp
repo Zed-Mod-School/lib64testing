@@ -32,7 +32,19 @@ extern "C" {
 #define MAX_CUBES 64
 
 
+// ─────────────────────────────────────────────
+// Moving platform config (Jak-style sliding floor)
+#define PLAT_MOVE_FRAMES  120
+#define PLAT_MOVE_SPEED   20.0f
 
+// Globals for the moving platform
+static uint32_t           gPlatId    = 0;
+static SM64ObjectTransform gPlatXf   = {};  // Authoritative transform (libsm64 uses this)
+static int32_t            gPlatTimer = 0;
+static float              gPlatDir   = 1.0f;
+static float gPlatYaw = 0.0f;           // current visual yaw rotation (degrees)
+static float gPlatSpinSpeed = 90.0f;    // degrees per second when spinning
+static bool gPlatShouldSpin = false;    // true when we just reversed
 
 
 struct Cube {
@@ -148,6 +160,138 @@ uint32_t spawn_cube_under_mario(const float* marioPos, float size = 1000.0f) {
     return id;
 }
 
+
+uint32_t spawn_flat_platform_under_mario(const float* marioPos, float size = 600.0f)
+{
+    if (numCubes >= MAX_CUBES) return 0;
+    SM64SurfaceObject obj = {};
+    float half = size / 2.0f;
+    obj.transform.position[0] = marioPos[0];
+    obj.transform.position[1] = marioPos[1];
+    obj.transform.position[2] = marioPos[2];
+    obj.surfaceCount = 2;
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * 2);
+
+    #define ADD_TRI(i, ax,ay,az, bx,by,bz, cx,cy,cz) do { \
+        obj.surfaces[i].vertices[0][0] = ax; obj.surfaces[i].vertices[0][1] = ay; obj.surfaces[i].vertices[0][2] = az; \
+        obj.surfaces[i].vertices[1][0] = bx; obj.surfaces[i].vertices[1][1] = by; obj.surfaces[i].vertices[1][2] = bz; \
+        obj.surfaces[i].vertices[2][0] = cx; obj.surfaces[i].vertices[2][1] = cy; obj.surfaces[i].vertices[2][2] = cz; \
+        obj.surfaces[i].type = SURFACE_DEFAULT; \
+        obj.surfaces[i].force = 0; \
+        obj.surfaces[i].terrain = TERRAIN_STONE; \
+    } while(0)
+
+    float x0 = -half, x1 = half;
+    float z0 = -half, z1 = half;
+    float y = 0.0f;
+    ADD_TRI(0, x0,y,z1, x1,y,z1, x1,y,z0);
+    ADD_TRI(1, x1,y,z0, x0,y,z0, x0,y,z1);
+    #undef ADD_TRI
+
+    uint32_t id = sm64_surface_object_create(&obj);
+    // ────────────── REMOVE THIS LINE ──────────────
+    // free(obj.surfaces);   // ← DELETE or COMMENT OUT
+
+    if (!id) return 0;
+
+    gPlatXf.position[0] = obj.transform.position[0];
+    gPlatXf.position[1] = obj.transform.position[1];
+    gPlatXf.position[2] = obj.transform.position[2];
+    gPlatXf.eulerRotation[0] = obj.transform.eulerRotation[0];
+    gPlatXf.eulerRotation[1] = obj.transform.eulerRotation[1];
+    gPlatXf.eulerRotation[2] = obj.transform.eulerRotation[2];
+
+    gPlatId = id;
+    gPlatTimer = 0;
+    gPlatDir = 1.0f;
+
+    Cube& c = spawnedCubes[numCubes++];
+    c.pos[0] = marioPos[0];
+    c.pos[1] = marioPos[1];
+    c.pos[2] = marioPos[2];
+    c.size = size;
+    c.name = "MovingPlat";
+    c.id = id;
+    c.surfaceObj = obj;           // now safe – surfaces still valid
+
+    return id;
+}
+
+// ─────────────────────────────────────────────
+// Moving platform logic
+// ─────────────────────────────────────────────
+static void update_moving_platform()
+{
+    if (!gPlatId) return;
+
+    float velocityX = PLAT_MOVE_SPEED * gPlatDir;
+
+    // Detect reversal → start a new spin every time direction changes
+    static float lastDir = 1.0f;
+    if (gPlatDir != lastDir)
+    {
+        gPlatShouldSpin = true;             // Trigger spin on every reversal
+        gPlatYaw = 0.0f;                    // Reset yaw so it can spin from current orientation
+        lastDir = gPlatDir;
+    }
+
+    // Apply horizontal movement
+    gPlatXf.position[0] += velocityX;
+
+    // Perform the spin if triggered
+    if (gPlatShouldSpin)
+    {
+        gPlatYaw += gPlatSpinSpeed * (1.f / 30.f);  // ~90° per second
+
+        // When full 180° flip is done, stop spinning
+        // if (gPlatYaw >= 180.0f)
+        // {
+        //     gPlatYaw = 180.0f;                  // Snap to exact 180°
+        //     gPlatShouldSpin = false;            // Done with this flip
+        // }
+    }
+
+    // Optional: always add a gentle idle spin (uncomment if you want constant rotation)
+    // gPlatYaw += 15.0f * (1.f / 30.f);  // slow continuous spin
+
+    // Apply current yaw to the physics object
+    gPlatXf.eulerRotation[1] = gPlatYaw;
+
+    // Push the updated transform to libsm64
+    sm64_surface_object_move(gPlatId, &gPlatXf);
+
+    // Sync everything to the visual Cube for drawing
+    for (int i = 0; i < numCubes; i++)
+    {
+        if (spawnedCubes[i].id == gPlatId)
+        {
+            Cube& c = spawnedCubes[i];
+
+            // Position sync
+            c.pos[0] = gPlatXf.position[0];
+            c.pos[1] = gPlatXf.position[1];
+            c.pos[2] = gPlatXf.position[2];
+
+            c.surfaceObj.transform.position[0] = gPlatXf.position[0];
+            c.surfaceObj.transform.position[1] = gPlatXf.position[1];
+            c.surfaceObj.transform.position[2] = gPlatXf.position[2];
+
+            // Rotation sync
+            c.surfaceObj.transform.eulerRotation[0] = gPlatXf.eulerRotation[0];
+            c.surfaceObj.transform.eulerRotation[1] = gPlatXf.eulerRotation[1];
+            c.surfaceObj.transform.eulerRotation[2] = gPlatXf.eulerRotation[2];
+
+            break;
+        }
+    }
+
+    gPlatTimer++;
+    if (gPlatTimer >= PLAT_MOVE_FRAMES)
+    {
+        gPlatTimer = 0;
+        gPlatDir = -gPlatDir;
+    }
+}
 const struct SM64Surface beach_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5709,1433,-5201}, {-5564,1604,-5050}, {-5695,1687,-5018}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-5572,1832,-4936}, {-5695,1687,-5018}, {-5564,1604,-5050}}},
@@ -640,52 +784,100 @@ c.surfaceObj = obj;
 }
 
 
-void delete_surface_object_by_name(const char* name) {
-    if (!name || numCubes == 0) return;
+void delete_surface_object_by_name(const char* name)
+{
+    if (!name || numCubes == 0)
+    {
+        return;
+    }
 
     int index_to_remove = -1;
 
-    // 1. Find the object by name
-    for (int i = 0; i < numCubes; ++i) {
+    // Step 1: Find the object by name
+    for (int i = 0; i < numCubes; ++i)
+    {
         const Cube& c = spawnedCubes[i];
-        // Check if the object has a name and if it matches the requested name
-        if (c.name != NULL && strcmp(c.name, name) == 0) {
+        if (c.name != NULL && strcmp(c.name, name) == 0)
+        {
             index_to_remove = i;
-            break; // Found the object, stop searching
+            break;
         }
     }
 
-    if (index_to_remove != -1) {
-        Cube& c = spawnedCubes[index_to_remove];
+    if (index_to_remove == -1)
+    {
+        // Optional: log if you want to know when delete fails
+        // printf("No object named '%s' found to delete.\n", name);
+        return;
+    }
 
-        // 2. De-register the collision object using the stored ID
+    // Step 2: Get reference to the object we're removing
+    Cube& c = spawnedCubes[index_to_remove];
+
+    // Step 3: Remove from libsm64 physics/collision system
+    if (c.id != 0)
+    {
         sm64_surface_object_delete(c.id);
-
-        // 3. Free the surface memory that was malloc'd in spawn_surfaces_under_mario
-        if (c.surfaceObj.surfaces != NULL) {
-            free(c.surfaceObj.surfaces);
-            c.surfaceObj.surfaces = NULL;
-        }
-
-        // 4. Remove the object from the tracking array (Swap-and-Pop)
-
-        // Decrement the total count
-        numCubes--;
-
-        // If the object being removed wasn't the last one,
-        // copy the last Cube structure over the one we are removing.
-        if (index_to_remove < numCubes) {
-            spawnedCubes[index_to_remove] = spawnedCubes[numCubes];
-        }
-
-        // The object is now removed from the array and its collision is deleted.
+        c.id = 0;  // prevent double-delete if called again
     }
+
+    // Step 4: Free the vertex data we allocated
+    if (c.surfaceObj.surfaces != NULL)
+    {
+        free(c.surfaceObj.surfaces);
+        c.surfaceObj.surfaces = NULL;
+        c.surfaceObj.surfaceCount = 0;
+    }
+
+    // Step 5: Clean up other fields (optional but good hygiene)
+    c.surfaceObj.transform.position[0] = 0;
+    c.surfaceObj.transform.position[1] = 0;
+    c.surfaceObj.transform.position[2] = 0;
+    c.name = NULL;
+
+    // Step 6: Remove from array using swap-and-pop
+    numCubes--;
+
+    if (index_to_remove < numCubes)
+    {
+        // Move the last element into the hole
+        spawnedCubes[index_to_remove] = spawnedCubes[numCubes];
+    }
+
+    // Optional debug output (remove in release)
+    // printf("Deleted object '%s' (id=%u), %d objects remaining\n",
+    //        name, c.id, numCubes);
 }
 
 
-void draw_surface_object(const SM64SurfaceObject& obj, const float rgba[4], bool outline = true) {
+/**
+ * Finds and returns a pointer to the Cube structure matching the given name.
+ * Returns nullptr if no object with that name exists.
+ */
+Cube* get_surface_object_by_name(const char* name)
+{
+    if (!name || numCubes == 0) {
+        return nullptr;
+    }
+
+    for (int i = 0; i < numCubes; ++i) {
+        Cube* c = &spawnedCubes[i];  // non-const pointer so caller can modify if needed
+        if (c->name != NULL && strcmp(c->name, name) == 0) {
+            return c;
+        }
+    }
+
+    return nullptr;
+}
+
+void draw_surface_object(const SM64SurfaceObject& obj, const float rgba[4], bool outline = true)
+{
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
+
+    // Apply translation + yaw rotation
+    glTranslatef(obj.transform.position[0], obj.transform.position[1], obj.transform.position[2]);
+    glRotatef(obj.transform.eulerRotation[1], 0.0f, 1.0f, 0.0f);  // yaw around Y-axis
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -693,74 +885,49 @@ void draw_surface_object(const SM64SurfaceObject& obj, const float rgba[4], bool
     glDisable(GL_CULL_FACE);
     glColor4f(rgba[0], rgba[1], rgba[2], rgba[3]);
 
-    // Draw filled triangles
     glBegin(GL_TRIANGLES);
-    for (uint32_t i = 0; i < obj.surfaceCount; ++i) {
-float base[3] = {
-    obj.transform.position[0],
-    obj.transform.position[1],
-    obj.transform.position[2]
-};
-
-for (uint32_t j = 0; j < 3; ++j) {
-    float v[3] = {
-        (float)obj.surfaces[i].vertices[j][0],
-        (float)obj.surfaces[i].vertices[j][1],
-        (float)obj.surfaces[i].vertices[j][2]
-    };
-    glVertex3f(v[0] + base[0], v[1] + base[1], v[2] + base[2]);
-}
-
+    for (uint32_t i = 0; i < obj.surfaceCount; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            float vx = (float)obj.surfaces[i].vertices[j][0];
+            float vy = (float)obj.surfaces[i].vertices[j][1];
+            float vz = (float)obj.surfaces[i].vertices[j][2];
+            glVertex3f(vx, vy, vz);  // now rotated + translated
+        }
     }
     glEnd();
 
-    // Optionally draw outlines
-if (outline) {
-    glLineWidth(2.5f);
-    glColor4f(0, 0, 0, 1.0f); // black
-    glBegin(GL_LINES);
-    for (int i = 0; i < obj.surfaceCount; ++i) {
-        float base[3] = {
-            obj.transform.position[0],
-            obj.transform.position[1],
-            obj.transform.position[2]
-        };
-
-        float v0[3] = {
-            (float)obj.surfaces[i].vertices[0][0],
-            (float)obj.surfaces[i].vertices[0][1],
-            (float)obj.surfaces[i].vertices[0][2]
-        };
-        float v1[3] = {
-            (float)obj.surfaces[i].vertices[1][0],
-            (float)obj.surfaces[i].vertices[1][1],
-            (float)obj.surfaces[i].vertices[1][2]
-        };
-        float v2[3] = {
-            (float)obj.surfaces[i].vertices[2][0],
-            (float)obj.surfaces[i].vertices[2][1],
-            (float)obj.surfaces[i].vertices[2][2]
-        };
-
-        glVertex3f(v0[0] + base[0], v0[1] + base[1], v0[2] + base[2]);
-        glVertex3f(v1[0] + base[0], v1[1] + base[1], v1[2] + base[2]);
-
-        glVertex3f(v1[0] + base[0], v1[1] + base[1], v1[2] + base[2]);
-        glVertex3f(v2[0] + base[0], v2[1] + base[1], v2[2] + base[2]);
-
-        glVertex3f(v2[0] + base[0], v2[1] + base[1], v2[2] + base[2]);
-        glVertex3f(v0[0] + base[0], v0[1] + base[1], v0[2] + base[2]);
+    // Outline (also rotated)
+    if (outline)
+    {
+        glLineWidth(2.5f);
+        glColor4f(0, 0, 0, 1.0f);
+        glBegin(GL_LINES);
+        for (uint32_t i = 0; i < obj.surfaceCount; ++i)
+        {
+            for (int e = 0; e < 3; ++e)
+            {
+                int a = e;
+                int b = (e + 1) % 3;
+                float ax = (float)obj.surfaces[i].vertices[a][0];
+                float ay = (float)obj.surfaces[i].vertices[a][1];
+                float az = (float)obj.surfaces[i].vertices[a][2];
+                float bx = (float)obj.surfaces[i].vertices[b][0];
+                float by = (float)obj.surfaces[i].vertices[b][1];
+                float bz = (float)obj.surfaces[i].vertices[b][2];
+                glVertex3f(ax, ay, az);
+                glVertex3f(bx, by, bz);
+            }
+        }
+        glEnd();
     }
-    glEnd();
-}
-
 
     glPopMatrix();
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_CULL_FACE);
     glColor4f(1, 1, 1, 1);
 }
-
 
 // --- Text Drawing Functions ---
 
@@ -934,8 +1101,13 @@ int main( void )
 bool prevSquarePressed = false;
 
 bool prevTrianglePressed = false;
+    bool prevSpawnKey = false;
     do
     {
+
+SDL_GameController* ctrl = context_get_controller();
+        const Uint8* kb = SDL_GetKeyboardState(NULL);
+
         float dt = (SDL_GetTicks() - lastTicks) / 1000.f;
         lastTicks = SDL_GetTicks();
         tick += dt;
@@ -1013,6 +1185,23 @@ bool prevTrianglePressed = false;
             delete_surface_object_by_name("floor");
             spawn_surfaces_under_mario(marioState.position,psuedo_floor_surfaces, floorName, -300.0f);
 
+
+
+        // Spawn platform
+        bool spawnKey = kb[SDL_SCANCODE_X] || (ctrl && SDL_GameControllerGetButton(ctrl, SDL_CONTROLLER_BUTTON_X));
+        if (spawnKey && !prevSpawnKey) {
+            float spawnPos[3] = {
+                marioState.position[0],
+                marioState.position[1] - 80.0f,   // better match Mario foot height
+                marioState.position[2]
+            };
+            spawn_flat_platform_under_mario(spawnPos, 200.0f);
+        }
+        prevSpawnKey = spawnKey;
+
+
+
+
             if (squarePressed && !prevSquarePressed) {
     //spawn_cube_under_mario(marioState.position);
     // spawn_surfaces_under_mario(marioState.position, beach_surfaces);
@@ -1057,6 +1246,7 @@ if (trianglePressed && !prevTrianglePressed) {
             memcpy(lastGeoPos, currGeoPos, sizeof(currGeoPos));
 
             tick -= 1.f/30;
+            update_moving_platform();
             sm64_mario_tick( marioId, &marioInputs, &marioState, &marioGeometry );
 
             memcpy(currPos, marioState.position, sizeof(currPos));
@@ -1068,6 +1258,75 @@ if (trianglePressed && !prevTrianglePressed) {
 
         renderer->draw( &renderState, cameraPos, &marioState, &marioGeometry );
 
+
+        // ─── Render platforms using exact libsm64 triangles ────────────────────────────────
+glMatrixMode(GL_MODELVIEW);
+glPushMatrix();
+
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+glDisable(GL_TEXTURE_2D);
+glDisable(GL_CULL_FACE);           // optional – makes it visible from both sides
+glDisable(GL_DEPTH_TEST);           // temporary – force on top to debug visibility
+
+for (int i = 0; i < numCubes; ++i) {
+    const Cube& cube = spawnedCubes[i];
+
+    if (cube.surfaceObj.surfaces == NULL || cube.surfaceObj.surfaceCount == 0) {
+        continue;  // skip invalid objects
+    }
+
+    // Yellow fill
+    glColor4f(1.0f, 1.0f, 0.0f, 0.6f);  // brighter/semi-opaque yellow
+
+    glBegin(GL_TRIANGLES);
+    for (uint32_t s = 0; s < cube.surfaceObj.surfaceCount; ++s) {
+        const SM64Surface& surf = cube.surfaceObj.surfaces[s];
+        for (int v = 0; v < 3; ++v) {
+            float vx = surf.vertices[v][0] + cube.surfaceObj.transform.position[0];
+            float vy = surf.vertices[v][1] + cube.surfaceObj.transform.position[1];
+            float vz = surf.vertices[v][2] + cube.surfaceObj.transform.position[2];
+            glVertex3f(vx, vy, vz);
+        }
+    }
+    glEnd();
+
+    // Black outline (optional – remove if you don't want it)
+    glLineWidth(2.5f);
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);  // black lines
+    glBegin(GL_LINES);
+    for (uint32_t s = 0; s < cube.surfaceObj.surfaceCount; ++s) {
+        const SM64Surface& surf = cube.surfaceObj.surfaces[s];
+        float base[3] = {
+            cube.surfaceObj.transform.position[0],
+            cube.surfaceObj.transform.position[1],
+            cube.surfaceObj.transform.position[2]
+        };
+        // Draw each edge twice (for visibility)
+        for (int e = 0; e < 3; ++e) {
+            int a = e;
+            int b = (e + 1) % 3;
+            glVertex3f(surf.vertices[a][0] + base[0], surf.vertices[a][1] + base[1], surf.vertices[a][2] + base[2]);
+            glVertex3f(surf.vertices[b][0] + base[0], surf.vertices[b][1] + base[1], surf.vertices[b][2] + base[2]);
+        }
+    }
+    glEnd();
+
+    // Draw name above the object
+    if (cube.name != NULL) {
+        // Use bounding box center or just pos[1] + some height
+        float text_y = cube.pos[1] + cube.size * 0.6f + TEXT_SCALE;
+        draw_3d_string(cube.name, cube.pos[0], text_y, cube.pos[2]);
+    }
+}
+
+glPopMatrix();
+glEnable(GL_DEPTH_TEST);
+glEnable(GL_CULL_FACE);
+glEnable(GL_TEXTURE_2D);
+glColor4f(1, 1, 1, 1);
+
+
         //new new
 glMatrixMode(GL_MODELVIEW);
 glPushMatrix();
@@ -1077,6 +1336,14 @@ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 glDisable(GL_TEXTURE_2D);
 glDisable(GL_CULL_FACE); // optional
 glColor4f(1.0f, 1.0f, 0.0f, 0.4f);  // semi-transparent yellow
+
+
+Cube* plat = get_surface_object_by_name("MovingPlat");
+if (plat != nullptr) {
+    float yellow[] = {1.0f, 1.0f, 0.0f, 0.4f};
+    draw_surface_object(plat->surfaceObj, yellow, true);
+}
+
 
 for (int i = 0; i < numCubes; ++i) {
     const Cube& cube = spawnedCubes[i];

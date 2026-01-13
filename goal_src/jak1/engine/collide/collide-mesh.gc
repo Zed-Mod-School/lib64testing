@@ -138,7 +138,7 @@
     (none)))
 
 ;; Create a function that we can call, and pass a process to, it checks if that process is there, and if it is, we do some checks to get its collide mesh, and call debug-draw-tris on it.
-
+(define *ready-to-update-plat* #f)
 (defun generate-collide-mesh-txt-from-name ((proc-name string))
 (when (process-by-ename proc-name)
                           (let* ((p (the-as process-drawable (process-by-ename proc-name)))
@@ -157,6 +157,7 @@
                                                                 (or
                                                                 (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
                                                                 (= (-> e etype symbol) 'periscope)
+ (= p (process-by-ename "plat-eco-finalboss-1"))
 
                                                                 )
                                   (return 0)
@@ -181,6 +182,43 @@
 (none))
 
 
+(deftype platform-info (structure)
+  ((x-pos   float)   ;; GOAL units
+   (y-pos   float)
+   (z-pos   float)
+   (rot-x   float)   ;; degrees
+   (rot-y   float)
+   (rot-z   float)
+   )
+  )
+
+
+(defun update-platform-from-goal ()
+  "Update the moving platform in C++ using current position/rotation of citb-plat-15"
+
+  (let ((plat (process-by-ename "plat-eco-finalboss-1")))
+    (when (and plat (type-type? (-> plat type) process-drawable))
+      (let ((info (new 'stack 'platform-info)))
+
+        (set! (-> info x-pos) (-> (the process-drawable plat) root trans x))
+        (set! (-> info y-pos) (+ (-> (the process-drawable plat) root trans y) (meters 0.0)))
+        (set! (-> info z-pos) (-> (the process-drawable plat) root trans z))
+        (set! (-> info rot-x) (-> (the process-drawable plat) root rot x))
+        (set! (-> info rot-y) (-> (the process-drawable plat) root rot y))
+        (set! (-> info rot-z) (-> (the process-drawable plat) root rot z))
+
+
+
+        (pc-update-platform-info-from-goal  info)
+
+        ;; (format 0 "Platform sync sent to C++: pos(~M ~M ~M) rot(~f ~f ~f)~%"
+        ;;         (-> info x-pos) (-> info y-pos) (-> info z-pos)
+        ;;         (-> info rot-x) (-> info rot-y) (-> info rot-z))
+        )
+      )
+    )
+  (none))
+
 
 #|TODO this logic gets all actor collide and uploads it ALL into a single SM64 surface object on the cpp side, then it spawns it. We use this to get actor collide,
  however it does have some drawbacks and needs some improvements at some time, current SM64 does not get any information whatsoever about moving objects, it just thinks the mesh changes in place
@@ -196,8 +234,10 @@
 
 (when (not (movie?))
 
-
-
+;; (when (process-by-ename "citb-plat-15")
+;; (update-moving-platform-collide (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans x) (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans y) (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans z) 0.0 0.0 0.0)
+;; )
+(update-platform-from-goal)
   (iterate-process-tree *active-pool*
                         (lambda ((proc process))
                           (let* ((p (the process-drawable proc))
@@ -225,6 +265,7 @@
                                                                 (or
                                                                 (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
                                                                 (= (-> e etype symbol) 'periscope)
+                                                                   (= p (process-by-ename "citb-plat-15"))
 
                                                                 )
                                   (return 0)
