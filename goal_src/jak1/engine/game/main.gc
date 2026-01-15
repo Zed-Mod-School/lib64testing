@@ -230,32 +230,25 @@
 ;; Cheat Codes
 ;;;;;;;;;;;;;;;;;;;;;;
 
-
 (defun set-no-fricked-on ()
   (when #t
     (process-spawn-function process
       (lambda :behavior process ()
         (let ((i 0)) ;; Start at sound ID 0
           (loop ;; Run indefinitely
-
             ;; 1. Check for button presses to cycle the ID
             (cond
               ((cpad-pressed? 0 r1) (set! i (+ i 1)))
               ((cpad-pressed? 0 l1) (set! i (- i 1)))
               ;; Optional: Support D-pad as well as requested
               ((cpad-pressed? 0 right) (set! i (+ i 1)))
-              ((cpad-pressed? 0 left) (set! i (- i 1)))
-              )
-
+              ((cpad-pressed? 0 left) (set! i (- i 1))))
             ;; 2. Bounds checking (keep i between 0 and 380)
             (if (< i 0) (set! i 380))
             (if (> i 380) (set! i 0))
-
             ;; 3. Trigger sound if X or Circle is pressed (so it doesn't spam)
             ;; Or remove the 'if' to make it play instantly when cycling
-            (if (cpad-pressed? 0 up)
-                (pc-mario-says-so-long-gay-bowsa i))
-
+            (if (cpad-pressed? 0 up) (pc-mario-says-so-long-gay-bowsa i))
             ;; 4. Draw the UI (This happens every frame)
             (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
               (set-width! fnt 1440)
@@ -263,21 +256,14 @@
               (set-scale! fnt 0.4) ;; Made slightly larger for readability
               (set-flags! fnt (font-flags kerning large))
               (print-game-text-scaled (string-format "SOUND ID: ~D~%PRESS UP TO PLAY~%L1/R1 TO CYCLE" i) 1.0 fnt 128))
-
             ;; 5. Wait for the next frame
-            (suspend)
-            )
-          )
-        ))))
+            (suspend)))))))
 
 (defun play-all-mario-sounds ()
-(dotimes (i 380)
-(pc-mario-says-so-long-gay-bowsa i)
-(suspend-for (seconds 4.0))
-)
+  (dotimes (i 380)
+    (pc-mario-says-so-long-gay-bowsa i)
+    (suspend-for (seconds 4.0))))
 
-
-)
 (define *cheat-temp* (the-as (pointer int32) (malloc 'global 20))) ;; 16 -> 20 (PAL)
 
 (define *master-exit* #f)
@@ -312,16 +298,13 @@
 (define *mario-global-glue-state* #t)
 
 (defun are-we-in-target-continue-hack ()
-(when (or (process-by-ename "scarecrow-a-1")
-    (process-by-ename "warp-gate-switch-3")
-    (process-by-ename "warp-gate-switch-7")
-    (process-by-ename "warp-gate-switch-2")
-    (process-by-ename "warp-gate-switch-12")
+  (when (or (process-by-ename "scarecrow-a-1")
+            (process-by-ename "warp-gate-switch-3")
+            (process-by-ename "warp-gate-switch-7")
+            (process-by-ename "warp-gate-switch-2")
+            (process-by-ename "warp-gate-switch-12"))
+    (set! *are-we-in-target-continue* #f)))
 
-    )
-    (set! *are-we-in-target-continue* #f)
-    )
-)
 (defun turn-off-mario-glue ()
   (process-spawn-function process
     (lambda :behavior process ()
@@ -393,65 +376,50 @@
     (else (clear *MARIO-STATE-STRING*) (format *MARIO-STATE-STRING* "unknown"))))
 
 (defun mario-glue-override ()
-  (when
-
-  ;;(close? "fishermans-boat-2" (meters 15.0))
-  ;;(close? "gondola-1" (meters 15.0))
-  (= (get-mario-state) 'dead)
+  (when ;;(close? "fishermans-boat-2" (meters 15.0))
+    ;;(close? "gondola-1" (meters 15.0))
+    (= (get-mario-state) 'dead)
     (return #f))
   *mario-global-glue-state*)
 
 (define *last-target-in-water* 0)
+
 (defconstant LOWEST_WATER_HEIGHT -3000000.0)
+
 (define *last-water-height* LOWEST_WATER_HEIGHT)
+
 (define *water-exit-frames* 0)
 
 (defun mario-water-level-override ()
-;;this is a hack to force a standard mario water level if a condition is detected,
-;; if a condition is detected, make sure to return #t so we skip the dynamic update this frame
-(if   (= (-> (level-get-target-inside *level*) name) 'midsty)
-(update-mario-water-height -12207.019531)
-(return #t)
-)
-#f
-)
-
+  ;;this is a hack to force a standard mario water level if a condition is detected,
+  ;; if a condition is detected, make sure to return #t so we skip the dynamic update this frame
+  (if (= (-> (level-get-target-inside *level*) name) 'midsty) (update-mario-water-height -12207.019531) (return #t))
+  #f)
 
 (defun water-deep-enough-to-swim? ()
   (let* ((wc (-> *target* water))
          (surface-y (-> wc surface-height))
-         (stand-y   (-> wc bottom 0 y))
+         (stand-y (-> wc bottom 0 y))
          (required-depth (-> wc swim-height))
          (effective-depth (- surface-y stand-y))
          (threshold (- required-depth 204.8)))
-
     ;; (format #t
     ;;   "[WATER] eff=~f thresh=~f surf=~f stand=~f~%"
     ;;   effective-depth threshold surface-y stand-y)
-
     (>= effective-depth threshold)))
-
-
-
 
 (defun should-wade? ()
   (let* ((wc (-> *target* water))
-        (surface-y (-> wc surface-height))
-         (bottom-y  (-> wc bottom 0 y))
+         (surface-y (-> wc surface-height))
+         (bottom-y (-> wc bottom 0 y))
          (wade-plane (- (-> wc height) (-> wc wade-height))))
-
     (and
       ;; water above feet
       (>= surface-y bottom-y)
-
       ;; but not deep enough to swim
       (< surface-y wade-plane)
-
       ;; not already swimming
       (not (logtest? (-> wc flags) (water-flags wt11))))))
-
-
-
 
 (defun update-mario-water-height-from-goal ()
   (when (not (water-deep-enough-to-swim?))
@@ -462,143 +430,113 @@
         (set! *last-water-height* LOWEST_WATER_HEIGHT)
         (set! *last-target-in-water* 0)))
     (return #f))
-
-(let* ((in-water
-         (if (logtest? (-> *target* water flags)
-                       (water-flags wt09))
-             1
-             0)))
-(when  (mario-water-level-override)
-  (cond
-    ;; ─────────────────────────────
-    ;; Target is in water
-    ((= in-water 1)
-     (let ((h (-> *target* water height)))
-       ;; reset exit hysteresis
-       (set! *water-exit-frames* 0)
-       (when (or (= *last-target-in-water* 0)
-                 (not (= h *last-water-height*)))
-         (update-mario-water-height h)
-         (set! *last-water-height* h)
-         (set! *last-target-in-water* 1))))
-
-    ;; ─────────────────────────────
-    ;; Target is NOT in water
-    (else
-     (when (= *last-target-in-water* 1)
-       (set! *water-exit-frames* (+ *water-exit-frames* 1))
-       (when (>= *water-exit-frames* (* 60.0 0.5))
-         (update-mario-water-height LOWEST_WATER_HEIGHT)
-         (set! *last-water-height* LOWEST_WATER_HEIGHT)
-         (set! *last-target-in-water* 0)))))
-         )
-
-)
-)
-
+  (let* ((in-water (if (logtest? (-> *target* water flags) (water-flags wt09)) 1 0)))
+    (when (mario-water-level-override)
+      (cond
+        ;; ─────────────────────────────
+        ;; Target is in water
+        ((= in-water 1)
+         (let ((h (-> *target* water height)))
+           ;; reset exit hysteresis
+           (set! *water-exit-frames* 0)
+           (when (or (= *last-target-in-water* 0) (not (= h *last-water-height*)))
+             (update-mario-water-height h)
+             (set! *last-water-height* h)
+             (set! *last-target-in-water* 1))))
+        ;; ─────────────────────────────
+        ;; Target is NOT in water
+        (else
+         (when (= *last-target-in-water* 1)
+           (set! *water-exit-frames* (+ *water-exit-frames* 1))
+           (when (>= *water-exit-frames* (* 60.0 0.5))
+             (update-mario-water-height LOWEST_WATER_HEIGHT)
+             (set! *last-water-height* LOWEST_WATER_HEIGHT)
+             (set! *last-target-in-water* 0))))))))
 
 (defun update-mario-loaded-surfaces ()
-    (dotimes (i 2)
-      (let ((lvl-name (-> *load-state* want i name)))
-        (cond
-          ((name= lvl-name "training") (if (= i 0) (set! arg1-mario-lvl 1.0) (set! arg2-mario-lvl 1.0)))
-          ((name= lvl-name "village1") (if (= i 0) (set! arg1-mario-lvl 2.0) (set! arg2-mario-lvl 2.0)))
-          ((name= lvl-name "beach") (if (= i 0) (set! arg1-mario-lvl 3.0) (set! arg2-mario-lvl 3.0)))
-          ((name= lvl-name "jungle") (if (= i 0) (set! arg1-mario-lvl 4.0) (set! arg2-mario-lvl 4.0)))
-          ((name= lvl-name "jungleb") (if (= i 0) (set! arg1-mario-lvl 5.0) (set! arg2-mario-lvl 5.0)))
-          ((name= lvl-name "misty") (if (= i 0) (set! arg1-mario-lvl 6.0) (set! arg2-mario-lvl 6.0)))
-          ((name= lvl-name "firecanyon") (if (= i 0) (set! arg1-mario-lvl 7.0) (set! arg2-mario-lvl 7.0)))
-          ((name= lvl-name "village2") (if (= i 0) (set! arg1-mario-lvl 8.0) (set! arg2-mario-lvl 8.0)))
-          ((name= lvl-name "sunken") (if (= i 0) (set! arg1-mario-lvl 9.0) (set! arg2-mario-lvl 9.0)))
-          ((name= lvl-name "sunkenb") (if (= i 0) (set! arg1-mario-lvl 10.0) (set! arg2-mario-lvl 10.0)))
-          ((name= lvl-name "swamp") (if (= i 0) (set! arg1-mario-lvl 11.0) (set! arg2-mario-lvl 11.0)))
-          ((name= lvl-name "rolling") (if (= i 0) (set! arg1-mario-lvl 12.0) (set! arg2-mario-lvl 12.0)))
-          ((name= lvl-name "ogre") (if (= i 0) (set! arg1-mario-lvl 13.0) (set! arg2-mario-lvl 13.0)))
-          ((name= lvl-name "village3") (if (= i 0) (set! arg1-mario-lvl 14.0) (set! arg2-mario-lvl 14.0)))
-          ((name= lvl-name "snow") (if (= i 0) (set! arg1-mario-lvl 15.0) (set! arg2-mario-lvl 15.0)))
-          ((name= lvl-name "maincave") (if (= i 0) (set! arg1-mario-lvl 16.0) (set! arg2-mario-lvl 16.0)))
-          ((name= lvl-name "darkcave") (if (= i 0) (set! arg1-mario-lvl 17.0) (set! arg2-mario-lvl 17.0)))
-          ((name= lvl-name "robocave") (if (= i 0) (set! arg1-mario-lvl 18.0) (set! arg2-mario-lvl 18.0)))
-          ((name= lvl-name "lavatube") (if (= i 0) (set! arg1-mario-lvl 19.0) (set! arg2-mario-lvl 19.0)))
-          ((name= lvl-name "citadel") (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
-          ((name= lvl-name "finalboss") (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0))))))
-    (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
-      ;; Missing for some reason
-      (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
-      (set! last-arg1-mario-lvl arg1-mario-lvl)
-      (set! last-arg2-mario-lvl arg2-mario-lvl))
-)
+  (dotimes (i 2)
+    (let ((lvl-name (-> *load-state* want i name)))
+      (cond
+        ((name= lvl-name "training") (if (= i 0) (set! arg1-mario-lvl 1.0) (set! arg2-mario-lvl 1.0)))
+        ((name= lvl-name "village1") (if (= i 0) (set! arg1-mario-lvl 2.0) (set! arg2-mario-lvl 2.0)))
+        ((name= lvl-name "beach") (if (= i 0) (set! arg1-mario-lvl 3.0) (set! arg2-mario-lvl 3.0)))
+        ((name= lvl-name "jungle") (if (= i 0) (set! arg1-mario-lvl 4.0) (set! arg2-mario-lvl 4.0)))
+        ((name= lvl-name "jungleb") (if (= i 0) (set! arg1-mario-lvl 5.0) (set! arg2-mario-lvl 5.0)))
+        ((name= lvl-name "misty") (if (= i 0) (set! arg1-mario-lvl 6.0) (set! arg2-mario-lvl 6.0)))
+        ((name= lvl-name "firecanyon") (if (= i 0) (set! arg1-mario-lvl 7.0) (set! arg2-mario-lvl 7.0)))
+        ((name= lvl-name "village2") (if (= i 0) (set! arg1-mario-lvl 8.0) (set! arg2-mario-lvl 8.0)))
+        ((name= lvl-name "sunken") (if (= i 0) (set! arg1-mario-lvl 9.0) (set! arg2-mario-lvl 9.0)))
+        ((name= lvl-name "sunkenb") (if (= i 0) (set! arg1-mario-lvl 10.0) (set! arg2-mario-lvl 10.0)))
+        ((name= lvl-name "swamp") (if (= i 0) (set! arg1-mario-lvl 11.0) (set! arg2-mario-lvl 11.0)))
+        ((name= lvl-name "rolling") (if (= i 0) (set! arg1-mario-lvl 12.0) (set! arg2-mario-lvl 12.0)))
+        ((name= lvl-name "ogre") (if (= i 0) (set! arg1-mario-lvl 13.0) (set! arg2-mario-lvl 13.0)))
+        ((name= lvl-name "village3") (if (= i 0) (set! arg1-mario-lvl 14.0) (set! arg2-mario-lvl 14.0)))
+        ((name= lvl-name "snow") (if (= i 0) (set! arg1-mario-lvl 15.0) (set! arg2-mario-lvl 15.0)))
+        ((name= lvl-name "maincave") (if (= i 0) (set! arg1-mario-lvl 16.0) (set! arg2-mario-lvl 16.0)))
+        ((name= lvl-name "darkcave") (if (= i 0) (set! arg1-mario-lvl 17.0) (set! arg2-mario-lvl 17.0)))
+        ((name= lvl-name "robocave") (if (= i 0) (set! arg1-mario-lvl 18.0) (set! arg2-mario-lvl 18.0)))
+        ((name= lvl-name "lavatube") (if (= i 0) (set! arg1-mario-lvl 19.0) (set! arg2-mario-lvl 19.0)))
+        ((name= lvl-name "citadel") (if (= i 0) (set! arg1-mario-lvl 20.0) (set! arg2-mario-lvl 20.0)))
+        ((name= lvl-name "finalboss") (if (= i 0) (set! arg1-mario-lvl 21.0) (set! arg2-mario-lvl 21.0))))))
+  (when (or (!= arg1-mario-lvl last-arg1-mario-lvl) (!= arg2-mario-lvl last-arg2-mario-lvl))
+    ;; Missing for some reason
+    (pc-load-mario-collide! arg1-mario-lvl arg2-mario-lvl)
+    (set! last-arg1-mario-lvl arg1-mario-lvl)
+    (set! last-arg2-mario-lvl arg2-mario-lvl)))
+
 (define *run-mario-code* #t)
+
 (define *has-blue-eco* #f)
 
 (defun update-sm64-camera-from-goal ()
-    ;; update cam-look x and z
-    (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
-    (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
-    (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*))
-
-
+  ;; update cam-look x and z
+  (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
+  (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
+  (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*))
 
 (defun main-cheats ()
   "Handle cheat codes and timeout"
- (when *target*
- (load-goal-actor-collide-to-sm64)
-  ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
-  (are-we-in-target-continue-hack)
+  (when *target*
+    (load-goal-actor-collide-to-sm64)
+    ;; (generate-collide-mesh-txt-from-name "windmill-one-2")
+    (are-we-in-target-continue-hack)
     (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 up))
       (turn-off-mario-glue)
       (cheats-sound-play *cheat-mode*))
-
-      (if (send-event *target* 'query 'powerup (pickup-type eco-blue)) (set! *has-blue-eco* #t) (set! *has-blue-eco* #f))
-
-(when (and (= (get-mario-state) 'groundpound)
-;; (logtest? (-> *target* control status) (cshape-moving-flags onsurf))
-#t
-)
-  ;; Spawn the tracker
-  (let ((s5-1 (process-spawn touch-tracker
-                             :init touch-tracker-init
-                             (-> *target* root trans)
-                              1536.0 ;; Radius: 1 meter (4096 units)
-                             15             ;; Duration: 15 ticks
-                             :to *target*)))
-
-    ;; 1. Setup Attack Event
-    (send-event (ppointer->process s5-1) 'event 'attack 'flop)
-
-    ;; 2. Visual Debugging
-    (let ((proc (the-as touch-tracker (ppointer->process s5-1))))
-      (when proc
-        (add-debug-sphere #t
-                          (bucket-id debug-no-zbuf)
-                          (-> proc root trans)
-                          (-> proc root root-prim local-sphere w)
-                          (new 'static 'rgba :r #xff :g #xff :a #x40))
-        )
-      )
-    )
-  )
-
-
+    (if (send-event *target* 'query 'powerup (pickup-type eco-blue)) (set! *has-blue-eco* #t) (set! *has-blue-eco* #f))
+    (when (and (= (get-mario-state) 'groundpound)
+               ;; (logtest? (-> *target* control status) (cshape-moving-flags onsurf))
+               #t)
+      ;; Spawn the tracker
+      (let ((s5-1 (process-spawn touch-tracker
+                                 :init
+                                 touch-tracker-init
+                                 (-> *target* root trans)
+                                 1536.0 ;; Radius: 1 meter (4096 units)
+                                 15 ;; Duration: 15 ticks
+                                 :to
+                                 *target*)))
+        ;; 1. Setup Attack Event
+        (send-event (ppointer->process s5-1) 'event 'attack 'flop)
+        ;; 2. Visual Debugging
+        (let ((proc (the-as touch-tracker (ppointer->process s5-1))))
+          (when proc
+            (add-debug-sphere #t
+                              (bucket-id debug-no-zbuf)
+                              (-> proc root trans)
+                              (-> proc root root-prim local-sphere w)
+                              (new 'static 'rgba :r #xff :g #xff :a #x40))))))
     ;; (when (and (cpad-hold? 0 l3) (cpad-pressed? 0 right))
     ;;   (pc-spawn-mario-test-collide)
     ;;   (cheats-sound-play *cheat-mode*))
     ;;(print-close-actor-and-draw-collide)
     ;; Please move these at some point they dont belong here
-
-
-;; (print-close-actor-and-draw-collide)
-
-
-
-;;hack to improve the cam rubber band when you warp mario needs improvement but its better than not having it
-;; (when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
-;; (send-event *camera* 'change-state cam-stick 0)
-;; (send-event *camera* 'change-state cam-string 0)
-;; )
-
-
-
+    ;; (print-close-actor-and-draw-collide)
+    ;;hack to improve the cam rubber band when you warp mario needs improvement but its better than not having it
+    ;; (when ( > (vector-vector-distance (target-pos 0) (camera-pos))  100606.6093 )
+    ;; (send-event *camera* 'change-state cam-stick 0)
+    ;; (send-event *camera* 'change-state cam-string 0)
+    ;; )
     ;; (when (not (movie?)) (print-close-actor-and-draw-collide))
     ;; only run this if the condition passes to lock jak to marios reported position.
     (when (and (not *are-we-in-target-continue*)
@@ -615,7 +553,8 @@
     (set! (-> *mario-vector-hellyeah* z) (* (pc-get-mario-z) *mario-scale-mult*)))
   ;; print marios position in 3D space, so we can see where libsm64 reports him to be.
   (when (= (get-mario-state) 'dead)
-  (when *cheat-mode* (pc-heal-mario))
+    (when *cheat-mode*
+      (pc-heal-mario))
     (add-debug-text-3d #t
                        (bucket-id debug-no-zbuf)
                        "MARIO GUY HERE"

@@ -11,7 +11,6 @@
 (require "engine/gfx/sprite/sparticle/sparticle-launcher.gc")
 (require "engine/gfx/background/subdivide-h.gc")
 (require "engine/collide/collide-touch.gc")
-
 (defun-extern get-mario-state symbol)
 
 ;; DECOMP BEGINS
@@ -686,7 +685,7 @@
        ;; burnup (like fire canyon lava).
        ;; only send if we don't have racer (on zoomer)
        (when (not (= (get-mario-state) 'shell))
-       ;;(zero? (logand (-> (the-as target (-> obj process)) control root-prim prim-core action) (collide-action racer)))
+         ;;(zero? (logand (-> (the-as target (-> obj process)) control root-prim prim-core action) (collide-action racer)))
          ;;(pc-spawn-mario-test-collide)
          (inspect (pc-get-mario-state))
          (target-attack-up (the-as target (-> obj process)) 'attack-or-shove 'burnup)))

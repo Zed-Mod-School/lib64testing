@@ -98,43 +98,63 @@ int load_and_init_mario() {
 }
 
 // Mario frame updating stuff now yippie, this is the "main" loop on the mario side.
+#define M_PI       3.14159265358979323846   // pi
+// Convert Jak-style quaternion (x y z w) to yaw angle in degrees (rotation around Y)
+// Returns yaw in [-180, 180] range
+float quaternion_to_yaw_degrees(float qx, float qy, float qz, float qw) {
+    // Standard quaternion to yaw (only care about Y rotation)
+    float siny_cosp = 2.0f * (qw * qy + qz * qx);
+    float cosy_cosp = 1.0f - 2.0f * (qy * qy + qz * qz);
+    float yaw_rad = atan2f(siny_cosp, cosy_cosp);
+
+    // Convert to degrees and normalize to [-180, 180]
+    float yaw_deg = yaw_rad * (180.0f / M_PI);
+    if (yaw_deg > 180.0f)  yaw_deg -= 360.0f;
+    if (yaw_deg < -180.0f) yaw_deg += 360.0f;
+
+    return yaw_deg;
+}
+
 
 int frame_num = 0;
 int global_mario_frame_count = 0;
 void update_platform_info_from_goal(u32 platform_info_ptr) {
-  if (!platform_info_ptr) {
-    printf("[PLATFORM] Warning: null pointer from GOAL\n");
-    g_platform_info_valid = false;
-    return;
-  }
+    if (!platform_info_ptr) {
+        g_platform_info_valid = false;
+        return;
+    }
 
-  auto info = Ptr<PlatformInfo>(platform_info_ptr).c();
+    auto info = Ptr<PlatformInfo>(platform_info_ptr).c();
 
-  // Copy the raw bits into our persisted global
-  g_platform_info.x_pos  = info->x_pos;
-  g_platform_info.y_pos  = info->y_pos;
-  g_platform_info.z_pos  = info->z_pos;
-  g_platform_info.rot_x  = info->rot_x;
-  g_platform_info.rot_y  = info->rot_y;
-  g_platform_info.rot_z  = info->rot_z;
+    // Copy all raw bits
+    g_platform_info.x_pos  = info->x_pos;
+    g_platform_info.y_pos  = info->y_pos;
+    g_platform_info.z_pos  = info->z_pos;
+    g_platform_info.rot_x  = info->rot_x;
+    g_platform_info.rot_y  = info->rot_y;
+    g_platform_info.rot_z  = info->rot_z;
+    g_platform_info.rot_w  = info->rot_w;   // ← NEW
 
-  g_platform_info_valid = true;
+    g_platform_info_valid = true;
 
-  // Debug print (remove later if not needed)
-  float tx, ty, tz, rx, ry, rz;
-  memcpy(&tx, &info->x_pos, sizeof(u32));
-  memcpy(&ty, &info->y_pos, sizeof(u32));
-  memcpy(&tz, &info->z_pos, sizeof(u32));
-  memcpy(&rx, &info->rot_x, sizeof(u32));
-  memcpy(&ry, &info->rot_y, sizeof(u32));
-  memcpy(&rz, &info->rot_z, sizeof(u32));
+    // Debug: unpack and show real values
+    float px, py, pz, qx, qy, qz, qw;
+    memcpy(&px, &info->x_pos, sizeof(u32));
+    memcpy(&py, &info->y_pos, sizeof(u32));
+    memcpy(&pz, &info->z_pos, sizeof(u32));
+    memcpy(&qx, &info->rot_x, sizeof(u32));
+    memcpy(&qy, &info->rot_y, sizeof(u32));
+    memcpy(&qz, &info->rot_z, sizeof(u32));
+    memcpy(&qw, &info->rot_w, sizeof(u32));
 
-  tx *= METERS_TO_UNITS;
-  ty *= METERS_TO_UNITS;
-  tz *= METERS_TO_UNITS;
+    px *= METERS_TO_UNITS;
+    py *= METERS_TO_UNITS;
+    pz *= METERS_TO_UNITS;
 
-  printf("[PLATFORM] Updated global from GOAL: pos(%.2f, %.2f, %.2f) rot(%.1f, %.1f, %.1f)\n",
-         tx, ty, tz, rx, ry, rz);
+    float yaw_deg = quaternion_to_yaw_degrees(qx, qy, qz, qw);
+
+    printf("[PLATFORM] Updated from GOAL → pos(%.2f, %.2f, %.2f) quat(%.4f, %.4f, %.4f, %.4f) → yaw %.1f°\n",
+           px, py, pz, qx, qy, qz, qw, yaw_deg);
 }
 
 bool ready_to_update_plat() {
@@ -234,11 +254,24 @@ bool has_blue_eco() {
   return true;
 }
 
+// ─────────────────────────────────────────────
+// Moving platform config (Jak-style sliding floor)
+#define PLAT_MOVE_FRAMES  120
+#define PLAT_MOVE_SPEED   20.0f
 
+// Globals for the moving platform
+static uint32_t           gPlatId    = 0;
+static SM64ObjectTransform gPlatXf   = {};  // Authoritative transform (libsm64 uses this)
+static int32_t            gPlatTimer = 0;
+static float              gPlatDir   = 1.0f;
+static float gPlatYaw = 0.0f;           // current visual yaw rotation (degrees)
+static float gPlatSpinSpeed = 90.0f;    // degrees per second when spinning
+static bool gPlatShouldSpin = false;    // true when we just reversed
 
 // Mario functions we call in GOAL
 uint64_t pc_get_mario_action() {
   g_mario_state.action;
+
   return static_cast<uint64_t>(g_mario_state.action);
 }
 
@@ -286,6 +319,7 @@ void pc_set_mario_music_from_goal(u32 music_bits) {
 
   // Player 0 = background music
   sm64_seq_player_play_sequence(0, (uint8_t)seq, 0);
+    sm64_surface_object_delete(gPlatId);
 }
 
 
@@ -603,19 +637,7 @@ const char* floorName;
 
 }
 
-// ─────────────────────────────────────────────
-// Moving platform config (Jak-style sliding floor)
-#define PLAT_MOVE_FRAMES  120
-#define PLAT_MOVE_SPEED   20.0f
 
-// Globals for the moving platform
-static uint32_t           gPlatId    = 0;
-static SM64ObjectTransform gPlatXf   = {};  // Authoritative transform (libsm64 uses this)
-static int32_t            gPlatTimer = 0;
-static float              gPlatDir   = 1.0f;
-static float gPlatYaw = 0.0f;           // current visual yaw rotation (degrees)
-static float gPlatSpinSpeed = 90.0f;    // degrees per second when spinning
-static bool gPlatShouldSpin = false;    // true when we just reversed
 
 uint32_t spawn_flat_platform_under_mario(const float* marioPos, float size = 600.0f)
 {
@@ -680,101 +702,124 @@ uint32_t spawn_flat_platform_under_mario(const float* marioPos, float size = 600
 // ─────────────────────────────────────────────
 // Moving platform logic
 // ─────────────────────────────────────────────
-// In Mario1.cpp (implementation)
 void update_moving_platform() {
-  if (!gPlatId) {
-    // Spawn if missing (fallback)
-    float spawnPos[3] = {
-        g_mario_state.position[0],
-        g_mario_state.position[1] - 80.0f,
-        g_mario_state.position[2]
-    };
-    spawn_flat_platform_under_mario(spawnPos, 200.0f);
-    return;  // wait until next frame for valid info
-  }
-
-  if (!g_platform_info_valid) {
-    // No valid data yet → don't move/rotate this frame
-    return;
-  }
-
-  // Unpack from global
-  float targetX, targetY, targetZ;
-  memcpy(&targetX, &g_platform_info.x_pos, sizeof(u32));
-  memcpy(&targetY, &g_platform_info.y_pos, sizeof(u32));
-  memcpy(&targetZ, &g_platform_info.z_pos, sizeof(u32));
-
-  targetX *= METERS_TO_UNITS;
-  targetY *= METERS_TO_UNITS;
-  targetZ *= METERS_TO_UNITS;
-
-  float baseRotX, baseRotY, baseRotZ;
-  memcpy(&baseRotX, &g_platform_info.rot_x, sizeof(u32));
-  memcpy(&baseRotY, &g_platform_info.rot_y, sizeof(u32));
-  memcpy(&baseRotZ, &g_platform_info.rot_z, sizeof(u32));
-
-  // Apply to physics transform
-  gPlatXf.position[0] = targetX;
-  gPlatXf.position[1] = targetY;
-  gPlatXf.position[2] = targetZ;
-
-  gPlatXf.eulerRotation[0] = baseRotX;
-  gPlatXf.eulerRotation[1] = baseRotY;
-  gPlatXf.eulerRotation[2] = baseRotZ;
-
-  // ─── Your existing spin/flip logic ───
-  // static float lastDir = 1.0f;
-  // if (gPlatDir != lastDir) {
-  //   gPlatShouldSpin = true;
-  //   gPlatYaw = 0.0f;
-  //   lastDir = gPlatDir;
-  // }
-
-  // if (gPlatShouldSpin) {
-  //   gPlatYaw += gPlatSpinSpeed * (1.f / 30.f);
-  //   if (gPlatYaw >= 180.0f) {
-  //     gPlatYaw = 180.0f;
-  //     gPlatShouldSpin = false;
-  //   }
-  // }
-
-  // gPlatXf.eulerRotation[1] += gPlatYaw;
-
-  // Apply to libsm64
-  sm64_surface_object_move(gPlatId, &gPlatXf);
-
-  // Sync visual Cube
-  for (int i = 0; i < numCubes; i++) {
-    if (spawnedCubes[i].id == gPlatId) {
-      Cuben& c = spawnedCubes[i];
-      c.pos[0] = gPlatXf.position[0];
-      c.pos[1] = gPlatXf.position[1];
-      c.pos[2] = gPlatXf.position[2];
-
-      c.surfaceObj.transform.position[0] = gPlatXf.position[0];
-      c.surfaceObj.transform.position[1] = gPlatXf.position[1];
-      c.surfaceObj.transform.position[2] = gPlatXf.position[2];
-
-      c.surfaceObj.transform.eulerRotation[0] = gPlatXf.eulerRotation[0];
-      c.surfaceObj.transform.eulerRotation[1] = gPlatXf.eulerRotation[1];
-      c.surfaceObj.transform.eulerRotation[2] = gPlatXf.eulerRotation[2];
-      break;
+    if (!gPlatId) {
+        // Fallback: spawn under Mario if platform doesn't exist yet
+        float spawnPos[3] = {
+            g_mario_state.position[0],
+            g_mario_state.position[1] - 80.0f,  // foot height offset
+            g_mario_state.position[2]
+        };
+        spawn_flat_platform_under_mario(spawnPos, 2000.0f);
+        return;  // wait for next frame
     }
-  }
 
-  // Internal timer (optional - remove if GOAL controls direction fully)
-  gPlatTimer++;
-  if (gPlatTimer >= PLAT_MOVE_FRAMES) {
-    gPlatTimer = 0;
-    gPlatDir = -gPlatDir;
-  }
+    if (!g_platform_info_valid) {
+        // No valid GOAL data yet → skip this frame
+        return;
+    }
+
+    // ─────────────────────────────────────────────
+    // Unpack position from global (GOAL → libsm64 meters)
+    // ─────────────────────────────────────────────
+    float targetX, targetY, targetZ;
+    memcpy(&targetX, &g_platform_info.x_pos, sizeof(u32));
+    memcpy(&targetY, &g_platform_info.y_pos, sizeof(u32));
+    memcpy(&targetZ, &g_platform_info.z_pos, sizeof(u32));
+
+    targetX *= METERS_TO_UNITS;
+    targetY *= METERS_TO_UNITS;
+    targetZ *= METERS_TO_UNITS;
+
+    // ─────────────────────────────────────────────
+    // Unpack quaternion and convert to yaw
+    // ─────────────────────────────────────────────
+    float qx, qy, qz, qw;
+    memcpy(&qx, &g_platform_info.rot_x, sizeof(u32));
+    memcpy(&qy, &g_platform_info.rot_y, sizeof(u32));
+    memcpy(&qz, &g_platform_info.rot_z, sizeof(u32));
+    memcpy(&qw, &g_platform_info.rot_w, sizeof(u32));
+
+    // Normalize quaternion if needed (Jak usually normalizes, but to be safe)
+    float mag = sqrtf(qx*qx + qy*qy + qz*qz + qw*qw);
+    if (mag > 0.0001f) {
+        qx /= mag; qy /= mag; qz /= mag; qw /= mag;
+    } else {
+        qw = 1.0f;  // fallback to identity
+    }
+
+    float yaw_deg = quaternion_to_yaw_degrees(qx, qy, qz, qw);
+
+    // Debug: show what we're applying
+    printf("[PLATFORM] Applying → pos(%.2f, %.2f, %.2f) yaw=%.1f° (from quat %.4f,%.4f,%.4f,%.4f)\n",
+           targetX, targetY, targetZ, yaw_deg, qx, qy, qz, qw);
+
+    // ─────────────────────────────────────────────
+    // Apply to libsm64 physics transform
+    // ─────────────────────────────────────────────
+    gPlatXf.position[0] = targetX;
+    gPlatXf.position[1] = targetY;
+    gPlatXf.position[2] = targetZ;
+
+    gPlatXf.eulerRotation[0] = 0.0f;     // pitch = 0 (Jak platforms rarely pitch)
+    gPlatXf.eulerRotation[1] = -yaw_deg;  // yaw from quaternion
+    gPlatXf.eulerRotation[2] = 0.0f;     // roll = 0
+
+    // Optional: your old spin/flip logic (disabled since GOAL now sends real rotation)
+    // static float lastDir = 1.0f;
+    // if (gPlatDir != lastDir) {
+    //     gPlatShouldSpin = true;
+    //     gPlatYaw = 0.0f;
+    //     lastDir = gPlatDir;
+    // }
+    // if (gPlatShouldSpin) {
+    //     gPlatYaw += gPlatSpinSpeed * (1.f / 30.f);
+    //     if (gPlatYaw >= 180.0f) {
+    //         gPlatYaw = 180.0f;
+    //         gPlatShouldSpin = false;
+    //     }
+    // }
+    // gPlatXf.eulerRotation[1] += gPlatYaw;
+
+    // Push to libsm64 — Mario should now stick and rotate with the platform
+    sm64_surface_object_move(gPlatId, &gPlatXf);
+
+    // ─────────────────────────────────────────────
+    // Sync visual Cube for rendering + name label
+    // ─────────────────────────────────────────────
+    for (int i = 0; i < numCubes; i++) {
+        if (spawnedCubes[i].id == gPlatId) {
+            Cuben& c = spawnedCubes[i];
+
+            c.pos[0] = gPlatXf.position[0];
+            c.pos[1] = gPlatXf.position[1];
+            c.pos[2] = gPlatXf.position[2];
+
+            c.surfaceObj.transform.position[0] = gPlatXf.position[0];
+            c.surfaceObj.transform.position[1] = gPlatXf.position[1];
+            c.surfaceObj.transform.position[2] = gPlatXf.position[2];
+
+            c.surfaceObj.transform.eulerRotation[0] = gPlatXf.eulerRotation[0];
+            c.surfaceObj.transform.eulerRotation[1] = gPlatXf.eulerRotation[1];
+            c.surfaceObj.transform.eulerRotation[2] = gPlatXf.eulerRotation[2];
+
+            break;
+        }
+    }
+
+    // Optional internal timer (remove if GOAL fully controls direction)
+    // gPlatTimer++;
+    // if (gPlatTimer >= PLAT_MOVE_FRAMES) {
+    //     gPlatTimer = 0;
+    //     gPlatDir = -gPlatDir;
+    // }
 }
-
-void update_platform_under_mario(){
+void destroy_moving_platform_under_mario(){
 const char* floorName;
             floorName = "floor";
-            delete_surface_object_by_name("floor");
+            delete_surface_object_by_name("MovingPlat");
             //spawn_flat_platform_under_mario(zero_pos_array, 200.0f);
+            //MovingPlat
 
 }
 

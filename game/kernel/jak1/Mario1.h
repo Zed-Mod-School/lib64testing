@@ -66,5 +66,6 @@ struct PlatformInfo {
   u32 rot_x;
   u32 rot_y;
   u32 rot_z;
+  u32 rot_w;
 };
 
