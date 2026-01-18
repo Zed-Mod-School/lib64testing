@@ -4,7 +4,7 @@
 #include "common/util/FileUtil.h"
 #include "game/kernel/common/kscheme.h"
 #include "kscheme.h"
-
+#include "load_surfaces.h"
 #include "game/kernel/common/kmachine.h"
 
 //int variables here
@@ -12,6 +12,14 @@
 // Near the top of Mario1.cpp, with other globals
 
 static PlatformInfo g_platform_info = {0};  // persisted global - zero-initialized
+std::unordered_map<std::string, uint32_t> g_actor_surface_objects;
+
+struct SM64SurfaceObjectTransform *surfaces_object_get_transform_ptr( uint32_t objId ) {
+    // Stub implementation - always return NULL for now (forces updates every frame)
+    // TODO: Replace with real logic when possible
+    return NULL;
+}
+SM64SurfaceObjectTransform* surfaces_object_get_transform_ptr(uint32_t objId);
 
 // Optional: flag to know if we ever received valid data
 static bool g_platform_info_valid = false;
@@ -302,9 +310,7 @@ uint64_t pc_get_mario_z() {
 
 
 void pc_set_mario_camera(u32 x, u32 z) {
-  g_mario_inputs.camLookX;
   memcpy(&g_mario_inputs.camLookX, &x, 4);
-  g_mario_inputs.camLookZ;
   memcpy(&g_mario_inputs.camLookZ, &z, 4);
 }
 
@@ -426,61 +432,88 @@ void pc_dump_debug_surfaces_to_file(void) {
          gDebugSurfaceCount, filename);
 }
 
-void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_bits) {
-  float x, y, z, vert_index_f;
+// We'll need a bigger structure to hold name + surface
+struct NamedSurface {
+    SM64Surface surface;
+    std::string actor_name;   // or char name[64]; if you prefer fixed size
+};
 
-  // Decode floats
-  memcpy(&x, &x_bits, sizeof(float));
-  memcpy(&y, &y_bits, sizeof(float));
-  memcpy(&z, &z_bits, sizeof(float));
-  memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
+static NamedSurface gNamedDebugSurfaces[MAX_DEBUG_SURFACES];
+static int gNamedDebugSurfaceCount = 0;
 
-  // Unit conversion
-  x *= METERS_TO_UNITS;
-  y *= METERS_TO_UNITS;
-  z *= METERS_TO_UNITS;
+// Then modify the function:
+void pc_add_tris_to_surface(
+    u32 x_bits,
+    u32 y_bits,
+    u32 z_bits,
+    u32 vert_index_bits,
+    u32 name_bits   // only meaningful/valid when vert_index == 3
+) {
+    float x, y, z, vert_index_f;
+    memcpy(&x, &x_bits, sizeof(float));
+    memcpy(&y, &y_bits, sizeof(float));
+    memcpy(&z, &z_bits, sizeof(float));
+    memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
 
-  int vert_index = (int)(vert_index_f + 0.5f);
+    x *= METERS_TO_UNITS;
+    y *= METERS_TO_UNITS;
+    z *= METERS_TO_UNITS;
 
-  // Validate index
-  if (vert_index < 1 || vert_index > 3) {
-    printf("  ERROR: vert_index out of range (must be 1–3), aborting\n");
-    return;
-  }
-
-  int idx = vert_index - 1;
-  // Store vertex
-gTempVerts[idx][0] = (int32_t)x;
-gTempVerts[idx][1] = (int32_t)y;
-gTempVerts[idx][2] = (int32_t)z;
-
-
-  // Commit triangle if this is the last vertex, we trust GOAL to send the 3rd vertex last lol
-  if (vert_index == 3) {
-    if (gDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
-      printf("  ERROR: surface buffer full (%d), aborting\n",
-             gDebugSurfaceCount);
-      return;
+    int vert_index = (int)(vert_index_f + 0.5f);
+    if (vert_index < 1 || vert_index > 3) {
+        printf(" ERROR: vert_index out of range (must be 1–3), aborting\n");
+        return;
     }
-    struct SM64Surface* surf = &gDebugSurfaces[gDebugSurfaceCount];
-    surf->type = SURFACE_DEFAULT;
-    surf->force = 0;
-    surf->terrain = TERRAIN_STONE;
-    memcpy(surf->vertices, gTempVerts, sizeof(gTempVerts));
 
-    gDebugSurfaceCount++;
-  }
- // printf("[pc_add_tris] EXIT\n");
+    int idx = vert_index - 1;
+    gTempVerts[idx][0] = (int32_t)x;
+    gTempVerts[idx][1] = (int32_t)y;
+    gTempVerts[idx][2] = (int32_t)z;
+
+    // Only commit when we have the full triangle + name
+    if (vert_index == 3) {
+        if (gNamedDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
+            printf(" ERROR: named surface buffer full (%d), aborting\n", gNamedDebugSurfaceCount);
+            return;
+        }
+
+        // // Decode name only once per triangle
+        // std::string actor_name;
+        // if (name_bits != 0) {  // safety check - 0 might mean invalid/no name
+        //     actor_name = Ptr<String>(name_bits).c()->data();
+        // } else {
+        //     actor_name = "unnamed_actor_" + std::to_string(gNamedDebugSurfaceCount);
+        //     printf(" WARNING: no name provided for triangle, using fallback\n");
+        // }
+
+        NamedSurface* ns = &gNamedDebugSurfaces[gNamedDebugSurfaceCount];
+        ns->surface.type    = SURFACE_DEFAULT;
+        ns->surface.force   = 0;
+        ns->surface.terrain = TERRAIN_STONE;
+        memcpy(ns->surface.vertices, gTempVerts, sizeof(gTempVerts));
+
+       // ns->actor_name = std::move(actor_name);  // efficient move
+
+        gNamedDebugSurfaceCount++;
+
+        // Optional debug print
+        // printf("[pc_add_tris] Added triangle for actor: %s\n", ns->actor_name.c_str());
+    }
 }
 
 
 
 
 
+
+
+
 void pc_burn_marios_butt() { // does not shoot mario up as much as we'd like. it's a start
-  if (g_mario_state.action != ACT_BURNING_GROUND && g_mario_state.action != ACT_BURNING_FALL && g_mario_state.action != ACT_BURNING_JUMP)
-                sm64_set_mario_action(marioId, ACT_BURNING_JUMP);
-                pc_dump_debug_surfaces_to_file();
+if (g_mario_state.action != ACT_BURNING_GROUND &&
+    g_mario_state.action != ACT_BURNING_FALL &&
+    g_mario_state.action != ACT_BURNING_JUMP) {
+    pc_dump_debug_surfaces_to_file();   // ← make sure this is inside the if
+}
 }
 
 
@@ -823,19 +856,116 @@ const char* floorName;
 
 }
 
+// Add these constants / globals near the top of Mario1.cpp (or in a header)
+constexpr float CLEANUP_DISTANCE_THRESHOLD = 10.0f;  // in SM64 units (meters) — adjust as needed
+constexpr float CLEANUP_DISTANCE_SQ = CLEANUP_DISTANCE_THRESHOLD * CLEANUP_DISTANCE_THRESHOLD;
+
+// Assuming you already have these from previous code
+extern std::unordered_map<std::string, uint32_t> g_actor_surface_objects;
+static inline float dist_sq_to_mario(const float pos[3]) {
+    float dx = pos[0] - g_mario_state.position[0];
+    float dz = pos[2] - g_mario_state.position[2];  // ignore Y for horizontal cleanup
+    return dx*dx + dz*dz;
+}
+
+// Helper to get current transform of a surface object (for comparison)
+static bool transform_needs_update(uint32_t obj_id, const SM64ObjectTransform& new_transform) {
+    // Force cast - safe because we're only reading the first 3 floats (position)
+    const SM64ObjectTransform* current = reinterpret_cast<const SM64ObjectTransform*>(
+        surfaces_object_get_transform_ptr(obj_id)
+    );
+    if (!current) return true;
+
+    constexpr float EPS = 0.01f;
+    for (int i = 0; i < 3; ++i) {
+        if (std::abs(current->position[i] - new_transform.position[i]) > EPS ||
+            std::abs(current->eulerRotation[i] - new_transform.eulerRotation[i]) > EPS) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 void pc_spawn_mario_test_collide(u32 name_ptr) {
-    // Convert the u32 pointer to the C++ string (like in pc_filepath_exists)
-    auto name_str = std::string(Ptr<String>(name_ptr).c()->data());
+    // Convert name
+    std::string name_str = Ptr<String>(name_ptr).c()->data();
     const char* name = name_str.c_str();
 
-    // first we delete the old surface object if it exists
-    delete_surface_object_by_name(name);
+    printf("[MarioCollide] Processing actor: %s\n", name);
 
-    // then we spawn in the new one
-    pc_mario_spawn_updated_tris(name);
+    // Step 1: Cleanup far-away (keep as is, but add logging for debug)
+    std::vector<std::string> to_remove;
+    for (const auto& [actor_name, obj_id] : g_actor_surface_objects) {
+        const SM64ObjectTransform* trans = reinterpret_cast<const SM64ObjectTransform*>(
+            surfaces_object_get_transform_ptr(obj_id)
+        );
+        if (!trans) continue;
 
+        float dist2 = dist_sq_to_mario(trans->position);
+        if (dist2 > CLEANUP_DISTANCE_SQ) {
+            printf("[MarioCollide] Removing far-away '%s' (dist^2=%.1f)\n", actor_name.c_str(), dist2);
+            to_remove.push_back(actor_name);
+        }
+    }
+    for (const auto& actor_name : to_remove) {
+        auto it = g_actor_surface_objects.find(actor_name);
+        if (it != g_actor_surface_objects.end()) {
+            sm64_surface_object_delete(it->second);
+            g_actor_surface_objects.erase(it);
+        }
+    }
 
-// this is called after we finish uploading triangles to mario enginge and it spawns the object and resets the debug buffers
+    // Step 2: Get transform (from g_platform_info, scaled)
+    SM64ObjectTransform desired_transform = {};
+    desired_transform.position[0] = g_platform_info.x_pos * METERS_TO_UNITS;
+    desired_transform.position[1] = g_platform_info.y_pos * METERS_TO_UNITS;
+    desired_transform.position[2] = g_platform_info.z_pos * METERS_TO_UNITS;
+    desired_transform.eulerRotation[0] = g_platform_info.rot_x;  // assume degrees; convert if radians
+    desired_transform.eulerRotation[1] = g_platform_info.rot_y;
+    desired_transform.eulerRotation[2] = g_platform_info.rot_z;
+
+    // Step 3: Check existence - update if changed
+    auto it = g_actor_surface_objects.find(name_str);
+    if (it != g_actor_surface_objects.end()) {
+        uint32_t existing_id = it->second;
+        if (transform_needs_update(existing_id, desired_transform)) {
+            printf("[MarioCollide] Updating '%s'\n", name);
+            sm64_surface_object_move(existing_id, &desired_transform);
+        }
+        // Always clear buffer after processing (prevent bleed)
+        gDebugSurfaceCount = 0;
+        return;  // Early exit - no spawn needed
+    }
+
+    // Step 4: Spawn new ONLY if triangles are ready
+    if (gDebugSurfaceCount == 0) {
+        printf("[MarioCollide] No triangles for '%s' - skipping spawn\n", name);
+        return;
+    }
+
+    SM64SurfaceObject new_obj;
+    new_obj.transform = desired_transform;
+    new_obj.surfaceCount = gDebugSurfaceCount;
+    new_obj.surfaces = gDebugSurfaces;
+
+    uint32_t new_id = sm64_surface_object_create(&new_obj);
+    if (new_id == 0) {
+        printf("[MarioCollide] Failed to create '%s'\n", name);
+        return;
+    }
+
+    gDebugSurfaceCount = 0;  // or gNamedDebugSurfaceCount = 0;
+    gTempVertIndex = 0;      // if you have this
+
+    g_actor_surface_objects[name_str] = new_id;
+
+    printf("[MarioCollide] Spawned '%s' with %d tris at (%.1f, %.1f, %.1f)\n",
+           name, gDebugSurfaceCount, desired_transform.position[0],
+           desired_transform.position[1], desired_transform.position[2]);
+
+    // Clear buffer after successful spawn
+    gDebugSurfaceCount = 0;
 }
 
 

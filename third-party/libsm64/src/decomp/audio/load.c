@@ -1,5 +1,5 @@
 #ifndef VERSION_SH
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include "../../debug_print.h"
 #include "data.h"
@@ -589,14 +589,14 @@ l2:
 
 struct AudioBank *bank_load_immediate(s32 bankId, s32 arg1) {
 	DEBUG_PRINT("bank_load_immediate()");
-	
+
     UNUSED u32 pad1[4];
     u32 buf[4];
     u32 numInstruments, numDrums;
     struct AudioBank *ret;
     u8 *ctlData;
     s32 alloc;
-	
+
     // (This is broken if the length is 1 (mod 16), but that never happens --
     // it's always divisible by 4.)
 	DEBUG_PRINT("- getting alloc");
@@ -611,7 +611,7 @@ struct AudioBank *bank_load_immediate(s32 bankId, s32 arg1) {
     if (ret == NULL) {
         return NULL;
     }
-	
+
 	DEBUG_PRINT("- copying dma immediate 1");
 	DEBUG_PRINT("- ctlData: %x", ctlData);
     audio_dma_copy_immediate((uintptr_t) ctlData, buf, 0x10);
@@ -652,7 +652,7 @@ struct AudioBank *bank_load_async(s32 bankId, s32 arg1, struct SequencePlayer *s
     if (ret == NULL) {
         return NULL;
     }
-	
+
     audio_dma_copy_immediate((uintptr_t) ctlData, buf, 0x10);
     numInstruments = buf[0];
     numDrums = buf[1];
@@ -691,7 +691,7 @@ void *sequence_dma_immediate(s32 seqId, s32 arg1) {
     s32 seqLength;
     void *ptr;
     u8 *seqData;
-	
+
     seqLength = gSeqFileHeader->seqArray[seqId].len + 0xf;
     seqLength = ALIGN16(seqLength);
     seqData = gSeqFileHeader->seqArray[seqId].offset;
@@ -710,7 +710,7 @@ void *sequence_dma_async(s32 seqId, s32 arg1, struct SequencePlayer *seqPlayer) 
     void *ptr;
     u8 *seqData;
     OSMesgQueue *mesgQueue;
-	
+
     eu_stubbed_printf_1("Seq %d Loading Start\n", seqId);
     seqLength = gSeqFileHeader->seqArray[seqId].len + 0xf;
     seqLength = ALIGN16(seqLength);

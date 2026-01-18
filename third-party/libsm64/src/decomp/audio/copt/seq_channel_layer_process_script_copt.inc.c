@@ -1,7 +1,7 @@
 //! Copt inlining for US/JP. Here be dragons
 // This version is basically identical to EU
 
-#include <ultra64.h>
+#include "ultra64.h"
 #include <macros.h>
 
 #include "../heap.h"

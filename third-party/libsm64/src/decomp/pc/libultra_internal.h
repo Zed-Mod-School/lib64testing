@@ -1,6 +1,6 @@
 #ifndef _LIBULTRA_INTERNAL_H_
 #define _LIBULTRA_INTERNAL_H_
-#include <ultra64.h>
+#include "ultra64.h"
 
 /*
  * This define is needed because the original definitions in __osDequeueThread.c are declared

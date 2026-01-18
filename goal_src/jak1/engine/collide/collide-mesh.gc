@@ -120,9 +120,10 @@
             ;;(add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
             ;;(pc-add-tris-to-surface a2-1 a3-0 t0-0)
             ;; these are cordinate vectors, so we need to extract x, y, z components of each cord
-            (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
-            (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
-            (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)))
+            (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0 (the-as string (-> arg0 name)))
+            (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0  (the-as string (-> arg0 name)))
+            (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0 (the-as string (-> arg0 name))))
+        )
         ;; pc-spawn-mario-collide-if-needed?
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
     0
@@ -136,11 +137,13 @@
     (let* ((p (the-as process-drawable (process-by-ename proc-name)))
            (e (the entity-actor (-> p entity)))
            (type-target process-drawable)
-           (distance (meters 50)))
+           (distance (meters 50))
+           )
       (when (and p
                  e
                  (nonzero? (-> p root))
                  (type-type? (-> e etype) type-target)
+                 (= p (process-by-ename "citb-disc-d-2"))
                  ;;  (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
                  (type-type? (-> p root type) collide-shape))
         (let ((root (the collide-shape (-> p root))))
@@ -177,7 +180,7 @@
   (let* ((plat process))
     (when (and plat
                (type-type? (-> plat type) process-drawable)
-               (nonzero? (-> (the-as collide-shape (-> plat root)) riders num-riders)))
+               )
       (let ((info (new 'stack 'platform-info)))
         (set! (-> info x-pos) (-> (the process-drawable plat) root trans x))
         (set! (-> info y-pos) (+ (-> (the process-drawable plat) root trans y) (meters 0.0)))
@@ -230,6 +233,7 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
                                          e
                                          (nonzero? (-> p root))
                                          (type-type? (-> e etype) type-target)
+                                         (= p (process-by-ename "citb-disc-d-2"))
                                          ;;more conditionals here
                                          (or (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
                                              ;; checks here are to ignore the distance limit and always load the collide
@@ -242,23 +246,7 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
                                             (= (-> e etype symbol) 'periscope)
                                             (= p (process-by-ename "citb-plat-15")))
                                     (return 0))
-                                  (when (and (type-type? (-> p root type) collide-shape) (-> root riders) (nonzero? (-> root riders num-riders)))
-                                      (set! we-are-on-platform #t)
-                                    (update-platform-from-goal (the-as process-drawable p))
-                                    (return 0))
-;; (when we-are-on-platform
-;;       (let ((info (new 'stack 'platform-info)))
-;;         (set! (-> info x-pos) 0.0)
-;;         (set! (-> info y-pos) 0.0)
-;;         (set! (-> info z-pos) 0.0)
-;;         (set! (-> info rot-x) 0.0)
-;;         (set! (-> info rot-y) 0.0)
-;;         (set! (-> info rot-z) 0.0)
-;;         (set! (-> info rot-w) 1.0)
-;;         (pc-update-platform-info-from-goal info)
-;;         (set! we-are-on-platform #f)
-;;       )
-;; )
+
 
                                   ;; check if the root prim is a prim group
                                   (if (type-type? (-> root root-prim type) collide-shape-prim-group)
@@ -268,13 +256,21 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
                                       (dotimes (i (-> group num-prims))
                                         (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
                                           ;; if it is indeed a mesh, we draw it
-                                          (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+                                          (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index))))
+                                              (when *target*
+                                              (update-platform-from-goal p)
+      (pc-spawn-mario-test-collide (the-as string (-> p name))))
+                                          )
                                     ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
                                     (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
                                       (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
                                                              p
                                                              (-> root root-prim transform-index))
-                                      (1+! *count-close-actors*)))))))
+                                      (1+! *count-close-actors*)
+                                          (when *target*
+                                          (update-platform-from-goal p)
+     (pc-spawn-mario-test-collide (the-as string (-> p name))))
+                                      ))))))
                           *null-kernel-context*)
     ;;(add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
     ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
@@ -285,9 +281,9 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
     ;;     (set-scale! fnt 0.2)
     ;;     (set-flags! fnt (font-flags kerning large))
     ;;     (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
-    (when *target*
-      (pc-spawn-mario-test-collide "fart"))
+
     (set! *count-close-actors* 0)))
+
 
 (defun load-goal-actor-collide-to-sm64-2 ()
   (when (and (not (process-by-name "proc-mask" *active-pool*))

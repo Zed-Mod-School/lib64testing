@@ -36,7 +36,8 @@ void pc_add_tris_to_surface(
       uint32_t x_bits,
       uint32_t y_bits,
       uint32_t z_bits,
-      uint32_t vert_index_bits
+      uint32_t vert_index_bits,
+      uint32_t name_ptr
   );
 void update_platform_info_from_goal(u32 platform_info_ptr);
 void update_moving_platform();

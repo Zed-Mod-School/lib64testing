@@ -1,5 +1,5 @@
 #ifndef VERSION_SH
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include "../../debug_print.h"
 #include "synthesis.h"
@@ -716,7 +716,7 @@ u64 *synthesis_process_notes(s16 *aiBuf, s32 bufLen, u64 *cmd) {
 			DEBUG_PRINT("- note is enabled but not loaded");
             gAudioErrorFlags = (note->bankId << 8) + noteIndex + 0x1000000;
 			continue;
-        } 
+        }
 
 		DEBUG_PRINT("- if note is enabled");
 		if (((struct vNote *)note)->enabled) {

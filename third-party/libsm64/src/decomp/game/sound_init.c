@@ -1,4 +1,4 @@
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include "area.h"
 #include "../audio/external.h"
