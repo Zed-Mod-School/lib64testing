@@ -4,7 +4,8 @@
 #include "common/util/FileUtil.h"
 #include "game/kernel/common/kscheme.h"
 #include "kscheme.h"
-
+#include <span>
+#include <algorithm>
 #include "game/kernel/common/kmachine.h"
 
 //int variables here
@@ -388,6 +389,56 @@ static int32_t gTempVerts[3][3];
 
 static int gTempVertIndex = 0;
 
+
+// Near the top of Mario1.cpp, after other includes
+
+#include <unordered_map>
+#include <unordered_set>
+#include <array>
+#include <string>
+#include <algorithm>   // for std::sort
+
+// 9 ints = 3 vertices × (x,y,z)
+using TriKey = std::array<int32_t, 9>;
+
+
+// Custom hash for std::array<int32_t, N>
+template<size_t N>
+struct ArrayHash {
+    size_t operator()(const std::array<int32_t, N>& arr) const noexcept {
+        size_t seed = N;
+        for (auto val : arr) {
+            // Simple but effective mixing (like boost::hash_combine)
+            seed ^= static_cast<size_t>(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+};
+
+// Custom equality (optional but good practice – std::equal_to should work, but explicit is safer)
+template<size_t N>
+struct ArrayEqual {
+    bool operator()(const std::array<int32_t, N>& a, const std::array<int32_t, N>& b) const noexcept {
+        return a == b;
+    }
+};
+
+
+// Per-actor seen triangles (prevents duplicates within the same actor)
+static std::unordered_map<
+    std::string,
+    std::unordered_set<
+        TriKey,
+        ArrayHash<9>,           // ← custom hash
+        ArrayEqual<9>           // ← optional, can also use std::equal_to<TriKey>
+    >
+> g_seen_tris_per_actor;
+
+// The actual buffer we send to libsm64
+static NamedSurface gNamedDebugSurfaces[MAX_DEBUG_SURFACES];
+static int gNamedDebugSurfaceCount = 0;
+
+
 // DEBUGGING: Dump the current debug surfaces to a C file to view in the test program
 void pc_dump_debug_surfaces_to_file(void) {
   const char* filename = "debug_surfaces.c";
@@ -426,52 +477,99 @@ void pc_dump_debug_surfaces_to_file(void) {
          gDebugSurfaceCount, filename);
 }
 
-void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_bits) {
-  float x, y, z, vert_index_f;
-
-  // Decode floats
-  memcpy(&x, &x_bits, sizeof(float));
-  memcpy(&y, &y_bits, sizeof(float));
-  memcpy(&z, &z_bits, sizeof(float));
-  memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
-
-  // Unit conversion
-  x *= METERS_TO_UNITS;
-  y *= METERS_TO_UNITS;
-  z *= METERS_TO_UNITS;
-
-  int vert_index = (int)(vert_index_f + 0.5f);
-
-  // Validate index
-  if (vert_index < 1 || vert_index > 3) {
-    printf("  ERROR: vert_index out of range (must be 1–3), aborting\n");
-    return;
-  }
-
-  int idx = vert_index - 1;
-  // Store vertex
-gTempVerts[idx][0] = (int32_t)x;
-gTempVerts[idx][1] = (int32_t)y;
-gTempVerts[idx][2] = (int32_t)z;
+struct TrisVertexInfo {
+  u32 x_bits;
+  u32 y_bits;
+  u32 z_bits;
+  u32 vert_index_bits;
+  u32 name_ptr_bits;
+};
 
 
-  // Commit triangle if this is the last vertex, we trust GOAL to send the 3rd vertex last lol
-  if (vert_index == 3) {
-    if (gDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
-      printf("  ERROR: surface buffer full (%d), aborting\n",
-             gDebugSurfaceCount);
-      return;
+
+void pc_add_tris_to_surface(u32 info_ptr) {
+    if (!info_ptr) {
+        return;
     }
-    struct SM64Surface* surf = &gDebugSurfaces[gDebugSurfaceCount];
-    surf->type = SURFACE_DEFAULT;
-    surf->force = 0;
-    surf->terrain = TERRAIN_STONE;
-    memcpy(surf->vertices, gTempVerts, sizeof(gTempVerts));
 
-    gDebugSurfaceCount++;
-  }
- // printf("[pc_add_tris] EXIT\n");
+    auto info = Ptr<TrisVertexInfo>(info_ptr).c();  // ← note: TrisVertexInfo (your actual name)
+
+    float fx, fy, fz, fvert_index;
+    memcpy(&fx, &info->x_bits, sizeof(u32));
+    memcpy(&fy, &info->y_bits, sizeof(u32));
+    memcpy(&fz, &info->z_bits, sizeof(u32));
+    memcpy(&fvert_index, &info->vert_index_bits, sizeof(u32));
+
+    // Jak → SM64 units
+    float x = fx * METERS_TO_UNITS;
+    float y = fy * METERS_TO_UNITS;
+    float z = fz * METERS_TO_UNITS;
+
+    int vert_index = static_cast<int>(fvert_index + 0.5f);
+    if (vert_index < 1 || vert_index > 3) {
+        return;
+    }
+
+    int idx = vert_index - 1;
+    gTempVerts[idx][0] = static_cast<int32_t>(x + 0.5f);
+    gTempVerts[idx][1] = static_cast<int32_t>(y + 0.5f);
+    gTempVerts[idx][2] = static_cast<int32_t>(z + 0.5f);
+
+    if (vert_index != 3) {
+        return;
+    }
+
+    // Get actor name
+    std::string actor_name = "unnamed_actor";
+    if (info->name_ptr_bits != 0) {
+        actor_name = Ptr<String>(info->name_ptr_bits).c()->data();
+    }
+
+    // Create canonical key (sorted vertices → ignores winding order)
+    std::array<int32_t*, 3> verts = {gTempVerts[0], gTempVerts[1], gTempVerts[2]};
+
+    std::sort(verts.begin(), verts.end(), [](int32_t* a, int32_t* b) {
+        if (a[0] != b[0]) return a[0] < b[0];
+        if (a[1] != b[1]) return a[1] < b[1];
+        return a[2] < b[2];
+    });
+
+    TriKey key{};
+    for (int i = 0; i < 3; ++i) {
+        key[i*3 + 0] = verts[i][0];
+        key[i*3 + 1] = verts[i][1];
+        key[i*3 + 2] = verts[i][2];
+    }
+
+    // Deduplicate per actor
+    auto& seen = g_seen_tris_per_actor[actor_name];
+    if (seen.find(key) != seen.end()) {
+        // Already seen this exact triangle for this actor → skip
+        return;
+    }
+    seen.insert(key);
+
+    // Add new surface
+    if (gNamedDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
+        printf("ERROR: named debug surface buffer full (%d)\n", gNamedDebugSurfaceCount);
+        return;
+    }
+
+    NamedSurface* ns = &gNamedDebugSurfaces[gNamedDebugSurfaceCount++];
+    ns->surface.type    = SURFACE_DEFAULT;
+    ns->surface.force   = 0;
+    ns->surface.terrain = TERRAIN_STONE;
+    memcpy(ns->surface.vertices, gTempVerts, sizeof(gTempVerts));
+    ns->actor_name = std::move(actor_name);
+
+    // Optional logging (rate limit to avoid spam)
+    static int log_counter = 0;
+    if ((++log_counter % 64) == 0) {
+        printf("[MarioCollide] Added unique tri for '%s' (#%d total)\n",
+               ns->actor_name.c_str(), gNamedDebugSurfaceCount);
+    }
 }
+
 
 
 
@@ -505,107 +603,138 @@ static const struct SM64Surface psuedo_floor_surfaces[] = {
 template <size_t N>
 uint32_t spawn_surfaces_under_mario(
     const float* marioPos,
-    const SM64Surface (&surfaces)[N], // Array passed by reference (size N is deduced)
+    NamedSurface (&surfacesArray)[N],
     const char* objectName,
     float y_offset = 0.0f
 ) {
-    if (numCubes >= MAX_CUBES) return 0;
 
+   if (numCubes >= MAX_CUBES) {
+        return 0;
+    }
+
+    if (gNamedDebugSurfaceCount <= 0 || surfacesArray == nullptr) {
+        return 0;  // nothing to spawn
+    }
+
+    // Create span inside the function — clean and safe
+    std::span<const NamedSurface> namedSurfaces(surfacesArray, gNamedDebugSurfaceCount);
     SM64SurfaceObject obj;
     memset(&obj, 0, sizeof(SM64SurfaceObject));
 
     Cuben& c = spawnedCubes[numCubes++];
 
     // Store the object name
-    c.name = objectName; // <-- STORE NAME
-    // Set object transform (position) - this is the object's origin
+    c.name = objectName;
+
+    // Set object transform (origin position)
     obj.transform.position[0] = marioPos[0];
     obj.transform.position[1] = marioPos[1] + y_offset;
     obj.transform.position[2] = marioPos[2];
 
-    // Use the deduced size N directly
-    obj.surfaceCount = N;
+    // Set count from the span
+    obj.surfaceCount = static_cast<uint32_t>(namedSurfaces.size());
 
-    // Allocate memory for the surfaces and copy the data
+    // Allocate memory for the SM64 surfaces
     obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * obj.surfaceCount);
     if (!obj.surfaces) {
         numCubes--;
         return 0;
     }
 
-    // Copy the input array data
-    memcpy(obj.surfaces, surfaces, sizeof(SM64Surface) * obj.surfaceCount);
+    // Copy only the SM64Surface part from each NamedSurface
+    for (size_t i = 0; i < namedSurfaces.size(); ++i) {
+        obj.surfaces[i] = namedSurfaces[i].surface;
+    }
 
-    // Calculate a rough bounding box center and size for visualization/debugging (optional, but good practice)
+    // Calculate rough bounding box (same logic, now using span)
     float min_coords[3] = {1e9f, 1e9f, 1e9f};
     float max_coords[3] = {-1e9f, -1e9f, -1e9f};
 
-    for (size_t i = 0; i < N; ++i) {
-        for (int j = 0; j < 3; ++j) { // Vertices
-            for (int k = 0; k < 3; ++k) { // XYZ coordinates
-                float v = (float)surfaces[i].vertices[j][k];
+    for (const auto& ns : namedSurfaces) {
+        const auto& surf = ns.surface;
+        for (int j = 0; j < 3; ++j) { // vertices
+            for (int k = 0; k < 3; ++k) { // xyz
+                float v = static_cast<float>(surf.vertices[j][k]);
                 if (v < min_coords[k]) min_coords[k] = v;
                 if (v > max_coords[k]) max_coords[k] = v;
             }
         }
     }
 
-    // Set Cube pos/size based on world coordinates of the array for drawing/tracking
+    // Center and rough size for visualization/tracking
     c.pos[0] = (max_coords[0] + min_coords[0]) / 2.0f;
     c.pos[1] = (max_coords[1] + min_coords[1]) / 2.0f;
     c.pos[2] = (max_coords[2] + min_coords[2]) / 2.0f;
 
-    c.size = fmaxf(fmaxf(max_coords[0] - min_coords[0], max_coords[1] - min_coords[1]), max_coords[2] - min_coords[2]);
+    c.size = fmaxf(fmaxf(max_coords[0] - min_coords[0],
+                         max_coords[1] - min_coords[1]),
+                         max_coords[2] - min_coords[2]);
 
+    // Create in libsm64
     uint32_t id = sm64_surface_object_create(&obj);
 
+    c.id = id;
+    c.surfaceObj = obj;
 
-c.id = id;
-c.surfaceObj = obj;
     return id;
 }
 
 
 void delete_surface_object_by_name(const char* name) {
-    if (!name || numCubes == 0) return;
+    if (!name) {
+        printf("[MarioDelete] ERROR: delete called with NULL name - ignoring\n");
+        return;
+    }
+
+    if (numCubes == 0) {
+        printf("[MarioDelete] No objects spawned (numCubes=0), nothing to delete for '%s'\n", name);
+        return;
+    }
+
+    printf("[MarioDelete] Attempting to delete object named '%s' (current numCubes=%d)\n", name, numCubes);
 
     int index_to_remove = -1;
 
     // 1. Find the object by name
     for (int i = 0; i < numCubes; ++i) {
         const Cuben& c = spawnedCubes[i];
-        // Check if the object has a name and if it matches the requested name
         if (c.name != NULL && strcmp(c.name, name) == 0) {
             index_to_remove = i;
-            break; // Found the object, stop searching
+            printf("[MarioDelete] Found match at index %d (id=%u)\n", i, c.id);
+            break;
         }
     }
 
-    if (index_to_remove != -1) {
-        Cuben& c = spawnedCubes[index_to_remove];
-
-        // 2. De-register the collision object using the stored ID
-        sm64_surface_object_delete(c.id);
-
-        // 3. Free the surface memory that was malloc'd in spawn_surfaces_under_mario
-        if (c.surfaceObj.surfaces != NULL) {
-            free(c.surfaceObj.surfaces);
-            c.surfaceObj.surfaces = NULL;
-        }
-
-        // 4. Remove the object from the tracking array (Swap-and-Pop)
-
-        // Decrement the total count
-        numCubes--;
-
-        // If the object being removed wasn't the last one,
-        // copy the last Cube structure over the one we are removing.
-        if (index_to_remove < numCubes) {
-            spawnedCubes[index_to_remove] = spawnedCubes[numCubes];
-        }
-
-        // The object is now removed from the array and its collision is deleted.
+    if (index_to_remove == -1) {
+        printf("[MarioDelete] No object found with name '%s' - nothing deleted\n", name);
+        return;
     }
+
+    Cuben& c = spawnedCubes[index_to_remove];
+
+    // 2. De-register from libsm64
+    printf("[MarioDelete] Deleting surface object from libsm64 (id=%u)\n", c.id);
+    sm64_surface_object_delete(c.id);
+
+    // 3. Free allocated surfaces memory
+    if (c.surfaceObj.surfaces != NULL) {
+        printf("[MarioDelete] Freeing %u surfaces (ptr=%p)\n", c.surfaceObj.surfaceCount, (void*)c.surfaceObj.surfaces);
+        free(c.surfaceObj.surfaces);
+        c.surfaceObj.surfaces = NULL;
+    } else {
+        printf("[MarioDelete] Warning: surfaces ptr was already NULL for id=%u\n", c.id);
+    }
+
+    // 4. Remove from tracking array (swap-and-pop)
+    printf("[MarioDelete] Removing from array at index %d (numCubes was %d)\n", index_to_remove, numCubes);
+    numCubes--;
+
+    if (index_to_remove < numCubes) {
+        printf("[MarioDelete] Swapping last object (index %d) into position %d\n", numCubes, index_to_remove);
+        spawnedCubes[index_to_remove] = spawnedCubes[numCubes];
+    }
+
+    printf("[MarioDelete] Successfully deleted '%s' (remaining objects: %d)\n", name, numCubes);
 }
 
 static int surface_spawn_count = 0;
@@ -616,24 +745,21 @@ void pc_mario_spawn_updated_tris(const char* name){
 
                 const char* objectName;
                 objectName = name; //money-32
-
-
                 //spawn_surfaces_under_mario(g_mario_state.position, beach_surfaces, objectName);
                 const float zero_pos_array[3] = {0.0f, 0.0f, 0.0f};
-                spawn_surfaces_under_mario(zero_pos_array, gDebugSurfaces, objectName); // Offset crate above beach
+                spawn_surfaces_under_mario(zero_pos_array, gNamedDebugSurfaces, objectName);
                 surface_spawn_count++; // Increment counter
                   // Reset buffers
   gDebugSurfaceCount = 0;
   memset(gDebugSurfaces, 0, sizeof(gDebugSurfaces));
   memset(gTempVerts, 0, sizeof(gTempVerts));
-
 }
 
 void update_psuedo_floor_under_mario(){
 const char* floorName;
             floorName = "floor";
             delete_surface_object_by_name("floor");
-            spawn_surfaces_under_mario(g_mario_state.position,psuedo_floor_surfaces, floorName, -300.0f);
+            //spawn_surfaces_under_mario(g_mario_state.position,psuedo_floor_surfaces, floorName, -300.0f);
 
 }
 
@@ -823,13 +949,37 @@ const char* floorName;
 
 }
 
+
+bool object_exists_by_name(const char* name) {
+    if (!name || numCubes == 0) return false;
+
+    for (int i = 0; i < numCubes; ++i) {
+        const Cuben& c = spawnedCubes[i];
+        if (c.name != NULL && strcmp(c.name, name) == 0) {
+            return true;  // Found - exists
+        }
+    }
+    return false;  // Not found
+}
+
+
+
 void pc_spawn_mario_test_collide(u32 name_ptr) {
     // Convert the u32 pointer to the C++ string (like in pc_filepath_exists)
     auto name_str = std::string(Ptr<String>(name_ptr).c()->data());
     const char* name = name_str.c_str();
+ // first we delete the old surface object if it exists
+     delete_surface_object_by_name(name);
 
-    // first we delete the old surface object if it exists
-    delete_surface_object_by_name(name);
+
+    if (object_exists_by_name(name)) {
+        // Already exists - skip spawning
+        // Optional: printf for debug
+         printf("[Mario] Object '%s' already spawned, skipping\n", name);
+        return;
+    }
+
+
 
     // then we spawn in the new one
     pc_mario_spawn_updated_tris(name);

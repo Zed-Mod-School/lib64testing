@@ -22,6 +22,11 @@ constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 
 #include <vector>
 extern std::vector<SM64SurfaceObject> g_active_debug_objects;  // DECLARATION
+struct NamedSurface {
+    SM64Surface surface;
+    std::string actor_name;   // for debugging / logging only
+};
+
 uint64_t pc_get_mario_x();
 uint64_t pc_get_mario_y();
 uint64_t pc_get_mario_z();
@@ -32,12 +37,8 @@ void pc_set_mario_music_from_goal(uint32_t music_bits);
 void pc_set_mario_position_from_goal(uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
 void pc_set_mario_water_level_from_goal(uint32_t level_bits);
 void pc_change_mario_state(uint32_t act_bits);
-void pc_add_tris_to_surface(
-      uint32_t x_bits,
-      uint32_t y_bits,
-      uint32_t z_bits,
-      uint32_t vert_index_bits
-  );
+void pc_add_tris_to_surface(u32 info_ptr);
+
 void update_platform_info_from_goal(u32 platform_info_ptr);
 void update_moving_platform();
 void pc_spawn_mario_test_collide(uint32_t name_ptr);
