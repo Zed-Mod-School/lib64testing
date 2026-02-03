@@ -6,7 +6,7 @@
 (require "engine/collide/collide-mesh-h.gc")
 
 ;; DECOMP BEGINS
-
+(define *last-sent-platform-x* 0.0)
 (defmethod asize-of ((this collide-mesh))
   "Compute the size in memory of a collide-mesh. Somehow this only counts num-tris and not verts."
   (the-as int (+ (-> collide-mesh size) (* (+ (-> this num-tris) -1) 8))))
@@ -128,40 +128,101 @@
     0
     (none)))
 
+    (defmethod debug-draw-plat-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
+  "Draw a collide-mesh."
+  (rlet ((acc :class vf)
+         (vf0 :class vf)
+         (vf1 :class vf)
+         (vf2 :class vf)
+         (vf3 :class vf)
+         (vf4 :class vf)
+         (vf5 :class vf)
+         (vf6 :class vf)
+         (vf7 :class vf))
+    (init-vf0-vector)
+    (let ((s5-0 (the-as object (-> this tris)))
+          (s4-0 (-> arg0 node-list data arg1 bone transform)))
+      (countdown (s3-0 (-> this num-tris))
+        (let ((a2-1 (new 'stack-no-clear 'vector))
+              (a3-0 (new 'stack-no-clear 'vector))
+              (t0-0 (new 'stack-no-clear 'vector)))
+          (.lvf vf4 (&-> s4-0 vector 0 quad))
+          (.lvf vf5 (&-> s4-0 vector 1 quad))
+          (.lvf vf6 (&-> s4-0 vector 2 quad))
+          (.lvf vf7 (&-> s4-0 vector 3 quad))
+          (.lvf vf1 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 0)) quad))
+          (.lvf vf2 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 1)) quad))
+          (.lvf vf3 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 2)) quad))
+          (let ((t1-0 (copy-and-set-field (-> *pat-mode-info* (-> (the-as collide-mesh-tri s5-0) pat mode) color) a 16)))
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf1 acc)
+            (.add.mul.y.vf acc vf5 vf1 acc)
+            (.add.mul.z.vf vf1 vf6 vf1 acc)
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf2 acc)
+            (.add.mul.y.vf acc vf5 vf2 acc)
+            (.add.mul.z.vf vf2 vf6 vf2 acc)
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf3 acc)
+            (.add.mul.y.vf acc vf5 vf3 acc)
+            (.add.mul.z.vf vf3 vf6 vf3 acc)
+            (.svf (&-> a2-1 quad) vf1)
+            (.svf (&-> a3-0 quad) vf2)
+            (.svf (&-> t0-0 quad) vf3)
+            ;; jump in here and add this tris to a cpp list
+            ;; goal-cpp funciton call here
+            ;;vanilla
+            ;;(add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
+            ;;(pc-add-tris-to-surface a2-1 a3-0 t0-0)
+            ;; these are cordinate vectors, so we need to extract x, y, z components of each cord
+            (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
+            (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
+            (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)))
+        ;; pc-spawn-mario-collide-if-needed?
+        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1)))
+
+        (when *target*
+      (pc-spawn-mario-test-collide "active-plat"))
+
+
+        )
+    0
+    (none)))
+
 ;; Create a function that we can call, and pass a process to, it checks if that process is there, and if it is, we do some checks to get its collide mesh, and call debug-draw-tris on it.
 (define *ready-to-update-plat* #f)
 
-(defun generate-collide-mesh-txt-from-name ((proc-name string))
-  (when (process-by-ename proc-name)
-    (let* ((p (the-as process-drawable (process-by-ename proc-name)))
-           (e (the entity-actor (-> p entity)))
-           (type-target process-drawable)
-           (distance (meters 50)))
-      (when (and p
-                 e
-                 (nonzero? (-> p root))
-                 (type-type? (-> e etype) type-target)
-                 ;;  (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
-                 (type-type? (-> p root type) collide-shape))
-        (let ((root (the collide-shape (-> p root))))
-          (when (or (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
-                    (= (-> e etype symbol) 'periscope)
-                    (= p (process-by-ename "citb-disc-d-2")))
-            (return 0))
-          ;; check if the root prim is a prim group
-          (if (type-type? (-> root root-prim type) collide-shape-prim-group)
-            ;; if so, we loop through all of its prims and check for prim meshes
-            (let ((group (the collide-shape-prim-group (-> root root-prim))))
-              (dotimes (i (-> group num-prims))
-                (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
-                  ;; if it is indeed a mesh, we draw it
-                  (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
-            ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
-            (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
-              (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
-                                     p
-                                     (-> root root-prim transform-index))))))))
-  (none))
+;; (defun generate-collide-mesh-txt-from-name ((proc-name string))
+;;   (when (process-by-ename proc-name)
+;;     (let* ((p (the-as process-drawable (process-by-ename proc-name)))
+;;            (e (the entity-actor (-> p entity)))
+;;            (type-target process-drawable)
+;;            (distance (meters 50)))
+;;       (when (and p
+;;                  e
+;;                  (nonzero? (-> p root))
+;;                  (type-type? (-> e etype) type-target)
+;;                  ;;  (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+;;                  (type-type? (-> p root type) collide-shape))
+;;         (let ((root (the collide-shape (-> p root))))
+;;           (when (or (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
+;;                     (= (-> e etype symbol) 'periscope)
+;;                     (= p (process-by-ename "citb-disc-d-2")))
+;;             (return 0))
+;;           ;; check if the root prim is a prim group
+;;           (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+;;             ;; if so, we loop through all of its prims and check for prim meshes
+;;             (let ((group (the collide-shape-prim-group (-> root root-prim))))
+;;               (dotimes (i (-> group num-prims))
+;;                 (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+;;                   ;; if it is indeed a mesh, we draw it
+;;                   (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+;;             ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+;;             (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+;;               (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
+;;                                      p
+;;                                      (-> root root-prim transform-index))))))))
+;;   (none))
 
 (deftype platform-info (structure)
   ((x-pos float) ;; GOAL units
@@ -170,7 +231,8 @@
    (rot-x float) ;; degrees
    (rot-y float)
    (rot-z float)
-   (rot-w   float)))
+   (rot-w float)))
+
 
 (defun update-platform-from-goal ((process process-drawable))
   "Update the moving platform in C++ using current position/rotation of citb-plat-15"
@@ -185,19 +247,28 @@
         (set! (-> info rot-x) (-> (the process-drawable plat) root rot x))
         (set! (-> info rot-y) (-> (the process-drawable plat) root rot y))
         (set! (-> info rot-z) (-> (the process-drawable plat) root rot z))
+
+        (format 0 "GOAL sending LIVE: pos ~M ~M ~M   quat ~f ~%"
+        (-> info x-pos) (-> info y-pos) (-> info z-pos)
+        (-> info rot-x))
+
         (set! (-> info rot-w) (-> (the process-drawable plat) root quat w))
         (pc-update-platform-info-from-goal info)
         (format 0
-                "Platform sync sent to C++: pos(~M ~M ~M) rot(~f ~f ~f)~%"
+                " : pos(~M ~M ~M) rot(~f ~f ~f)~%"
                 (-> info x-pos)
                 (-> info y-pos)
                 (-> info z-pos)
                 (-> info rot-x)
                 (-> info rot-y)
-                (-> info rot-z)))))
+                (-> info rot-z))))
+                 (set! *last-sent-platform-x* (-> (the process-drawable plat) root trans x)))
 
-
+                ;;(debug-draw-plat-mario process)
   (none))
+
+
+
 
 #|
 TODO this logic gets all actor collide and uploads it ALL into a single SM64 surface object on the cpp side, then it spawns it. We use this to get actor collide,
@@ -215,11 +286,18 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
 (define *count-close-actors* 0)
 
 (define we-are-on-platform #f)
+
 (defun load-goal-actor-collide-to-sm64 ()
   (when (not (movie?))
     ;; (when (process-by-ename "citb-plat-15")
     ;; (update-moving-platform-collide (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans x) (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans y) (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans z) 0.0 0.0 0.0)
     ;; )
+      (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+        (set-width! fnt 1440)
+        (set-height! fnt 1380)
+        (set-scale! fnt 0.2)
+        (set-flags! fnt (font-flags kerning large))
+        (print-game-text-scaled (string-format "LAST SEND X: ~D~%" *last-sent-platform-x*) 1.0 fnt 128))
     (iterate-process-tree *active-pool*
                           (lambda ((proc process))
                             (let* ((p (the process-drawable proc))
@@ -240,26 +318,45 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
                                 (let ((root (the collide-shape (-> p root))))
                                   (when (or (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
                                             (= (-> e etype symbol) 'periscope)
-                                            (= p (process-by-ename "citb-plat-15")))
+                                            (= p (process-by-ename "citb-disc-d-2")))
                                     (return 0))
                                   (when (and (type-type? (-> p root type) collide-shape) (-> root riders) (nonzero? (-> root riders num-riders)))
-                                      (set! we-are-on-platform #t)
-                                    (update-platform-from-goal (the-as process-drawable p))
-                                    (return 0))
-;; (when we-are-on-platform
-;;       (let ((info (new 'stack 'platform-info)))
-;;         (set! (-> info x-pos) 0.0)
-;;         (set! (-> info y-pos) 0.0)
-;;         (set! (-> info z-pos) 0.0)
-;;         (set! (-> info rot-x) 0.0)
-;;         (set! (-> info rot-y) 0.0)
-;;         (set! (-> info rot-z) 0.0)
-;;         (set! (-> info rot-w) 1.0)
-;;         (pc-update-platform-info-from-goal info)
-;;         (set! we-are-on-platform #f)
-;;       )
-;; )
+                                    ;; if the ator has a rider, then we need to update it properly, if a platform has no rider its postion is till
+                                    ;; updated from the normal spawn every tris and delete every tris in a single group approach
 
+                                          (update-platform-from-goal p)
+
+                 ;; check if the root prim is a prim group
+                                  (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                    ;; if so, we loop through all of its prims and check for prim meshes
+                                    (let ((group (the collide-shape-prim-group (-> root root-prim))))
+                                      (1+! *count-close-actors*)
+                                      (dotimes (i (-> group num-prims))
+                                        (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                          ;; if it is indeed a mesh, we draw it
+                                          (debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index)))))
+                                    ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                    (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                      (debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
+                                                             p
+                                                             (-> root root-prim transform-index))
+                                      (1+! *count-close-actors*)))
+
+
+                                    (return 0))
+                                  ;; (when we-are-on-platform
+                                  ;;       (let ((info (new 'stack 'platform-info)))
+                                  ;;         (set! (-> info x-pos) 0.0)
+                                  ;;         (set! (-> info y-pos) 0.0)
+                                  ;;         (set! (-> info z-pos) 0.0)
+                                  ;;         (set! (-> info rot-x) 0.0)
+                                  ;;         (set! (-> info rot-y) 0.0)
+                                  ;;         (set! (-> info rot-z) 0.0)
+                                  ;;         (set! (-> info rot-w) 1.0)
+                                  ;;         (pc-update-platform-info-from-goal info)
+                                  ;;         (set! we-are-on-platform #f)
+                                  ;;       )
+                                  ;; )
                                   ;; check if the root prim is a prim group
                                   (if (type-type? (-> root root-prim type) collide-shape-prim-group)
                                     ;; if so, we loop through all of its prims and check for prim meshes
@@ -274,7 +371,9 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
                                       (debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
                                                              p
                                                              (-> root root-prim transform-index))
-                                      (1+! *count-close-actors*)))))))
+                                      (1+! *count-close-actors*)))
+
+                                      ))))
                           *null-kernel-context*)
     ;;(add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
     ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame

@@ -1,3 +1,4 @@
+#pragma once
 #include "libsm64.h"
 //mariozed
 #include "game/kernel/common/kscheme.h"
@@ -21,6 +22,16 @@ constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 #include <cstdlib>
 
 #include <vector>
+
+#define M_PI       3.14159265358979323846   // pi
+
+extern uint8_t* g_mario_texture;
+extern int marioId;
+extern SM64MarioState g_mario_state;
+extern SM64MarioGeometryBuffers g_geom;
+extern SM64MarioInputs g_mario_inputs;
+
+
 extern std::vector<SM64SurfaceObject> g_active_debug_objects;  // DECLARATION
 uint64_t pc_get_mario_x();
 uint64_t pc_get_mario_y();

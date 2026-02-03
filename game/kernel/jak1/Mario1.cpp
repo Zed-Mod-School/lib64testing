@@ -1,4 +1,5 @@
 #include "Mario1.h"
+#include "Mario_collide.h"
 #include "game/graphics/opengl_renderer/MarioRenderer.h"
 //#include "game/graphics/opengl_renderer/MarioRenderer2.h"
 #include "common/util/FileUtil.h"
@@ -9,25 +10,22 @@
 
 //int variables here
 
-// Near the top of Mario1.cpp, with other globals
 
-static PlatformInfo g_platform_info = {0};  // persisted global - zero-initialized
-
-// Optional: flag to know if we ever received valid data
-static bool g_platform_info_valid = false;
-
-
-static uint8_t* g_mario_texture = nullptr;
+uint8_t* g_mario_texture = nullptr;
 int marioId = -1;
-SM64MarioState g_mario_state = {0};
-SM64MarioGeometryBuffers g_geom = {0};
-SM64MarioInputs g_mario_inputs = {.camLookX = 0.0f,
-                                  .camLookZ = 1.0f,
-                                  .stickX = 0.0f,
-                                  .stickY = 0.0f,
-                                  .buttonA = 0,
-                                  .buttonB = 0,
-                                  .buttonZ = 0};
+SM64MarioState g_mario_state = {};
+SM64MarioGeometryBuffers g_geom = {};
+SM64MarioInputs g_mario_inputs = {
+    .camLookX = 0.0f,
+    .camLookZ = 1.0f,
+    .stickX   = 0.0f,
+    .stickY   = 0.0f,
+    .buttonA  = 0,
+    .buttonB  = 0,
+    .buttonZ  = 0
+};
+
+
 
 
 int load_and_init_mario() {
@@ -98,7 +96,7 @@ int load_and_init_mario() {
 }
 
 // Mario frame updating stuff now yippie, this is the "main" loop on the mario side.
-#define M_PI       3.14159265358979323846   // pi
+
 // Convert Jak-style quaternion (x y z w) to yaw angle in degrees (rotation around Y)
 // Returns yaw in [-180, 180] range
 float quaternion_to_yaw_degrees(float qx, float qy, float qz, float qw) {
@@ -118,44 +116,7 @@ float quaternion_to_yaw_degrees(float qx, float qy, float qz, float qw) {
 
 int frame_num = 0;
 int global_mario_frame_count = 0;
-void update_platform_info_from_goal(u32 platform_info_ptr) {
-    if (!platform_info_ptr) {
-        g_platform_info_valid = false;
-        return;
-    }
 
-    auto info = Ptr<PlatformInfo>(platform_info_ptr).c();
-
-    // Copy all raw bits
-    g_platform_info.x_pos  = info->x_pos;
-    g_platform_info.y_pos  = info->y_pos;
-    g_platform_info.z_pos  = info->z_pos;
-    g_platform_info.rot_x  = info->rot_x;
-    g_platform_info.rot_y  = info->rot_y;
-    g_platform_info.rot_z  = info->rot_z;
-    g_platform_info.rot_w  = info->rot_w;   // ← NEW
-
-    g_platform_info_valid = true;
-
-    // Debug: unpack and show real values
-    float px, py, pz, qx, qy, qz, qw;
-    memcpy(&px, &info->x_pos, sizeof(u32));
-    memcpy(&py, &info->y_pos, sizeof(u32));
-    memcpy(&pz, &info->z_pos, sizeof(u32));
-    memcpy(&qx, &info->rot_x, sizeof(u32));
-    memcpy(&qy, &info->rot_y, sizeof(u32));
-    memcpy(&qz, &info->rot_z, sizeof(u32));
-    memcpy(&qw, &info->rot_w, sizeof(u32));
-
-    px *= METERS_TO_UNITS;
-    py *= METERS_TO_UNITS;
-    pz *= METERS_TO_UNITS;
-
-    float yaw_deg = quaternion_to_yaw_degrees(qx, qy, qz, qw);
-
-    printf("[PLATFORM] Updated from GOAL → pos(%.2f, %.2f, %.2f) quat(%.4f, %.4f, %.4f, %.4f) → yaw %.1f°\n",
-           px, py, pz, qx, qy, qz, qw, yaw_deg);
-}
 
 bool ready_to_update_plat() {
   //this is how we determine if we should run mario for this frame
@@ -170,6 +131,15 @@ if (sym->value == offset_of_s7()) {
 
   return true;
 }
+
+// ─────────────────────────────────────────────
+// Moving platform config (Jak-style sliding floor)
+#define PLAT_MOVE_FRAMES  120
+#define PLAT_MOVE_SPEED   20.0f
+
+
+
+
 void tick_mario_frame() {
   // This function is called every frame and controls updating the mario engine.
   // Revist this later once we have *some* mario collide to test, probably can /64 where we set .stickX instead and remove all this junk
@@ -181,7 +151,10 @@ void tick_mario_frame() {
     inputs.stickX = scaled_stick_x;
     inputs.stickY = -scaled_stick_y;
     jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
-    update_moving_platform();
+    // if (gPlatId != 0){
+    // update_moving_platform();
+    // }
+
     sm64_mario_tick(marioId, &inputs, &g_mario_state, &g_geom);
     update_mario_collide();
     frame_num = 0;
@@ -189,6 +162,21 @@ void tick_mario_frame() {
   frame_num++;
   global_mario_frame_count++;
 }
+
+static const struct SM64Surface psuedo_floor_surfaces[] = {
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-100, 0, 100}, {100, 0, 100}, {100, 0, -100}}},
+    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{100, 0, -100}, {-100, 0, -100}, {-100, 0, 100}}}
+};
+
+
+void update_psuedo_floor_under_mario(){
+const char* floorName;
+            floorName = "floor";
+            delete_surface_object_by_name("floor");
+            spawn_surfaces_under_mario(g_mario_state.position,psuedo_floor_surfaces, floorName, -300.0f);
+
+}
+
 
 void update_mario_collide(){
 //This function contains the logic to update marios collide every frame
@@ -254,23 +242,11 @@ bool has_blue_eco() {
   return true;
 }
 
-// ─────────────────────────────────────────────
-// Moving platform config (Jak-style sliding floor)
-#define PLAT_MOVE_FRAMES  120
-#define PLAT_MOVE_SPEED   20.0f
 
-// Globals for the moving platform
-static uint32_t           gPlatId    = 0;
-static SM64ObjectTransform gPlatXf   = {};  // Authoritative transform (libsm64 uses this)
-static int32_t            gPlatTimer = 0;
-static float              gPlatDir   = 1.0f;
-static float gPlatYaw = 0.0f;           // current visual yaw rotation (degrees)
-static float gPlatSpinSpeed = 90.0f;    // degrees per second when spinning
-static bool gPlatShouldSpin = false;    // true when we just reversed
 
 // Mario functions we call in GOAL
 uint64_t pc_get_mario_action() {
-  g_mario_state.action;
+
 
   return static_cast<uint64_t>(g_mario_state.action);
 }
@@ -302,9 +278,7 @@ uint64_t pc_get_mario_z() {
 
 
 void pc_set_mario_camera(u32 x, u32 z) {
-  g_mario_inputs.camLookX;
   memcpy(&g_mario_inputs.camLookX, &x, 4);
-  g_mario_inputs.camLookZ;
   memcpy(&g_mario_inputs.camLookZ, &z, 4);
 }
 
@@ -319,7 +293,7 @@ void pc_set_mario_music_from_goal(u32 music_bits) {
 
   // Player 0 = background music
   sm64_seq_player_play_sequence(0, (uint8_t)seq, 0);
-    sm64_surface_object_delete(gPlatId);
+   // sm64_surface_object_delete(gPlatId);
 }
 
 
@@ -378,100 +352,45 @@ void pc_change_mario_state(u32 act_bits) {
 
 // }
 
-#define MAX_DEBUG_SURFACES 1024 * 3
+// // DEBUGGING: Dump the current debug surfaces to a C file to view in the test program
+// void pc_dump_debug_surfaces_to_file(void) {
+//   const char* filename = "debug_surfaces.c";
 
-static struct SM64Surface gDebugSurfaces[MAX_DEBUG_SURFACES];
-static int gDebugSurfaceCount = 0;
+//   FILE* f = fopen(filename, "w");
+//   if (!f) {
+//     perror("pc_dump_debug_surfaces_to_file fopen failed");
+//     return;
+//   }
 
-static int32_t gTempVerts[3][3];
+//   fprintf(f, "const struct SM64Surface debug_surfaces[] = {\n");
 
+//   for (int i = 0; i < gDebugSurfaceCount; i++) {
+//     SM64Surface* s = &gDebugSurfaces[i];
 
-static int gTempVertIndex = 0;
+//     fprintf(
+//       f,
+//       "  {SURFACE_DEFAULT, %d, TERRAIN_STONE, {{%d,%d,%d}, {%d,%d,%d}, {%d,%d,%d}}},\n",
+//       s->force,
+//       s->vertices[0][0], s->vertices[0][1], s->vertices[0][2],
+//       s->vertices[1][0], s->vertices[1][1], s->vertices[1][2],
+//       s->vertices[2][0], s->vertices[2][1], s->vertices[2][2]
+//     );
+//   }
 
-// DEBUGGING: Dump the current debug surfaces to a C file to view in the test program
-void pc_dump_debug_surfaces_to_file(void) {
-  const char* filename = "debug_surfaces.c";
+//   fprintf(f, "};\n");
 
-  FILE* f = fopen(filename, "w");
-  if (!f) {
-    perror("pc_dump_debug_surfaces_to_file fopen failed");
-    return;
-  }
+//   fclose(f);
 
-  fprintf(f, "const struct SM64Surface debug_surfaces[] = {\n");
+//   // Reset buffers
+//   gDebugSurfaceCount = 0;
+//   memset(gDebugSurfaces, 0, sizeof(gDebugSurfaces));
+//   memset(gTempVerts, 0, sizeof(gTempVerts));
 
-  for (int i = 0; i < gDebugSurfaceCount; i++) {
-    SM64Surface* s = &gDebugSurfaces[i];
-
-    fprintf(
-      f,
-      "  {SURFACE_DEFAULT, %d, TERRAIN_STONE, {{%d,%d,%d}, {%d,%d,%d}, {%d,%d,%d}}},\n",
-      s->force,
-      s->vertices[0][0], s->vertices[0][1], s->vertices[0][2],
-      s->vertices[1][0], s->vertices[1][1], s->vertices[1][2],
-      s->vertices[2][0], s->vertices[2][1], s->vertices[2][2]
-    );
-  }
-
-  fprintf(f, "};\n");
-
-  fclose(f);
-
-  // Reset buffers
-  gDebugSurfaceCount = 0;
-  memset(gDebugSurfaces, 0, sizeof(gDebugSurfaces));
-  memset(gTempVerts, 0, sizeof(gTempVerts));
-
-  printf("[pc_dump_debug_surfaces] wrote %d surfaces to %s\n",
-         gDebugSurfaceCount, filename);
-}
-
-void pc_add_tris_to_surface(u32 x_bits, u32 y_bits, u32 z_bits, u32 vert_index_bits) {
-  float x, y, z, vert_index_f;
-
-  // Decode floats
-  memcpy(&x, &x_bits, sizeof(float));
-  memcpy(&y, &y_bits, sizeof(float));
-  memcpy(&z, &z_bits, sizeof(float));
-  memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
-
-  // Unit conversion
-  x *= METERS_TO_UNITS;
-  y *= METERS_TO_UNITS;
-  z *= METERS_TO_UNITS;
-
-  int vert_index = (int)(vert_index_f + 0.5f);
-
-  // Validate index
-  if (vert_index < 1 || vert_index > 3) {
-    printf("  ERROR: vert_index out of range (must be 1–3), aborting\n");
-    return;
-  }
-
-  int idx = vert_index - 1;
-  // Store vertex
-gTempVerts[idx][0] = (int32_t)x;
-gTempVerts[idx][1] = (int32_t)y;
-gTempVerts[idx][2] = (int32_t)z;
+//   printf("[pc_dump_debug_surfaces] wrote %d surfaces to %s\n",
+//          gDebugSurfaceCount, filename);
+// }
 
 
-  // Commit triangle if this is the last vertex, we trust GOAL to send the 3rd vertex last lol
-  if (vert_index == 3) {
-    if (gDebugSurfaceCount >= MAX_DEBUG_SURFACES) {
-      printf("  ERROR: surface buffer full (%d), aborting\n",
-             gDebugSurfaceCount);
-      return;
-    }
-    struct SM64Surface* surf = &gDebugSurfaces[gDebugSurfaceCount];
-    surf->type = SURFACE_DEFAULT;
-    surf->force = 0;
-    surf->terrain = TERRAIN_STONE;
-    memcpy(surf->vertices, gTempVerts, sizeof(gTempVerts));
-
-    gDebugSurfaceCount++;
-  }
- // printf("[pc_add_tris] EXIT\n");
-}
 
 
 
@@ -480,220 +399,11 @@ gTempVerts[idx][2] = (int32_t)z;
 void pc_burn_marios_butt() { // does not shoot mario up as much as we'd like. it's a start
   if (g_mario_state.action != ACT_BURNING_GROUND && g_mario_state.action != ACT_BURNING_FALL && g_mario_state.action != ACT_BURNING_JUMP)
                 sm64_set_mario_action(marioId, ACT_BURNING_JUMP);
-                pc_dump_debug_surfaces_to_file();
+                // pc_dump_debug_surfaces_to_file();
 }
 
 
 
-struct Cuben {
-    float pos[3];
-    float size;
-    SM64SurfaceObject surfaceObj;
-    const char* name;
-    uint32_t id;
-};
-
-Cuben spawnedCubes[MAX_CUBES];
-int numCubes = 0;
-
-static const struct SM64Surface psuedo_floor_surfaces[] = {
-    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-100, 0, 100}, {100, 0, 100}, {100, 0, -100}}},
-    {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{100, 0, -100}, {-100, 0, -100}, {-100, 0, 100}}}
-};
-
-
-template <size_t N>
-uint32_t spawn_surfaces_under_mario(
-    const float* marioPos,
-    const SM64Surface (&surfaces)[N], // Array passed by reference (size N is deduced)
-    const char* objectName,
-    float y_offset = 0.0f
-) {
-    if (numCubes >= MAX_CUBES) return 0;
-
-    SM64SurfaceObject obj;
-    memset(&obj, 0, sizeof(SM64SurfaceObject));
-
-    Cuben& c = spawnedCubes[numCubes++];
-
-    // Store the object name
-    c.name = objectName; // <-- STORE NAME
-    // Set object transform (position) - this is the object's origin
-    obj.transform.position[0] = marioPos[0];
-    obj.transform.position[1] = marioPos[1] + y_offset;
-    obj.transform.position[2] = marioPos[2];
-
-    // Use the deduced size N directly
-    obj.surfaceCount = N;
-
-    // Allocate memory for the surfaces and copy the data
-    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * obj.surfaceCount);
-    if (!obj.surfaces) {
-        numCubes--;
-        return 0;
-    }
-
-    // Copy the input array data
-    memcpy(obj.surfaces, surfaces, sizeof(SM64Surface) * obj.surfaceCount);
-
-    // Calculate a rough bounding box center and size for visualization/debugging (optional, but good practice)
-    float min_coords[3] = {1e9f, 1e9f, 1e9f};
-    float max_coords[3] = {-1e9f, -1e9f, -1e9f};
-
-    for (size_t i = 0; i < N; ++i) {
-        for (int j = 0; j < 3; ++j) { // Vertices
-            for (int k = 0; k < 3; ++k) { // XYZ coordinates
-                float v = (float)surfaces[i].vertices[j][k];
-                if (v < min_coords[k]) min_coords[k] = v;
-                if (v > max_coords[k]) max_coords[k] = v;
-            }
-        }
-    }
-
-    // Set Cube pos/size based on world coordinates of the array for drawing/tracking
-    c.pos[0] = (max_coords[0] + min_coords[0]) / 2.0f;
-    c.pos[1] = (max_coords[1] + min_coords[1]) / 2.0f;
-    c.pos[2] = (max_coords[2] + min_coords[2]) / 2.0f;
-
-    c.size = fmaxf(fmaxf(max_coords[0] - min_coords[0], max_coords[1] - min_coords[1]), max_coords[2] - min_coords[2]);
-
-    uint32_t id = sm64_surface_object_create(&obj);
-
-
-c.id = id;
-c.surfaceObj = obj;
-    return id;
-}
-
-
-void delete_surface_object_by_name(const char* name) {
-    if (!name || numCubes == 0) return;
-
-    int index_to_remove = -1;
-
-    // 1. Find the object by name
-    for (int i = 0; i < numCubes; ++i) {
-        const Cuben& c = spawnedCubes[i];
-        // Check if the object has a name and if it matches the requested name
-        if (c.name != NULL && strcmp(c.name, name) == 0) {
-            index_to_remove = i;
-            break; // Found the object, stop searching
-        }
-    }
-
-    if (index_to_remove != -1) {
-        Cuben& c = spawnedCubes[index_to_remove];
-
-        // 2. De-register the collision object using the stored ID
-        sm64_surface_object_delete(c.id);
-
-        // 3. Free the surface memory that was malloc'd in spawn_surfaces_under_mario
-        if (c.surfaceObj.surfaces != NULL) {
-            free(c.surfaceObj.surfaces);
-            c.surfaceObj.surfaces = NULL;
-        }
-
-        // 4. Remove the object from the tracking array (Swap-and-Pop)
-
-        // Decrement the total count
-        numCubes--;
-
-        // If the object being removed wasn't the last one,
-        // copy the last Cube structure over the one we are removing.
-        if (index_to_remove < numCubes) {
-            spawnedCubes[index_to_remove] = spawnedCubes[numCubes];
-        }
-
-        // The object is now removed from the array and its collision is deleted.
-    }
-}
-
-static int surface_spawn_count = 0;
-void pc_mario_spawn_updated_tris(const char* name){
-//this is called from goal after we finish updating gDebugSurfaces to push them into the mario engine
-
-//first step is to spawn the surfaces
-
-                const char* objectName;
-                objectName = name; //money-32
-
-
-                //spawn_surfaces_under_mario(g_mario_state.position, beach_surfaces, objectName);
-                const float zero_pos_array[3] = {0.0f, 0.0f, 0.0f};
-                spawn_surfaces_under_mario(zero_pos_array, gDebugSurfaces, objectName); // Offset crate above beach
-                surface_spawn_count++; // Increment counter
-                  // Reset buffers
-  gDebugSurfaceCount = 0;
-  memset(gDebugSurfaces, 0, sizeof(gDebugSurfaces));
-  memset(gTempVerts, 0, sizeof(gTempVerts));
-
-}
-
-void update_psuedo_floor_under_mario(){
-const char* floorName;
-            floorName = "floor";
-            delete_surface_object_by_name("floor");
-            spawn_surfaces_under_mario(g_mario_state.position,psuedo_floor_surfaces, floorName, -300.0f);
-
-}
-
-
-
-uint32_t spawn_flat_platform_under_mario(const float* marioPos, float size = 600.0f)
-{
-    if (numCubes >= MAX_CUBES) return 0;
-    SM64SurfaceObject obj = {};
-    float half = size / 2.0f;
-    obj.transform.position[0] = marioPos[0];
-    obj.transform.position[1] = marioPos[1];
-    obj.transform.position[2] = marioPos[2];
-    obj.surfaceCount = 2;
-    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * 2);
-
-    #define ADD_TRI(i, ax,ay,az, bx,by,bz, cx,cy,cz) do { \
-        obj.surfaces[i].vertices[0][0] = ax; obj.surfaces[i].vertices[0][1] = ay; obj.surfaces[i].vertices[0][2] = az; \
-        obj.surfaces[i].vertices[1][0] = bx; obj.surfaces[i].vertices[1][1] = by; obj.surfaces[i].vertices[1][2] = bz; \
-        obj.surfaces[i].vertices[2][0] = cx; obj.surfaces[i].vertices[2][1] = cy; obj.surfaces[i].vertices[2][2] = cz; \
-        obj.surfaces[i].type = SURFACE_DEFAULT; \
-        obj.surfaces[i].force = 0; \
-        obj.surfaces[i].terrain = TERRAIN_STONE; \
-    } while(0)
-
-    float x0 = -half, x1 = half;
-    float z0 = -half, z1 = half;
-    float y = 0.0f;
-    ADD_TRI(0, x0,y,z1, x1,y,z1, x1,y,z0);
-    ADD_TRI(1, x1,y,z0, x0,y,z0, x0,y,z1);
-    #undef ADD_TRI
-
-    uint32_t id = sm64_surface_object_create(&obj);
-    // ────────────── REMOVE THIS LINE ──────────────
-    // free(obj.surfaces);   // ← DELETE or COMMENT OUT
-
-    if (!id) return 0;
-
-    gPlatXf.position[0] = obj.transform.position[0];
-    gPlatXf.position[1] = obj.transform.position[1];
-    gPlatXf.position[2] = obj.transform.position[2];
-    gPlatXf.eulerRotation[0] = obj.transform.eulerRotation[0];
-    gPlatXf.eulerRotation[1] = obj.transform.eulerRotation[1];
-    gPlatXf.eulerRotation[2] = obj.transform.eulerRotation[2];
-
-    gPlatId = id;
-    gPlatTimer = 0;
-    gPlatDir = 1.0f;
-
-    Cuben& c = spawnedCubes[numCubes++];
-    c.pos[0] = marioPos[0];
-    c.pos[1] = marioPos[1];
-    c.pos[2] = marioPos[2];
-    c.size = size;
-    c.name = "MovingPlat";
-    c.id = id;
-    c.surfaceObj = obj;           // now safe – surfaces still valid
-
-    return id;
-}
 
 
 
@@ -702,141 +412,10 @@ uint32_t spawn_flat_platform_under_mario(const float* marioPos, float size = 600
 // ─────────────────────────────────────────────
 // Moving platform logic
 // ─────────────────────────────────────────────
-void update_moving_platform() {
-    if (!gPlatId) {
-        // Fallback: spawn under Mario if platform doesn't exist yet
-        float spawnPos[3] = {
-            g_mario_state.position[0],
-            g_mario_state.position[1] - 80.0f,  // foot height offset
-            g_mario_state.position[2]
-        };
-        spawn_flat_platform_under_mario(spawnPos, 2000.0f);
-        return;  // wait for next frame
-    }
 
-    if (!g_platform_info_valid) {
-        // No valid GOAL data yet → skip this frame
-        return;
-    }
-
-    // ─────────────────────────────────────────────
-    // Unpack position from global (GOAL → libsm64 meters)
-    // ─────────────────────────────────────────────
-    float targetX, targetY, targetZ;
-    memcpy(&targetX, &g_platform_info.x_pos, sizeof(u32));
-    memcpy(&targetY, &g_platform_info.y_pos, sizeof(u32));
-    memcpy(&targetZ, &g_platform_info.z_pos, sizeof(u32));
-
-    targetX *= METERS_TO_UNITS;
-    targetY *= METERS_TO_UNITS;
-    targetZ *= METERS_TO_UNITS;
-
-    // ─────────────────────────────────────────────
-    // Unpack quaternion and convert to yaw
-    // ─────────────────────────────────────────────
-    float qx, qy, qz, qw;
-    memcpy(&qx, &g_platform_info.rot_x, sizeof(u32));
-    memcpy(&qy, &g_platform_info.rot_y, sizeof(u32));
-    memcpy(&qz, &g_platform_info.rot_z, sizeof(u32));
-    memcpy(&qw, &g_platform_info.rot_w, sizeof(u32));
-
-    // Normalize quaternion if needed (Jak usually normalizes, but to be safe)
-    float mag = sqrtf(qx*qx + qy*qy + qz*qz + qw*qw);
-    if (mag > 0.0001f) {
-        qx /= mag; qy /= mag; qz /= mag; qw /= mag;
-    } else {
-        qw = 1.0f;  // fallback to identity
-    }
-
-    float yaw_deg = quaternion_to_yaw_degrees(qx, qy, qz, qw);
-
-    // Debug: show what we're applying
-    printf("[PLATFORM] Applying → pos(%.2f, %.2f, %.2f) yaw=%.1f° (from quat %.4f,%.4f,%.4f,%.4f)\n",
-           targetX, targetY, targetZ, yaw_deg, qx, qy, qz, qw);
-
-    // ─────────────────────────────────────────────
-    // Apply to libsm64 physics transform
-    // ─────────────────────────────────────────────
-    gPlatXf.position[0] = targetX;
-    gPlatXf.position[1] = targetY;
-    gPlatXf.position[2] = targetZ;
-
-    gPlatXf.eulerRotation[0] = 0.0f;     // pitch = 0 (Jak platforms rarely pitch)
-    gPlatXf.eulerRotation[1] = -yaw_deg;  // yaw from quaternion
-    gPlatXf.eulerRotation[2] = 0.0f;     // roll = 0
-
-    // Optional: your old spin/flip logic (disabled since GOAL now sends real rotation)
-    // static float lastDir = 1.0f;
-    // if (gPlatDir != lastDir) {
-    //     gPlatShouldSpin = true;
-    //     gPlatYaw = 0.0f;
-    //     lastDir = gPlatDir;
-    // }
-    // if (gPlatShouldSpin) {
-    //     gPlatYaw += gPlatSpinSpeed * (1.f / 30.f);
-    //     if (gPlatYaw >= 180.0f) {
-    //         gPlatYaw = 180.0f;
-    //         gPlatShouldSpin = false;
-    //     }
-    // }
-    // gPlatXf.eulerRotation[1] += gPlatYaw;
-
-    // Push to libsm64 — Mario should now stick and rotate with the platform
-    sm64_surface_object_move(gPlatId, &gPlatXf);
-
-    // ─────────────────────────────────────────────
-    // Sync visual Cube for rendering + name label
-    // ─────────────────────────────────────────────
-    for (int i = 0; i < numCubes; i++) {
-        if (spawnedCubes[i].id == gPlatId) {
-            Cuben& c = spawnedCubes[i];
-
-            c.pos[0] = gPlatXf.position[0];
-            c.pos[1] = gPlatXf.position[1];
-            c.pos[2] = gPlatXf.position[2];
-
-            c.surfaceObj.transform.position[0] = gPlatXf.position[0];
-            c.surfaceObj.transform.position[1] = gPlatXf.position[1];
-            c.surfaceObj.transform.position[2] = gPlatXf.position[2];
-
-            c.surfaceObj.transform.eulerRotation[0] = gPlatXf.eulerRotation[0];
-            c.surfaceObj.transform.eulerRotation[1] = gPlatXf.eulerRotation[1];
-            c.surfaceObj.transform.eulerRotation[2] = gPlatXf.eulerRotation[2];
-
-            break;
-        }
-    }
-
-    // Optional internal timer (remove if GOAL fully controls direction)
-    // gPlatTimer++;
-    // if (gPlatTimer >= PLAT_MOVE_FRAMES) {
-    //     gPlatTimer = 0;
-    //     gPlatDir = -gPlatDir;
-    // }
-}
-void destroy_moving_platform_under_mario(){
-const char* floorName;
-            floorName = "floor";
-            delete_surface_object_by_name("MovingPlat");
-            //spawn_flat_platform_under_mario(zero_pos_array, 200.0f);
-            //MovingPlat
-
-}
-
-void pc_spawn_mario_test_collide(u32 name_ptr) {
-    // Convert the u32 pointer to the C++ string (like in pc_filepath_exists)
-    auto name_str = std::string(Ptr<String>(name_ptr).c()->data());
-    const char* name = name_str.c_str();
-
-    // first we delete the old surface object if it exists
-    delete_surface_object_by_name(name);
-
-    // then we spawn in the new one
-    pc_mario_spawn_updated_tris(name);
+// Fills out_pos[3] with x/y/z; returns true if found, false otherwise
 
 
-// this is called after we finish uploading triangles to mario enginge and it spawns the object and resets the debug buffers
-}
 
 
 void pc_mario_says_so_long_gay_bowsa(uint32_t music_bits) {
