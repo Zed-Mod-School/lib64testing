@@ -11,6 +11,8 @@
 #include "common/util/string_util.h"
 
 #include "../jak1/Mario1.h"
+#include "../jak1/Mario_collide.h"
+#include "../jak1/Mario_collide2.h"
 #include "game/external/discord.h"
 #include "game/graphics/display.h"
 #include "game/graphics/gfx.h"
@@ -1394,6 +1396,9 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-get-mario-x", (void*)pc_get_mario_x);
   make_func_symbol_func("pc-get-mario-y", (void*)pc_get_mario_y);
   make_func_symbol_func("pc-get-mario-z", (void*)pc_get_mario_z);
+  // make_func_symbol_func("pc-get-plat-x", (void*)pc_get_platform_x);
+  // make_func_symbol_func("pc-get-plat-y", (void*)pc_get_platform_y);
+  // make_func_symbol_func("pc-get-plat-z", (void*)pc_get_platform_z);
   make_func_symbol_func("pc-get-mario-state", (void*)pc_get_mario_action);
   make_func_symbol_func("pc-update-platform-info-from-goal", (void*)update_platform_info_from_goal);
   make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);

@@ -111,6 +111,7 @@ set(RUNTIME_SOURCE
         kernel/jak1/kboot.cpp
         kernel/jak1/mario1.cpp
         kernel/jak1/mario_collide.cpp
+        kernel/jak1/mario_collide2.cpp
         kernel/jak1/audio.cpp
         kernel/jak1/kdgo.cpp
         kernel/jak1/klink.cpp

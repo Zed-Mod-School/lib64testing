@@ -322,6 +322,7 @@
     (behavior ()
       (set! (-> self cam-user-mode) 'look-around)
       (set! (-> self control unknown-surface00) *duck-mods*)
+      (set! *render-mario?* #f)
       (logior! (-> self state-flags) (state-flags first-person-mode))
       (send-event *camera* 'blend-from-as-fixed)
       (send-event *camera* 'no-intro)
@@ -333,6 +334,7 @@
     (behavior ()
       (let ((a0-1 (handle->process (-> self fp-hud)))) (if a0-1 (send-event a0-1 'go-away)))
       (set! (-> self cam-user-mode) 'normal)
+      (set! *render-mario?* #t)
       (target-exit)
       (when (send-event *camera* 'query-state cam-eye)
         (send-event *camera* 'no-intro)
@@ -1687,9 +1689,14 @@
         (('change-mode) #f)
         (('end-mode) (when (-> self control unknown-spoolanim00) (set! (-> self control unknown-uint20) (the-as uint #f)) #t))
         (else (target-generic-event-handler proc argc message block))))
+  :enter
+    (behavior ()
+    (set! *render-mario?* #f)
+    )
   :exit
     (behavior ()
       (target-exit)
+      (set! *render-mario?* #t)
       (set! (-> self cam-user-mode) 'normal)
       ;; og:preserve-this PAL patch here
       (logclear! (-> self state-flags) (state-flags invulnerable grabbed)))

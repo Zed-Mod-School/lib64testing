@@ -3,7 +3,7 @@
 #include "common/goal_constants.h"
 #include "common/log/log.h"
 #include "common/util/FileUtil.h"
-
+#include "game/kernel/jak1/Mario1.h"
 #include "game/graphics/opengl_renderer/BlitDisplays.h"
 #include "game/graphics/opengl_renderer/DepthCue.h"
 #include "game/graphics/opengl_renderer/DirectRenderer.h"
@@ -1314,7 +1314,9 @@ void OpenGLRenderer::dispatch_buckets_jak1(DmaFollower dma,
       m_collide_renderer.render(&m_render_state, p);
     }
     // Same hack to draw the mario mesh in the middle the drawing
-    if (bucket_id == 31 - 1) {
+
+    if (should_render_mario() == true) {
+if (bucket_id == 31 - 1) {
       auto p = prof.make_scoped_child("collision-draw");
       m_mario_renderer.render(&m_render_state, p);
     }
@@ -1323,6 +1325,9 @@ void OpenGLRenderer::dispatch_buckets_jak1(DmaFollower dma,
       auto p = prof.make_scoped_child("collision-draw");
       m_mario_renderer2.render(&m_render_state, p);
     }
+
+    }
+    
   }
 
   // TODO ending data.

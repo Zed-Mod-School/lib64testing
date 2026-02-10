@@ -69,6 +69,7 @@ bool point_in_triangle_2d(float px, float pz, const int32_t v[3][3]);
 bool triangle_samples_in_cylinder(float center_x, float center_z, const int32_t v[3][3]);
 bool run_and_render_mario();
 bool has_blue_eco();
+bool should_render_mario();
 
 struct PlatformInfo {
   u32 x_pos;

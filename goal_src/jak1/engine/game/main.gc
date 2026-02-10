@@ -488,12 +488,17 @@
 
 (define *has-blue-eco* #f)
 
+(define *render-mario?* #t)
+
 (defun update-sm64-camera-from-goal ()
   ;; update cam-look x and z
   (set! *cam-look-x* (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
   (set! *cam-look-z* (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
   (pc-set-mario-look-angles! *cam-look-x* *cam-look-z*))
 
+(defun jak-using-launcher? ()
+(= (-> *target* state) target-duck-high-jump-jump)
+)
 (defun main-cheats ()
   "Handle cheat codes and timeout"
   (when *target*
@@ -541,11 +546,22 @@
     ;; only run this if the condition passes to lock jak to marios reported position.
     (when (and (not *are-we-in-target-continue*)
                *target*
+               *render-mario?*
+               (not (jak-using-launcher?))
                (mario-glue-override) ;;(cpad-hold? 0 up)
                )
       (set! (-> (target-pos 0) x) (* (pc-get-mario-x) *mario-scale-mult*))
       (set! (-> (target-pos 0) y) (* (pc-get-mario-y) *mario-scale-mult*))
       (set! (-> (target-pos 0) z) (* (pc-get-mario-z) *mario-scale-mult*)))
+
+    ;;when we are on launcher move mario to jak every frame install-debug-handler
+    (when (or (not (not (jak-using-launcher?)))
+    (not *render-mario?*)
+    
+    )
+    (teleport-mario-to-pos (-> (target-pos 0) x) (-> (target-pos 0) y) (-> (target-pos 0) z))
+    
+    )
     ;; run this all the time no matter what, so we can see where mario *should* be
     ;; update his position vector on the GOAL side
     (set! (-> *mario-vector-hellyeah* x) (* (pc-get-mario-x) *mario-scale-mult*))

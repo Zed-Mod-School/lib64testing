@@ -1,5 +1,6 @@
 #include "Mario1.h"
 #include "Mario_collide.h"
+#include "Mario_collide2.h"
 #include "game/graphics/opengl_renderer/MarioRenderer.h"
 //#include "game/graphics/opengl_renderer/MarioRenderer2.h"
 #include "common/util/FileUtil.h"
@@ -184,6 +185,8 @@ void update_mario_collide(){
 //first this we always make sure there is a fake floor under mario
 update_psuedo_floor_under_mario();
 
+update_moving_platform();
+
 jak1::call_goal_function_by_name("update-mario-water-height-from-goal");
 //update the level surfaces near mario from goal if they changed.
 jak1::call_goal_function_by_name("update-mario-loaded-surfaces");
@@ -234,6 +237,21 @@ bool has_blue_eco() {
   // if jakstate == pushed triangle
   // return false; lets skip this render frame for mario as jak is in periscope
   auto sym = jak1::intern_from_c("*has-blue-eco*");
+
+  if (sym->value == offset_of_s7()) {
+    return false;
+  }
+
+  return true;
+}
+
+bool should_render_mario() {
+
+  // this is how we determine if we should run mario for this frame
+  // note that this COMPLETELY bypasses mario thread so NOTHING WILL UPDATE
+  // if jakstate == pushed triangle
+  // return false; lets skip this render frame for mario as jak is in periscope
+  auto sym = jak1::intern_from_c("*render-mario?*");
 
   if (sym->value == offset_of_s7()) {
     return false;

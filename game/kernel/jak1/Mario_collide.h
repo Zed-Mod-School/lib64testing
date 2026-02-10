@@ -133,6 +133,10 @@ void pc_spawn_mario_test_collide(uint32_t name_ptr);
 void update_moving_platform();
 void update_platform_info_from_goal(uint32_t platform_info_ptr);
 
+uint64_t pc_get_platform_x();
+uint64_t pc_get_platform_y();
+uint64_t pc_get_platform_z();
+
 inline bool is_moving_platform_active() { return gPlatId != 0; }
 
 inline void reset_temp_surface_buffers() {

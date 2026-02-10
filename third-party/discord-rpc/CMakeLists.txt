@@ -6,11 +6,11 @@ include(GNUInstallDirs)
 option(BUILD_EXAMPLES "Build example apps" OFF)
 
 # format
-file(GLOB_RECURSE ALL_SOURCE_FILES
-    examples/*.cpp examples/*.h examples/*.c
-    include/*.h
-    src/*.cpp src/*.h src/*.c
-)
+# file(GLOB_RECURSE ALL_SOURCE_FILES
+#     examples/*.cpp examples/*.h examples/*.c
+#     include/*.h
+#     src/*.cpp src/*.h src/*.c
+# )
 
 # Set CLANG_FORMAT_SUFFIX if you are using custom clang-format, e.g. clang-format-5.0
 find_program(CLANG_FORMAT_CMD clang-format${CLANG_FORMAT_SUFFIX})

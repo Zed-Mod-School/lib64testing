@@ -110,7 +110,7 @@
   )
 
 (defmethod begin-lap ((this racer-state) (arg0 race-state))
-  (format #t "begin-lap racer ~d~%" (-> this rank))
+  (format #t "begin-lap racer ~d but lap-start was ~d~%" (-> this rank) (-> this lap-start))
   (set! (-> this lap-start) (-> arg0 current-time))
   (logior! (-> this flags) (racer-flags in-race))
   0

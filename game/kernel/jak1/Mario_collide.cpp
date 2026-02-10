@@ -131,114 +131,174 @@ gTempVerts[idx][2] = (int32_t)z;
     surf->force = 0;
     surf->terrain = TERRAIN_STONE;
     memcpy(surf->vertices, gTempVerts, sizeof(gTempVerts));
-
+    std::string actor_name = Ptr<String>(name_bits).c()->data();
     gSpawnedSurfaceCount++;
   }
  // printf("[pc_add_tris] EXIT\n");
 }
 
-void pc_spawn_mario_test_collide(u32 name_ptr) {
-    auto name_str = std::string(Ptr<String>(name_ptr).c()->data());
-    const char* name = name_str.c_str();
-
-    //printf("[MarioSpawn] Called for '%s'\n", name);
-
-
-    if (strcmp(name, "active-plat") == 0) {
-      //name is active-plat check to see if it exists
-      if (gPlatId == 0) {
-        //platfor did not exist spawn it and update gPlatId
-        //gPlatId = pc_mario_spawn_updated_tris_with_id(name);
-        return;
-      }
-
-
-
-
+// Add this helper function somewhere in Mario_collide.cpp (near the top or with other spawn functions)
+uint32_t pc_mario_spawn_updated_tris_with_id(const char* name) {
+    if (gSpawnedSurfaceCount <= 0) {
+        printf("[PLATFORM] WARNING: Tried to spawn '%s' but no surfaces in buffer!\n", name);
+        return 0;
     }
 
-        // Normal debug/test objects → delete + respawn + reset buffers
-        //printf("[MarioSpawn] Normal object '%s' → delete + respawn + reset\n", name);
-        delete_surface_object_by_name(name);
-        pc_mario_spawn_updated_tris(name);
+    // Use Mario's current position as fallback spawn point (or zero_pos_array if you prefer)
+    const float* spawnPos = zero_pos_array;
 
-        // Only reset debug buffers for non-persistent objects
-        gSpawnedSurfaceCount = 0;
-        memset(gSurfaceBuffer, 0, sizeof(gSurfaceBuffer));
-        memset(gTempVerts, 0, sizeof(gTempVerts));
+    uint32_t id = spawn_surfaces_under_mario(
+        spawnPos,
+        gSurfaceBuffer,
+        gSpawnedSurfaceCount,
+        name,
+        0.0f  // y_offset - adjust if platform needs to be lower/higher relative to Mario feet
+    );
+
+    if (id != 0) {
+        printf("[PLATFORM] Successfully spawned moving platform '%s' with ID %u\n", name, id);
+
+        // Initialize authoritative transform from current Mario pos (or buffer center if preferred)
+        gPlatXf.position[0] = spawnPos[0];
+        gPlatXf.position[1] = spawnPos[1];
+        gPlatXf.position[2] = spawnPos[2];
+        gPlatXf.eulerRotation[0] = 0.0f;
+        gPlatXf.eulerRotation[1] = 0.0f;
+        gPlatXf.eulerRotation[2] = 0.0f;
+
+        // Reset movement state
+        gPlatTimer = 0;
+        gPlatDir = 1.0f;
+        gPlatYaw = 0.0f;
+        gPlatShouldSpin = false;
+
+        // Initial sync to libsm64
+        sm64_surface_object_move(id, &gPlatXf);
+    } else {
+        printf("[PLATFORM] ERROR: Failed to spawn moving platform '%s'\n", name);
+    }
+
+    // Always reset buffers after successful spawn attempt
+    reset_temp_surface_buffers();
+
+    return id;
+}
 
 
-   // printf("[MarioSpawn] Finished '%s'\n", name);
+void pc_spawn_mario_test_collide(u32 name_ptr) {
+    auto name_str = std::string(Ptr<String>(name_ptr).c()->data());
+    
+    std::string name = Ptr<String>(name_ptr).c()->data();
+
+    // Special handling for persistent moving platform
+    if (strcmp(name, "active-plat") == 0) {
+        if (gPlatId == 0) {
+            // Platform doesn't exist → spawn it using current buffer tris
+            gPlatId = pc_mario_spawn_updated_tris_with_id(name);
+        }
+        // If it already exists, do nothing - we keep it alive and let update_moving_platform() control it
+        return;
+    }
+
+    // All other objects: standard delete + respawn behavior (non-persistent debug objects)
+    delete_surface_object_by_name(name);
+    pc_mario_spawn_updated_tris(name);
+
+    // Reset temp buffers only for non-platform objects
+    reset_temp_surface_buffers();
 }
 
 void update_moving_platform() {
-  if (!gPlatId) {
-    // Spawn if missing (fallback)
-    float spawnPos[3] = {
-        g_mario_state.position[0],
-        g_mario_state.position[1] - 80.0f,
-        g_mario_state.position[2]
-    };
-    //spawn_flat_platform_under_mario(spawnPos, 200.0f);
-    return;  // wait until next frame for valid info
-  }
+    if (gPlatId == 0) {
+        // No platform active - nothing to update
+        // Remove the fallback spawn here; spawning is now fully controlled by GOAL via pc_spawn_mario_test_collide
+        return;
+    }
 
-  if (!g_platform_info_valid) {
-    // No valid data yet → don't move/rotate this frame
-    return;
-  }
+    if (!g_platform_info_valid) {
+        // No fresh data from GOAL yet → hold current position/rotation this frame
+        return;
+    }
 
-  // Unpack from global
-  float targetX, targetY, targetZ;
-  memcpy(&targetX, &g_platform_info.x_pos, sizeof(u32));
-  memcpy(&targetY, &g_platform_info.y_pos, sizeof(u32));
-  memcpy(&targetZ, &g_platform_info.z_pos, sizeof(u32));
+    // Unpack position from GOAL fixed-point floats
+    float targetX, targetY, targetZ;
+    memcpy(&targetX, &g_platform_info.x_pos, sizeof(u32));
+    memcpy(&targetY, &g_platform_info.y_pos, sizeof(u32));
+    memcpy(&targetZ, &g_platform_info.z_pos, sizeof(u32));
 
-  targetX *= METERS_TO_UNITS;
-  targetY *= METERS_TO_UNITS;
-  targetZ *= METERS_TO_UNITS;
+    targetX *= METERS_TO_UNITS;
+    targetY *= METERS_TO_UNITS;
+    targetZ *= METERS_TO_UNITS;
 
-  float baseRotX, baseRotY, baseRotZ;
-  memcpy(&baseRotX, &g_platform_info.rot_x, sizeof(u32));
-  memcpy(&baseRotY, &g_platform_info.rot_y, sizeof(u32));
-  memcpy(&baseRotZ, &g_platform_info.rot_z, sizeof(u32));
+    // Unpack base rotation (assuming these are already in degrees)
+    float rotX, rotY, rotZ;
+    memcpy(&rotX, &g_platform_info.rot_x, sizeof(u32));
+    memcpy(&rotY, &g_platform_info.rot_y, sizeof(u32));
+    memcpy(&rotZ, &g_platform_info.rot_z, sizeof(u32));
 
-  // Apply to physics transform
-  gPlatXf.position[0] = targetX;
-  gPlatXf.position[1] = targetY;
-  gPlatXf.position[2] = targetZ;
+    // Apply to authoritative transform
+    gPlatXf.position[0] = targetX;
+    gPlatXf.position[1] = targetY;
+    gPlatXf.position[2] = targetZ;
 
-  gPlatXf.eulerRotation[0] = baseRotX;
-  gPlatXf.eulerRotation[1] = baseRotY;
-  gPlatXf.eulerRotation[2] = baseRotZ;
+    gPlatXf.eulerRotation[0] = rotX;
+    gPlatXf.eulerRotation[1] = rotY;
+    gPlatXf.eulerRotation[2] = rotZ;
 
-  // ─── Your existing spin/flip logic ───
-  // static float lastDir = 1.0f;
-  // if (gPlatDir != lastDir) {
-  //   gPlatShouldSpin = true;
-  //   gPlatYaw = 0.0f;
-  //   lastDir = gPlatDir;
-  // }
+    // Optional spin-on-reverse logic (uncomment if you still want visual flip)
+    /*
+    static float lastDir = 1.0f;
+    if (gPlatDir != lastDir) {
+        gPlatShouldSpin = true;
+        gPlatYaw = 0.0f;
+        lastDir = gPlatDir;
+    }
+    if (gPlatShouldSpin) {
+        gPlatYaw += gPlatSpinSpeed * (1.0f / 30.0f);
+        if (gPlatYaw >= 180.0f) {
+            gPlatYaw = 180.0f;
+            gPlatShouldSpin = false;
+        }
+    }
+    gPlatXf.eulerRotation[1] += gPlatYaw;
+    */
 
-  // if (gPlatShouldSpin) {
-  //   gPlatYaw += gPlatSpinSpeed * (1.f / 30.f);
-  //   if (gPlatYaw >= 180.0f) {
-  //     gPlatYaw = 180.0f;
-  //     gPlatShouldSpin = false;
-  //   }
-  // }
+    // Push transform to libsm64
+    sm64_surface_object_move(gPlatId, &gPlatXf);
 
-  // gPlatXf.eulerRotation[1] += gPlatYaw;
+    // Optional internal timer if you want automatic back-and-forth (remove if fully GOAL-controlled)
+    /*
+    gPlatTimer++;
+    if (gPlatTimer >= PLAT_MOVE_FRAMES) {
+        gPlatTimer = 0;
+        gPlatDir = -gPlatDir;
+    }
+    */
+}
 
-  // Apply to libsm64
-  sm64_surface_object_move(gPlatId, &gPlatXf);
 
-  // Internal timer (optional - remove if GOAL controls direction fully)
-  // gPlatTimer++;
-  // if (gPlatTimer >= PLAT_MOVE_FRAMES) {
-  //   gPlatTimer = 0;
-  //   gPlatDir = -gPlatDir;
-  // }
+uint64_t pc_get_platform_x() {
+  float x = gPlatXf.position[0];
+  uint64_t out = 0;
+  std::memcpy(&out, &x, sizeof(float));
+  // printf("[pc_get_platform_x] X = %.2f -> 0x%lx\n", x, out);
+  return out;
+}
+
+uint64_t pc_get_platform_y() {
+  float y = gPlatXf.position[1];
+  uint64_t out = 0;
+  std::memcpy(&out, &y, sizeof(float));
+  // printf("[pc_get_platform_y] Y = %.2f -> 0x%lx\n", y, out);
+  return out;
+}
+
+uint64_t pc_get_platform_z() {
+  float z = gPlatXf.position[2];
+  uint64_t out = 0;
+  std::memcpy(&out, &z, sizeof(float));
+  // printf("[pc_get_platform_z] Z = %.2f -> 0x%lx\n", z, out);
+  return out;
 }
 
 void update_platform_info_from_goal(u32 platform_info_ptr) {

@@ -564,6 +564,10 @@
 
 (define-extern pc-get-mario-z (function float))
 
+(define-extern pc-get-plat-x (function float))
+(define-extern pc-get-plat-y (function float))
+(define-extern pc-get-plat-z (function float))
+
 (define-extern pc-get-mario-state (function float))
 
 (define-extern pc-update-platform-info-from-goal (function platform-info none))
