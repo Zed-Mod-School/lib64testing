@@ -58,7 +58,7 @@
  * To use the F3DEX ucodes, define F3DEX_GBI before include this file.
  *
  *     #define  F3DEX_GBI
- *     #include <ultra64.h>
+ *     #include "ultra64.h"
  *
  *     or
  *

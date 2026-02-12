@@ -1,7 +1,7 @@
 #ifndef AUDIO_INTERNAL_H
 #define AUDIO_INTERNAL_H
 
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include <types.h>
 

@@ -109,17 +109,17 @@ s32 goal_main(int argc, const char* const* argv) {
 void KernelCheckAndDispatch() {
   u64 goal_stack = u64(g_ee_main_mem) + EE_MAIN_MEM_SIZE - 8;
   // Goal Kernel starting up, lets setup our mario
-  load_and_init_mario();
+  MarioManager::Initialize();
   while (MasterExit == RuntimeExitStatus::RUNNING) {
   // each frame, tick mario this "runs" his world/physics
 
   if (run_and_render_mario()) {
   // player is riding Flut Flut
-    tick_mario_frame();
-    if( has_blue_eco() ) {
-      // only render mario if we have blue eco
-      tick_mario_frame();
-    }
+    MarioManager::Get().Tick();
+    // if( has_blue_eco() ) {
+    //   // only render mario if we have blue eco
+    //   MarioManager::Get().Tick();
+    // }
 }
     // try to get a message from the listener, and process it if needed
     Ptr<char> new_message = WaitForMessageAndAck();

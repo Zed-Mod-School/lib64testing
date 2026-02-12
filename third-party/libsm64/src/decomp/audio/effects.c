@@ -1,4 +1,4 @@
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include "effects.h"
 #include "load.h"

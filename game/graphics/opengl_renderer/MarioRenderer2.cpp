@@ -310,16 +310,18 @@ void MarioRenderer2::render(SharedRenderState* render_state, ScopedProfilerNode&
 
   static GLuint mario_texture_id = 0;
 
-  if (mario_texture_id == 0 && g_mario_texture) {
+  if (mario_texture_id == 0 && MarioManager::Get().GetTexture()) {
     glGenTextures(1, &mario_texture_id);
     glBindTexture(GL_TEXTURE_2D, mario_texture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, g_mario_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, MarioManager::Get().GetTexture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
-  if (g_geom.numTrianglesUsed > 0 && g_geom.position) {
+  if (MarioManager::Get().GetGeom()
+.numTrianglesUsed > 0 && MarioManager::Get().GetGeom()
+.position) {
     struct MarioVertex {
       float pos[3];
       float color[3];
@@ -330,22 +332,34 @@ void MarioRenderer2::render(SharedRenderState* render_state, ScopedProfilerNode&
     std::vector<MarioVertex> untextured_verts;
     std::vector<MarioVertex> textured_verts;
 
-    for (int i = 0; i < g_geom.numTrianglesUsed * 3; ++i) {
-      float x = g_geom.position[i * 3 + 0] * scale;
-      float y = g_geom.position[i * 3 + 1] * scale;
-      float z = g_geom.position[i * 3 + 2] * scale;
+    for (int i = 0; i < MarioManager::Get().GetGeom()
+.numTrianglesUsed * 3; ++i) {
+      float x = MarioManager::Get().GetGeom()
+.position[i * 3 + 0] * scale;
+      float y = MarioManager::Get().GetGeom()
+.position[i * 3 + 1] * scale;
+      float z = MarioManager::Get().GetGeom()
+.position[i * 3 + 2] * scale;
 
-      float u = g_geom.uv[i * 2 + 0];
-      float v = g_geom.uv[i * 2 + 1];
+      float u = MarioManager::Get().GetGeom()
+.uv[i * 2 + 0];
+      float v = MarioManager::Get().GetGeom()
+.uv[i * 2 + 1];
       if (u > 1.0f) {
         u /= 65535.0f;
         v /= 65535.0f;
       }
 
       bool has_texture = true;
-      float r = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 0] : 1.0f);
-      float g = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 1] : 1.0f);
-      float b = has_texture ? 1.0f : (g_geom.color ? g_geom.color[i * 3 + 2] : 1.0f);
+      float r = has_texture ? 1.0f : (MarioManager::Get().GetGeom()
+.color ? MarioManager::Get().GetGeom()
+.color[i * 3 + 0] : 1.0f);
+      float g = has_texture ? 1.0f : (MarioManager::Get().GetGeom()
+.color ? MarioManager::Get().GetGeom()
+.color[i * 3 + 1] : 1.0f);
+      float b = has_texture ? 1.0f : (MarioManager::Get().GetGeom()
+.color ? MarioManager::Get().GetGeom()
+.color[i * 3 + 2] : 1.0f);
 
       MarioVertex vtx = {{x, y, z}, {r, g, b}, {u, v}};
       if (has_texture)
@@ -478,5 +492,6 @@ if (overlayTex != 0 && m_overlayShader != 0) {
   glDepthMask(depthWriteEnabled);
 
   prof.add_draw_call();
-  prof.add_tri(g_geom.numTrianglesUsed);
+  prof.add_tri(MarioManager::Get().GetGeom()
+.numTrianglesUsed);
 }

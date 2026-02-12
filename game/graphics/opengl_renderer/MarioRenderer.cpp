@@ -3,7 +3,7 @@
 #include "game/graphics/gfx.h"
 #include "game/kernel/jak1/Mario1.h"
 
-std::vector<SM64SurfaceObject> g_active_debug_objects;
+//std::vector<SM64SurfaceObject> g_active_debug_objects;
 const float MARIO_SCALE_FACTOR = 4096.0f / 50.0f;
 
 MarioRenderer::MarioRenderer(GameVersion version) {
@@ -121,32 +121,51 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
     glDepthMask(GL_TRUE);
     glDisable(GL_CULL_FACE);
 
-    if (g_geom.numTrianglesUsed > 0 && g_geom.position && g_geom.uv) {
+    if (MarioManager::Get().GetGeom()
+.numTrianglesUsed > 0 && MarioManager::Get().GetGeom()
+.position && MarioManager::Get().GetGeom()
+.uv) {
         struct MarioVertex { float pos[3]; float color[3]; float uv[2]; };
         std::vector<MarioVertex> untextured_verts;
         std::vector<MarioVertex> textured_verts;
 
-        untextured_verts.reserve(g_geom.numTrianglesUsed * 3);
-        textured_verts.reserve(g_geom.numTrianglesUsed * 3);
+        untextured_verts.reserve(MarioManager::Get().GetGeom()
+.numTrianglesUsed * 3);
+        textured_verts.reserve(MarioManager::Get().GetGeom()
+.numTrianglesUsed * 3);
 
-        for (int i = 0; i < g_geom.numTrianglesUsed * 3; ++i) {
-            float u = g_geom.uv[i * 2 + 0];
-            float v = g_geom.uv[i * 2 + 1];
+        for (int i = 0; i < MarioManager::Get().GetGeom()
+.numTrianglesUsed * 3; ++i) {
+            float u = MarioManager::Get().GetGeom()
+.uv[i * 2 + 0];
+            float v = MarioManager::Get().GetGeom()
+.uv[i * 2 + 1];
 
             if (u > 1.0f || u < -1.0f) {
                 u /= 65535.0f;
                 v /= 65535.0f;
             }
 
-            bool has_texture = !(g_geom.uv[i * 2 + 0] == 1.0f && g_geom.uv[i * 2 + 1] == 1.0f);
+            bool has_texture = !(MarioManager::Get().GetGeom()
+.uv[i * 2 + 0] == 1.0f && MarioManager::Get().GetGeom()
+.uv[i * 2 + 1] == 1.0f);
 
             MarioVertex vtx = {
-                { g_geom.position[i * 3 + 0] * MARIO_SCALE_FACTOR,
-                  g_geom.position[i * 3 + 1] * MARIO_SCALE_FACTOR,
-                  g_geom.position[i * 3 + 2] * MARIO_SCALE_FACTOR },
-                { g_geom.color ? g_geom.color[i * 3 + 0] : 1.0f, // Scale check: 1.0 or 255.0?
-                  g_geom.color ? g_geom.color[i * 3 + 1] : 1.0f,
-                  g_geom.color ? g_geom.color[i * 3 + 2] : 1.0f },
+                { MarioManager::Get().GetGeom()
+.position[i * 3 + 0] * MARIO_SCALE_FACTOR,
+                  MarioManager::Get().GetGeom()
+.position[i * 3 + 1] * MARIO_SCALE_FACTOR,
+                  MarioManager::Get().GetGeom()
+.position[i * 3 + 2] * MARIO_SCALE_FACTOR },
+                { MarioManager::Get().GetGeom()
+.color ? MarioManager::Get().GetGeom()
+.color[i * 3 + 0] : 1.0f, // Scale check: 1.0 or 255.0?
+                  MarioManager::Get().GetGeom()
+.color ? MarioManager::Get().GetGeom()
+.color[i * 3 + 1] : 1.0f,
+                  MarioManager::Get().GetGeom()
+.color ? MarioManager::Get().GetGeom()
+.color[i * 3 + 2] : 1.0f },
                 { u, v }
             };
 
@@ -199,5 +218,6 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
     }
 
     prof.add_draw_call();
-    prof.add_tri(g_geom.numTrianglesUsed);
+    prof.add_tri(MarioManager::Get().GetGeom()
+.numTrianglesUsed);
 }

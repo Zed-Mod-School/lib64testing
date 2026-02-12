@@ -1,6 +1,6 @@
 #ifndef _ULTRA64_PI_H_
 #define _ULTRA64_PI_H_
-#include <ultra64.h>
+#include "ultra64.h"
 
 /* Ultra64 Parallel Interface */
 

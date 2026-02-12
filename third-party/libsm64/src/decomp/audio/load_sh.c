@@ -1,5 +1,5 @@
 #ifdef VERSION_SH
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include "data.h"
 #include "external.h"

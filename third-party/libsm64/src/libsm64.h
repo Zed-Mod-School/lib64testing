@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 //mariozed We are going to collect all our foward definitions here for now.
-extern uint8_t* g_mario_texture;
+
 #if defined(_WIN32)
     #ifdef SM64_LIB_EXPORT
         #define SM64_LIB_FN __declspec(dllexport)

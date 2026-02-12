@@ -1,5 +1,5 @@
 #ifndef VERSION_SH
-#include <ultra64.h>
+#include "ultra64.h"
 
 #include "../../debug_print.h"
 #include "data.h"

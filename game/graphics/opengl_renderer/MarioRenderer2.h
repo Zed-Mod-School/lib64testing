@@ -3,7 +3,8 @@
 #include "common/versions/versions.h"
 
 #include "libsm64.h"
-extern SM64MarioGeometryBuffers g_geom;
+#include "game/kernel/jak1/mario1.h"
+;
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
 
 #define MAX_CUBES 64
