@@ -139,8 +139,3 @@ uint64_t pc_get_platform_z();
 
 inline bool is_moving_platform_active() { return gPlatId != 0; }
 
-inline void reset_temp_surface_buffers() {
-    gSpawnedSurfaceCount = 0;
-    memset(gSurfaceBuffer, 0, sizeof(gSurfaceBuffer));
-    memset(gTempVerts, 0, sizeof(gTempVerts));
-}

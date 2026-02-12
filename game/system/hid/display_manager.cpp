@@ -432,9 +432,14 @@ void DisplayManager::update_video_modes() {
       display_name_str = display_name;
     }
 
-    DisplayMode new_mode = {display_id,   display_name_str, curr_mode->format,
-                            curr_mode->w, curr_mode->h,     (int)curr_mode->refresh_rate,
-                            orient};
+DisplayMode new_mode = {
+    display_id,
+    display_name_str,
+    static_cast<uint32_t>(curr_mode->format),
+    curr_mode->w,
+    curr_mode->h,
+    static_cast<int>(curr_mode->refresh_rate)   // ← explicit cast
+};
     m_current_display_modes.push_back(new_mode);
     lg::info(
         "[DISPLAY]: Found monitor {}, currently set to {}x{}@{}hz. Format: {}, Orientation: {}",

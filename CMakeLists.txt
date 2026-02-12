@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(jak)
 include(CTest)
 
+# Enable SSE4.2 (includes SSE4.1, SSSE3, etc.) — needed for CRC32 + graphics SIMD
+if(MSVC)
+    add_compile_options(/arch:SSE4.2)
+else()
+    add_compile_options(-msse4.2)
+endif()
+
 # Include third-party modules
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/third-party/cmake/modules/)
 
@@ -41,12 +48,13 @@ endif()
 # Setup compiler flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(STATUS "Clang Detected - Setting Defaults")
-    set(CMAKE_CXX_FLAGS
+    set(CMAKE_CXX_FLAGS-
         "${CMAKE_CXX_FLAGS} \
         -fcxx-exceptions \
         -fexceptions \
         -fdiagnostics-color=always \
         -mavx \
+        -msse4.2 \
         -Wall \
         -Wno-c++11-narrowing \
         -Wno-c++98-compat \
@@ -244,6 +252,12 @@ build_third_party_lib(fmt fmt)
 # build common library
 add_subdirectory(common)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(common PRIVATE -msse4.2)
+    # Optional: also enable AVX if you want to be consistent with -mavx global
+    # target_compile_options(common PRIVATE -mavx -msse4.2)
+endif()
+
 # build decompiler
 add_subdirectory(decompiler)
 
@@ -297,6 +311,16 @@ build_third_party_lib(stb_image stb_image)
 # build draco library for tinygltf compression support
 include_directories(third-party/draco/src)
 add_subdirectory(third-party/draco)
+# Copy draco_features.h to the appropriate output directory for each configuration
+foreach(config IN ITEMS Debug Release)
+    set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/draco")
+    file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/third-party/draco/src/draco/draco_features.h"
+        "${OUTPUT_DIR}/draco_features.h"
+        COPYONLY
+    )
+endforeach()
 add_compile_definitions(TINYGLTF_ENABLE_DRACO)
 build_third_party_lib(tiny_gltf tiny_gltf)
 build_third_party_lib(xdelta3 xdelta3)
