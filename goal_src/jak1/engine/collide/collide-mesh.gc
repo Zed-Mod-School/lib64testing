@@ -120,9 +120,11 @@
             ;;(add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
             ;;(pc-add-tris-to-surface a2-1 a3-0 t0-0)
             ;; these are cordinate vectors, so we need to extract x, y, z components of each cord
-            (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
-            (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
-            (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)))
+            ;; (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
+            ;; (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
+            ;; (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
+            ))
+
         ;; pc-spawn-mario-collide-if-needed?
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))))
     0
@@ -175,14 +177,16 @@
             ;;(add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)
             ;;(pc-add-tris-to-surface a2-1 a3-0 t0-0)
             ;; these are cordinate vectors, so we need to extract x, y, z components of each cord
-            (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
-            (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
-            (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)))
+            ;; (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
+            ;; (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
+            ;; (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
+            
+            ))
         ;; pc-spawn-mario-collide-if-needed?
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1)))
 
-        (when *target*
-      (pc-spawn-mario-test-collide "active-plat"))
+      ;;   (when *target*
+      ;; (pc-spawn-mario-test-collide "active-plat"))
 
 
         )
@@ -253,7 +257,7 @@
         (-> info rot-x))
 
         (set! (-> info rot-w) (-> (the process-drawable plat) root quat w))
-        (pc-update-platform-info-from-goal info)
+        ;;(pc-update-platform-info-from-goal info)
         (format 0
                 " : pos(~M ~M ~M) rot(~f ~f ~f)~%"
                 (-> info x-pos)
@@ -384,8 +388,8 @@ TODO this logic gets all actor collide and uploads it ALL into a single SM64 sur
     ;;     (set-scale! fnt 0.2)
     ;;     (set-flags! fnt (font-flags kerning large))
     ;;     (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
-    (when *target*
-      (pc-spawn-mario-test-collide "fart"))
+    ;; (when *target*
+    ;;   (pc-spawn-mario-test-collide "fart"))
     (set! *count-close-actors* 0)))
 
 (defun load-goal-actor-collide-to-sm64-2 ()

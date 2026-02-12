@@ -7,7 +7,7 @@
 (declare-type first-person-hud process)
 
 ;; DECOMP BEGINS
-
+(define-extern *render-mario?* symbol)
 (defstate target-load-wait (target)
   :event
     (behavior ((proc process) (argc int) (message symbol) (block event-message-block))

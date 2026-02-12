@@ -1400,7 +1400,6 @@ void init_common_pc_port_functions(
   // make_func_symbol_func("pc-get-plat-y", (void*)pc_get_platform_y);
   // make_func_symbol_func("pc-get-plat-z", (void*)pc_get_platform_z);
   make_func_symbol_func("pc-get-mario-state", (void*)pc_get_mario_action);
-  make_func_symbol_func("pc-update-platform-info-from-goal", (void*)update_platform_info_from_goal);
   make_func_symbol_func("pc-set-mario-look-angles!", (void*)pc_set_mario_camera);
   make_func_symbol_func("pc-set-mario-music", (void*)pc_set_mario_music_from_goal);
   // make_func_symbol_func("pc-get-jak-water-height", (void*)pc_get_jak_water_height);
@@ -1408,8 +1407,9 @@ void init_common_pc_port_functions(
   make_func_symbol_func("teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
   make_func_symbol_func("update-mario-water-height", (void*)pc_set_mario_water_level_from_goal);
   make_func_symbol_func("update-mario-state", (void*)pc_change_mario_state);
-  make_func_symbol_func("pc-add-tris-to-surface", (void*)pc_add_tris_to_surface);
-  make_func_symbol_func("pc-spawn-mario-test-collide", (void*)pc_spawn_mario_test_collide);
+  //make_func_symbol_func("pc-update-platform-info-from-goal", (void*)update_platform_info_from_goal);
+  //make_func_symbol_func("pc-add-tris-to-surface", (void*)pc_add_tris_to_surface);
+  //make_func_symbol_func("pc-spawn-mario-test-collide", (void*)pc_spawn_mario_test_collide);
   make_func_symbol_func("pc-mario-says-so-long-gay-bowsa", (void*)pc_mario_says_so_long_gay_bowsa);
   make_func_symbol_func("pc-heal-mario", (void*)pc_heal_mario);
   make_func_symbol_func("pc-damage-mario", (void*)pc_damage_mario);

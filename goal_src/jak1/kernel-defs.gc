@@ -570,7 +570,7 @@
 
 (define-extern pc-get-mario-state (function float))
 
-(define-extern pc-update-platform-info-from-goal (function platform-info none))
+;;(define-extern pc-update-platform-info-from-goal (function platform-info none))
 
 (define-extern pc-set-mario-look-angles! (function float float none))
 (define-extern pc-set-mario-music (function float none))
@@ -583,7 +583,7 @@
 
 (define-extern update-mario-state (function int none))
 
-(define-extern pc-spawn-mario-test-collide (function string none))
+;;(define-extern pc-spawn-mario-test-collide (function string none))
 
 (define-extern pc-mario-says-so-long-gay-bowsa (function int none))
 
@@ -591,7 +591,7 @@
 
 (define-extern pc-damage-mario (function none))
 
-(define-extern pc-add-tris-to-surface (function float float float float none))
+;;(define-extern pc-add-tris-to-surface (function float float float float none))
 
 (define-extern pc-discord-rpc-set (function int none))
 
