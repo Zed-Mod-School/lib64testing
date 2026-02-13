@@ -167,6 +167,7 @@ void MarioManager::Tick() {
 
 void MarioManager::UpdateCollide() {
     // Dynamic object updates (stub)
+    jak1::call_goal_function_by_name("update-mario-water-height-from-goal");
     // for (auto& obj : g_active_debug_objects) {
     //     sm64_surface_object_update(obj.id, ...);
     // }
@@ -243,7 +244,11 @@ void MarioManager::SetMusic(uint32_t music_bits) {
 }
 
 void MarioManager::SetWaterLevel(float level) {
-    //sm64_set_water_level(static_cast<int32_t>(level));
+  sm64_set_mario_water_level(MarioManager::Get().GetId(),
+                             true ?  //  hardcode this func to always accept true bc we check on the
+                                     //  goal side and only call this func if close to water
+                                 level
+                                  : INT16_MIN);
 }
 
 void MarioManager::ChangeState(uint32_t act) {
@@ -338,9 +343,10 @@ void pc_set_mario_position_from_goal(uint32_t x, uint32_t y, uint32_t z) {
 }
 
 void pc_set_mario_water_level_from_goal(uint32_t level_bits) {
-    float f;
-    memcpy(&f, &level_bits, 4);
-    MarioManager::Get().SetWaterLevel(f);
+  float f;
+  memcpy(&f, &level_bits, 4);
+  f *= METERS_TO_UNITS;
+  MarioManager::Get().SetWaterLevel(f);
 }
 
 void pc_change_mario_state(uint32_t act_bits) {
