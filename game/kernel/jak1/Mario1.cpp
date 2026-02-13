@@ -234,9 +234,7 @@ void MarioManager::SetCamera(float x, float z) {
 }
 
 void MarioManager::SetPosition(float x, float y, float z) {
-    m_state.position[0] = x;
-    m_state.position[1] = y;
-    m_state.position[2] = z;
+    sm64_set_mario_position(MarioManager::Get().GetId(), x, y, z);
 }
 
 void MarioManager::SetMusic(uint32_t music_bits) {
@@ -339,6 +337,9 @@ void pc_set_mario_position_from_goal(uint32_t x, uint32_t y, uint32_t z) {
     memcpy(&fx, &x, 4);
     memcpy(&fy, &y, 4);
     memcpy(&fz, &z, 4);
+    fx *= METERS_TO_UNITS;
+    fy *= METERS_TO_UNITS;
+    fz *= METERS_TO_UNITS;
     MarioManager::Get().SetPosition(fx, fy, fz);
 }
 
