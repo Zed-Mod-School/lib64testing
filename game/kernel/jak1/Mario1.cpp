@@ -86,7 +86,7 @@ MarioManager& MarioManager::Get() {
 void MarioManager::Initialize() {
     if (sInstance) return;
     sInstance = new MarioManager();
-    fprintf(stderr, "STARTING NEW MANAGER");
+    fprintf(stderr, "[libsm64] STARTING NEW MANAGER");
     std::string baseDir = file_util::get_file_path({"iso_data"});
     std::string romPathStr = baseDir + "/mario/test.rom";
     const char* romPath = romPathStr.c_str();
@@ -94,7 +94,7 @@ void MarioManager::Initialize() {
     uint8_t* romBuffer = nullptr;
     std::ifstream file(romPath, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
-        fprintf(stderr, "Failed to open ROM file: %s\n", romPath);
+        fprintf(stderr, "[libsm64] Failed to open ROM file: %s\n", romPath);
         std::abort();
     }
 
@@ -310,7 +310,7 @@ int load_surfaces_near(float x, float y, float z) {
     sm64_static_surfaces_load(filtered, count);
     delete[] filtered;
 
-    printf("Reloaded %d surfaces near (%.1f, %.1f, %.1f)\n", count, x, y, z);
+    printf("[libsm64] Reloaded %d surfaces near (%.1f, %.1f, %.1f)\n", count, x, y, z);
     return count;
 }
 
