@@ -1,4 +1,9 @@
 {
     "search.useIgnoreFiles": true,
-    "C_Cpp.default.compilerPath": "C:/Users/ZedBo/scoop/apps/llvm/current/bin/clang++.exe"
+    "C_Cpp.default.compilerPath": "C:/Users/ZedBo/scoop/apps/llvm/current/bin/clang++.exe",
+  "C_Cpp.intelliSenseCacheSize": 128,               // MB — start here, try 64 or even 32 if still high
+  "C_Cpp.intelliSenseMemoryLimit": 256,             // MB hard cap for the server process
+  "C_Cpp.intelliSenseMaxCachedProcesses": 2,        // fewer background processes
+  "C_Cpp.intelliSenseEngineFallback": "disabled",   // if you can live without full IntelliSense
+
 }

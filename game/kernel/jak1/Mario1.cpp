@@ -149,17 +149,13 @@ void MarioManager::Tick() {
     g_tick_accumulator += frame_dt; 
 
     // Assuming m_inputs already contains the raw -64 to +64 values from GOAL
-    float scaled_stick_x = (float)self.m_inputs.stickX / 64.0f;
-    float scaled_stick_y = (float)self.m_inputs.stickY / 64.0f;
+
 
     while (g_tick_accumulator >= MARIO_FIXED_DT) {
         jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
         
-        SM64MarioInputs inputs = self.m_inputs;
-        inputs.stickX = scaled_stick_x;
-        inputs.stickY = -scaled_stick_y; // Invert Y for SM64 standard
 
-        sm64_mario_tick(self.m_id, &inputs, &self.m_state, &self.m_geom);
+        sm64_mario_tick(self.m_id, &self.m_inputs, &self.m_state, &self.m_geom);
 
         self.UpdateCollide();
         self.MaybeReloadSurfaces();

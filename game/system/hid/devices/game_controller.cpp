@@ -111,15 +111,15 @@ int normalize_axes_value(int sdl_val) {
   return ((sdl_val + 32768) * 256) / 65536;
 }
 
-auto sdl_axis_to_sm64 = [](int value) -> int8_t {
-  value = std::clamp(value, -32768, 32767);
+auto sdl_axis_to_sm64 = [](int value) -> float {
+    value = std::clamp(value, -32768, 32767);
 
-  // ✅ Apply a deadzone
-  if (std::abs(value) < 8000)
-    return 0;
+    // Apply a deadzone
+    if (std::abs(value) < 8000)
+        return 0.0f;
 
-  float scaled = (value / 32767.0f) * 64.0f;
-  return static_cast<int8_t>(std::round(scaled));
+    // Normalize directly to -1.0 to 1.0 range
+    return (float)value / 32767.0f;
 };
 
 void GameController::process_event(const SDL_Event& event,
@@ -133,18 +133,18 @@ void GameController::process_event(const SDL_Event& event,
       return;
     }
 
-    static int8_t last_stick_x = 0;
-    static int8_t last_stick_y = 0;
+    static float last_stick_x = 0.0f;
+    static float last_stick_y = 0.0f;
 
     if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) {
-      int8_t stick = sdl_axis_to_sm64(event.gaxis.value);
+      float stick = sdl_axis_to_sm64(event.gaxis.value);
       if (stick != last_stick_x) {
         MarioManager::Get().GetInputs().stickX = stick;
         last_stick_x = stick;
         // printf("[DEBUG] stickX updated: %d\n", stick);
       }
     } else if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) {
-      int8_t stick = -sdl_axis_to_sm64(event.gaxis.value);
+      float stick = sdl_axis_to_sm64(event.gaxis.value);
       if (stick != last_stick_y) {
         MarioManager::Get().GetInputs().stickY = stick;
         last_stick_y = stick;
