@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface maincave_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{65521,335,-143355}, {65583,338,-143352}, {65583,433,-143352}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{65521,335,-143355}, {65583,433,-143352}, {65508,435,-143354}}},

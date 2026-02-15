@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface robocave_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{71856,2431,-136644}, {71726,2427,-136592}, {71760,2435,-136652}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{71856,2431,-136644}, {71760,2435,-136652}, {71893,2435,-136708}}},

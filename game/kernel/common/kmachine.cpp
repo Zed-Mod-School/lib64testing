@@ -1094,6 +1094,7 @@ void init_common_pc_port_functions(
   make_func_symbol_func("pc-teleport-mario-to-pos", (void*)pc_set_mario_position_from_goal);
   make_func_symbol_func("update-mario-water-height", (void*)pc_set_mario_water_level_from_goal);
 
+  make_func_symbol_func("pc-update-mario-level-collide", (void*)pc_call_load_combined_static_surfaces_from_game_idx);
 
   // graphics things
   make_func_symbol_func("pc-set-vsync", (void*)pc_set_vsync);

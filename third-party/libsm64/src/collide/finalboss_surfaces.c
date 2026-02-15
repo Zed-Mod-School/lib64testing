@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface finalboss_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{164514,23184,-219191}, {167271,23184,-219191}, {164514,23184,-221510}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{167271,23184,-221510}, {164514,23184,-221510}, {167271,23184,-219191}}},

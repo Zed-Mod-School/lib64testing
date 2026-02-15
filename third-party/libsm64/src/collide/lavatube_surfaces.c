@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface lavatube_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{121906,-1013,-169725}, {122273,-1013,-170155}, {121781,-1245,-170513}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{122027,-1245,-170913}, {121781,-1245,-170513}, {122273,-1013,-170155}}},

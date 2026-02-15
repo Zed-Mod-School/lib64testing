@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface sunkenb_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{29439,-12445,-82179}, {29389,-11083,-82315}, {30251,-12445,-82749}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{30139,-11083,-82842}, {30251,-12445,-82749}, {29389,-11083,-82315}}},

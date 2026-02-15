@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface firecanyon_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-732,1489,-8336}, {-815,1489,-7761}, {-475,2032,-8194}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{-555,2036,-7626}, {-475,2032,-8194}, {-815,1489,-7761}}},

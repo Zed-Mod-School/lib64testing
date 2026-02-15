@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface village3_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{52660,16432,-169375}, {52295,16392,-169386}, {52423,16369,-169208}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{52660,16432,-169375}, {52423,16369,-169208}, {52889,16380,-169058}}},

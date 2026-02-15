@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface citadel_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{141074,15089,-236289}, {140896,15089,-236574}, {140759,13673,-236465}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{141074,15089,-236289}, {140759,13673,-236465}, {140917,13673,-236214}}},

@@ -122,11 +122,11 @@ void KernelCheckAndDispatch() {
     );
 
     // Mario 2: Offset slightly so they don't clip into each other immediately
-    int mario2 = MarioManager::Get().CreateMario(
-        -7541.8f + 0.0f,  // x offset
-        3688.475f,          // y
-        9237.5f + 0.0f    // z offset
-    );
+    // int mario2 = MarioManager::Get().CreateMario(
+    //     -7541.8f + 0.0f,  // x offset
+    //     3688.475f,          // y
+    //     9237.5f + 0.0f    // z offset
+    // );
 
     // Optional: Give them different initial inputs for chaotic fun
     // (e.g., Mario1 goes right, Mario2 goes left)
@@ -134,10 +134,10 @@ void KernelCheckAndDispatch() {
     //   auto& inputs1 = MarioManager::Get().GetMarioInputs(mario1);
     //   inputs1.stickX = 20.0f;   // slight right bias
     // }
-    if (mario2 != -1) {
-      auto& inputs2 = MarioManager::Get().GetMarioInputs(mario2);
-      inputs2.stickX = -20.0f;  // slight left bias
-    }
+    // if (mario2 != -1) {
+    //   auto& inputs2 = MarioManager::Get().GetMarioInputs(mario2);
+    //   inputs2.stickX = -20.0f;  // slight left bias
+    // }
 
     // Alternative: Single Mario mode (uncomment for original behavior)
     // MarioManager::Get().CreateMario(-7541.8f, 3688.475f, 9237.5f);
