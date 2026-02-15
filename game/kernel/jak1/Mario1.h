@@ -125,6 +125,7 @@ class MarioManager {
 
   void pc_set_mario_camera(uint32_t x, uint32_t z);
   void pc_set_mario_position_from_goal(int id, uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
+  void pc_set_mario_water_level_from_goal(int id, uint32_t level_bits);
   uint64_t pc_get_mario_x(int id);
   uint64_t pc_get_mario_y(int id);
   uint64_t pc_get_mario_z(int id);
