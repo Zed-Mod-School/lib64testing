@@ -307,6 +307,7 @@
   "mario-vars-h.o"
   "mario-glue.o"
   "mario-level-collide.o"
+  "mario-water.o"
   "mario.o"
   "subtitle.o" ;; added
   "default-menu-pc.o" ;; added

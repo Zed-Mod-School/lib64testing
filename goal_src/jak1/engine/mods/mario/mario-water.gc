@@ -1,0 +1,72 @@
+(define *last-target-in-water* 0)
+(defconstant LOWEST_WATER_HEIGHT -3000000.0)
+(defconstant EXIT_GRACE_FRAMES (* 60 0.7)) ;; how long to wait before lowering water after exiting, in frames
+(defconstant MIN_SWIM_DEPTH 204.8) ;; how much water is needed to be considered swimmable
+(define *last-water-height* LOWEST_WATER_HEIGHT)
+(define *water-exit-frames* 0)
+
+(defun mario-water-level-override ()
+  ;;this is a hack to force a standard mario water level if a condition is detected,
+  ;; if a condition is detected, make sure to return #t so we skip the dynamic update this frame
+  (if (= (-> (level-get-target-inside *level*) name) 'midsty) (update-mario-water-height 0 -12207.019531) (return #t))
+  #f)
+
+(defun target-in-water? ()
+  (logtest? (-> *target* water flags) (water-flags wt09)))
+
+(defun water-deep-enough-to-swim? ()
+  (let* ((wc (-> *target* water))
+         (surface-y (-> wc surface-height))
+         (stand-y (-> wc bottom 0 y))
+         (required-depth (-> wc swim-height))
+         (effective-depth (- surface-y stand-y))
+         (threshold (- required-depth MIN_SWIM_DEPTH)))
+    ;; (format #t
+    ;;   "[WATER] eff=~f thresh=~f surf=~f stand=~f~%"
+    ;;   effective-depth threshold surface-y stand-y)
+    (>= effective-depth threshold)))
+
+(defun handle-water-exit ()
+  (when (= *last-target-in-water* 1)
+    (set! *water-exit-frames* (+ *water-exit-frames* 1))
+    (when (>= *water-exit-frames* EXIT_GRACE_FRAMES)
+      (update-mario-water-height 0 LOWEST_WATER_HEIGHT)
+      (set! *last-water-height* LOWEST_WATER_HEIGHT)
+      (set! *last-target-in-water* 0))))
+
+(defun update-mario-water-height-from-goal ()
+  ;; If water isn't deep enough, wait briefly before lowering water.
+  (when (not (water-deep-enough-to-swim?))
+    (handle-water-exit)
+    (return #f))
+
+  ;; Check whether the target is currently in water.
+  (let* ((in-water (if (target-in-water?) 1 0)))
+    (when (mario-water-level-override)
+      (cond
+        ;; Target in water: follow its water height.
+        ((= in-water 1)
+         (let ((h (-> *target* water height)))
+           (set! *water-exit-frames* 0) ; reset exit timer
+           ;; Update only on entry or height change.
+           (when (or (= *last-target-in-water* 0) (not (= h *last-water-height*)))
+             (update-mario-water-height 0 h)
+             (set! *last-water-height* h)
+             (set! *last-target-in-water* 1))))
+
+        ;; Target out of water: lower after cooldown.
+        (else
+         (handle-water-exit))))))
+
+;; (defun should-wade? ()
+;;   (let* ((wc (-> *target* water))
+;;          (surface-y (-> wc surface-height))
+;;          (bottom-y (-> wc bottom 0 y))
+;;          (wade-plane (- (-> wc height) (-> wc wade-height))))
+;;     (and
+;;       ;; water above feet
+;;       (>= surface-y bottom-y)
+;;       ;; but not deep enough to swim
+;;       (< surface-y wade-plane)
+;;       ;; not already swimming
+;;       (not (logtest? (-> wc flags) (water-flags wt11))))))

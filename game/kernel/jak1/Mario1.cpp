@@ -277,8 +277,11 @@ void MarioManager::SetMarioPosition(int id, float x, float y, float z) {
 }
 
 void MarioManager::SetMarioWaterLevel(int id, float level) {
-  auto& state = GetMario(id)->state;
-  //state.waterLevel = level;
+  sm64_set_mario_water_level(id,
+                             true ?  //  hardcode this func to always accept true bc we check on the
+                                     //  goal side and only call this func if close to water
+                                 level
+                                  : INT16_MIN);
 }
 
 void MarioManager::ChangeMarioState(int id, uint32_t act) {
@@ -336,7 +339,7 @@ void MarioManager::TickMario(int id) {
   auto* inst = GetMario(id);
   if (!inst || !inst->active) return;
 
-  //jak1::call_goal_function_by_name("update-mario-water-height-from-goal");  // Per-Mario? Stub
+  jak1::call_goal_function_by_name("update-mario-water-height-from-goal");  // Per-Mario? Stub
 
   sm64_mario_tick(inst->id, &inst->inputs, &inst->state, &inst->geom);
 
