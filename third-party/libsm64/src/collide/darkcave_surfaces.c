@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface darkcave_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{47503,5379,-143223}, {47469,5283,-143380}, {47524,5279,-143237}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{47503,5379,-143223}, {47524,5279,-143237}, {47616,5378,-143149}}},

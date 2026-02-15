@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface ogre_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{12328,2019,-88126}, {12369,2008,-88357}, {12208,2013,-88243}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{12328,2019,-88126}, {12208,2013,-88243}, {12045,2013,-88135}}},

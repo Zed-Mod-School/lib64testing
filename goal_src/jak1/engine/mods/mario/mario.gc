@@ -17,4 +17,5 @@
 )
   (defun mario-main-GOAL ()
   (mario-glue-main-func)
+  (mario-level-collide-main-func)
   (none))

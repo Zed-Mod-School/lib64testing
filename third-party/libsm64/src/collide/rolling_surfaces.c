@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface rolling_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{12275,2499,-61744}, {12275,2499,-64965}, {11225,2499,-64965}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{12275,2499,-61744}, {11225,2499,-64965}, {11225,2499,-61744}}},

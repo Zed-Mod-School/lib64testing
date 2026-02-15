@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface misty_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{5679,-396,63973}, {3450,-396,65008}, {3450,470,65008}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{5679,-396,63973}, {3450,470,65008}, {5679,470,63973}}},

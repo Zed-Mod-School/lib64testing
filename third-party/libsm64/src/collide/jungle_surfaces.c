@@ -1,3 +1,5 @@
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface jungle_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{23451,65,-2750}, {23518,68,-2822}, {23417,63,-2607}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{23511,35,-2602}, {23417,63,-2607}, {23518,68,-2822}}},

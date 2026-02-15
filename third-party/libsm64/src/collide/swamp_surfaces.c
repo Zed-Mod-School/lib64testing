@@ -1,7 +1,5 @@
-#include "level.h"
-
-#include "../src/decomp/include/surface_terrains.h"
-
+#include "libsm64.h"
+#include "decomp/include/surface_terrains.h"
 const struct SM64Surface swamp_surfaces[] = {
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{30246,498,-94485}, {30272,1241,-94491}, {30280,498,-94690}}},
     {SURFACE_DEFAULT, 0, TERRAIN_STONE, {{30360,1241,-94640}, {30280,498,-94690}, {30272,1241,-94491}}},
