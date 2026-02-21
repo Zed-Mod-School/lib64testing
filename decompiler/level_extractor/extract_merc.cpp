@@ -1681,6 +1681,11 @@ void extract_merc(const ObjectFileData& ag_data,
   std::vector<MercCtrl> ctrls;
   for (auto location : ctrl_locations) {
     auto ctrl = extract_merc_ctrl(ag_data.linked_data, dts, location);
+    // ──── ADD THE SKIP HERE ────
+    if (ctrl.name == "eichar-lod0") {
+      lg::info("Skipping merc-ctrl model: {}", ctrl.name);
+      continue;  // skip this merc-ctrl entirely
+    }
     ctrls.push_back(ctrl);
   }
 
