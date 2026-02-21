@@ -120,12 +120,13 @@ void MarioRenderer::render(SharedRenderState* render_state, ScopedProfilerNode& 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_TRUE);
     glDisable(GL_CULL_FACE);
-auto active_ids = MarioManager::Get().GetActiveMarioIds();
+auto active_ids = MarioManager::Get()->GetActiveMarioIds();
         struct MarioVertex { float pos[3]; float color[3]; float uv[2]; };
         std::vector<MarioVertex> untextured_verts;
         std::vector<MarioVertex> textured_verts;
+        
 for (int id : active_ids) {
-    const auto& geom = MarioManager::Get().GetMarioGeom(id);
+    const auto& geom = MarioManager::Get()->GetMarioGeom(id);
     
     if (geom
 .numTrianglesUsed > 0 && geom

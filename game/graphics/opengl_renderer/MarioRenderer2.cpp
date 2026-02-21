@@ -310,15 +310,15 @@ void MarioRenderer2::render(SharedRenderState* render_state, ScopedProfilerNode&
 
   static GLuint mario_texture_id = 0;
 
-  if (mario_texture_id == 0 && MarioManager::Get().GetSharedTexture()) {
+  if (mario_texture_id == 0 && MarioManager::Get()->GetSharedTexture()) {
     glGenTextures(1, &mario_texture_id);
     glBindTexture(GL_TEXTURE_2D, mario_texture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, MarioManager::Get().GetSharedTexture());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 704, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, MarioManager::Get()->GetSharedTexture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
   }
-auto active_ids = MarioManager::Get().GetActiveMarioIds();
+auto active_ids = MarioManager::Get()->GetActiveMarioIds();
     float scale = 4096.0f / 50.0f;
     struct MarioVertex {
       float pos[3];
@@ -328,7 +328,7 @@ auto active_ids = MarioManager::Get().GetActiveMarioIds();
     std::vector<MarioVertex> untextured_verts;
     std::vector<MarioVertex> textured_verts;
 for (int id : active_ids) {
-    const auto& geom = MarioManager::Get().GetMarioGeom(id);
+    const auto& geom = MarioManager::Get()->GetMarioGeom(id);
 
   if (geom
 .numTrianglesUsed > 0 && geom

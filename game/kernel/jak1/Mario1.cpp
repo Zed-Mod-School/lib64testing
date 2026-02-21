@@ -1,8 +1,6 @@
 // Mario1.cpp
 #include "Mario1.h"
 
-// Refactored Mario1.cpp
-#include "Mario1.h"
 // #include "Mario_collide.h"
 // #include "Mario_collide2.h"
 // #include "game/graphics/opengl_renderer/MarioRenderer.h"
@@ -12,6 +10,7 @@
 //#include "load_surfaces.h"  // contains all your level surface arrays
 
 #include "kscheme.h"
+
 
 #include <cstring>   // memcpy, memset
 #include <cmath>     // roundf
@@ -45,6 +44,7 @@ std::vector<SM64SurfaceObject> g_active_debug_objects;
 
 MarioManager* MarioManager::sInstance = nullptr;
 uint8_t* MarioManager::s_shared_texture = nullptr;
+MarioManager* g_debug_mario_mgr = nullptr;
 
 MarioManager::MarioManager() {
   // Shared texture allocation moved to Initialize
@@ -70,29 +70,22 @@ MarioManager::~MarioManager() {
     g_combined_surfaces_count = 0;
   }
 }
-bool g_mario_enabled = false;
-MarioManager& MarioManager::Get() {
-  // ─────────────────────────────────────────────────────────────
-  // Early-out: Mario is disabled until the global flag is true
-  // ─────────────────────────────────────────────────────────────
-  if (!g_mario_enabled) {
-    // Return a static dummy object that does absolutely nothing.a
-    // All calls to MarioManager::Get().xxx will be no-ops until enabled.
-    static MarioManager dummy;
-    return dummy;
-  }
 
-  // Normal path — initialize on first real use
-  if (!sInstance) {
-    Initialize();
-  }
-  return *sInstance;
+
+
+MarioManager* MarioManager::Get() {
+  if (!g_mario_enabled) return nullptr;
+  if (!sInstance) Initialize();
+  return sInstance;
 }
 
 void MarioManager::Initialize() {
-  if (sInstance) return;
+  if (sInstance || !g_mario_enabled) return;
+
   sInstance = new MarioManager();
+  g_debug_mario_mgr = sInstance;
   fprintf(stderr, "[libsm64] STARTING NEW MANAGER FOR MULTIPLE MARIOS");
+
   std::string baseDir = file_util::get_file_path({"iso_data"});
   std::string romPathStr = baseDir + "/mario/test.rom";
   const char* romPath = romPathStr.c_str();
@@ -108,51 +101,52 @@ void MarioManager::Initialize() {
   romBuffer = new uint8_t[romFileLength + 1];
   file.seekg(0);
   file.read(reinterpret_cast<char*>(romBuffer), romFileLength);
-
-  
   romBuffer[romFileLength] = 0;
 
-  // Shared texture
-  
   s_shared_texture = new uint8_t[4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT];
   fprintf(stderr, "going in");
   sm64_global_init(romBuffer, s_shared_texture);
   fprintf(stderr, "goin out");
 
-  // Debug: load village1 (shared)
   sm64_static_surfaces_load(village1_surfaces, village1_surfaces_count);
 
   sm64_audio_init(romBuffer);
   if (SDL_Init(SDL_INIT_AUDIO) < 0) {
     fprintf(stderr, "[libsm64][ERROR] SDL_Init failed: %s\n", SDL_GetError());
   }
-  //audio_init();
 
   delete[] romBuffer;
 
-  // Set initial cylinder center (can be updated per-Mario later if needed)
-  g_cylinder_center[0] = 0.0f;  // Default; will be set on first Mario creation
+  g_cylinder_center[0] = 0.0f;
   g_cylinder_center[1] = 0.0f;
   g_cylinder_center[2] = 0.0f;
-  printf("[MIO0] Decoded  bytes...\n");
+  printf("[MIO0] Decoded bytes...\n");
+
+  if (sInstance) sInstance->AddTestActors();
 }
 
 int MarioManager::CreateMario(float x, float y, float z) {
-    printf("[libsm64] CreateMario() called with pos (%.2f, %.2f, %.2f)\n", x, y, z);
+  printf("[libsm64] CreateMario() called with pos (%.2f, %.2f, %.2f)\n", x, y, z);
 
-    auto& self = Get();
+  MarioManager* self = Get();
+  if (!self) {
+    fprintf(stderr, "[CreateMario] ERROR: Manager not available\n");
+    return -1;
+  }
 
+  fprintf(stderr, "[CreateMario] self             = %p   (MarioManager* this)\n", (void*)self);
+  fprintf(stderr, "[CreateMario] &self->m_marios = %p   (unordered_map* member)\n", (void*)&self->m_marios);
+  fprintf(stderr, "[CreateMario] map size before insert = %zu\n", self->m_marios.size());
 
-    int id = sm64_mario_create(x, y + 5.0f , z);
+  int id = sm64_mario_create(x, y + 5.0f, z);
 
-    if (id == -1) {
-        fprintf(stderr, "[libsm64] Failed to create Mario at (%.1f, %.1f, %.1f)\n", x, y, z);
-        return -1;
-    }
+  if (id == -1) {
+    fprintf(stderr, "[libsm64] Failed to create Mario at (%.1f, %.1f, %.1f)\n", x, y, z);
+    return -1;
+  }
 
-    // Success print
-    printf("[libsm64] Successfully created Mario! ID = %d at (%.2f, %.2f, %.2f)\n", 
-           id, x, y, z);
+  printf("[libsm64] Successfully created Mario! ID = %d at (%.2f, %.2f, %.2f)\n", 
+         id, x, y, z);
 
   auto instance = std::make_unique<MarioInstance>();
   instance->id = id;
@@ -170,42 +164,93 @@ int MarioManager::CreateMario(float x, float y, float z) {
   memset(instance->geom.uv,       0, sizeof(float) * 2 * 3 * maxTris);
   instance->geom.numTrianglesUsed = 0;
 
-  self.m_marios[id] = std::move(instance);
+  fprintf(stderr, "[CreateMario] About to insert ID %d into map\n", id);
 
-  // Update cylinder center to this Mario's position if first
-  if (self.m_marios.size() == 1) {
+  self->m_marios[id] = std::move(instance);
+
+  fprintf(stderr, "[CreateMario] AFTER insert:\n");
+  fprintf(stderr, "  MarioManager*     = %p\n", (void*)self);
+  fprintf(stderr, "  &m_marios         = %p\n", (void*)&self->m_marios);
+  fprintf(stderr, "  map size          = %zu\n", self->m_marios.size());
+  fprintf(stderr, "  contains ID %d    = %s\n", 
+          id, 
+          self->m_marios.find(id) != self->m_marios.end() ? "YES" : "NO");
+
+  if (self->m_marios.size() == 1) {
     g_cylinder_center[0] = x;
     g_cylinder_center[1] = y;
     g_cylinder_center[2] = z;
+    fprintf(stderr, "[CreateMario] First Mario → cylinder center set to (%.1f, %.1f, %.1f)\n", x, y, z);
   }
+
+  fprintf(stderr, "[CreateMario] EXITING function → final map size = %zu   map addr = %p\n",
+          self->m_marios.size(), (void*)&self->m_marios);
 
   fprintf(stderr, "[libsm64] Created Mario %d at (%.1f, %.1f, %.1f)\n", id, x, y, z);
   return id;
 }
 
 void MarioManager::DestroyMario(int id) {
-  auto& self = Get();
-  auto it = self.m_marios.find(id);
-  if (it != self.m_marios.end()) {
-    sm64_mario_delete(id);  // Assuming libsm64 has this; otherwise, just mark inactive
-    auto& instance = *it->second;
-    delete[] instance.geom.position;
-    delete[] instance.geom.normal;
-    delete[] instance.geom.color;
-    delete[] instance.geom.uv;
-    self.m_marios.erase(it);
-    fprintf(stderr, "[libsm64] Destroyed Mario %d\n", id);
+  MarioManager* self = Get();
+  if (!self) {
+    fprintf(stderr, "[DestroyMario] Manager not available, skipping id=%d\n", id);
+    return;
   }
+
+  auto it = self->m_marios.find(id);
+  if (it == self->m_marios.end()) {
+    fprintf(stderr, "[DestroyMario] ID %d not found — no-op\n", id);
+    return;
+  }
+
+  sm64_mario_delete(id); // Assuming libsm64 has this; otherwise, just mark inactive
+
+  auto& instance = *it->second;
+  delete[] instance.geom.position;
+  delete[] instance.geom.normal;
+  delete[] instance.geom.color;
+  delete[] instance.geom.uv;
+
+  self->m_marios.erase(it);
+  fprintf(stderr, "[libsm64] Destroyed Mario %d\n", id);
 }
 
 MarioInstance* MarioManager::GetMario(int id) {
-  auto it = m_marios.find(id);
-  return (it != m_marios.end()) ? it->second.get() : nullptr;
+  MarioManager* self = Get();
+  if (!self) return nullptr;
+
+  auto it = self->m_marios.find(id);
+  return (it != self->m_marios.end()) ? it->second.get() : nullptr;
 }
 
 const MarioInstance* MarioManager::GetMario(int id) const {
-  auto it = m_marios.find(id);
-  return (it != m_marios.end()) ? it->second.get() : nullptr;
+  MarioManager* self = const_cast<MarioManager*>(this); // const_cast for Get() call
+  if (!self) return nullptr;
+
+  auto it = self->m_marios.find(id);
+  return (it != self->m_marios.end()) ? it->second.get() : nullptr;
+}
+
+size_t MarioManager::GetActiveMarioCount() {
+    MarioManager* mgr = Get();
+    return mgr ? mgr->m_marios.size() : 0;
+}
+
+std::vector<int> MarioManager::GetActiveMarioIds() {
+    std::vector<int> ids;
+
+    MarioManager* mgr = Get();
+    if (!mgr) {
+        return ids;  // empty vector — safe, no crash
+    }
+
+    for (const auto& pair : mgr->m_marios) {
+        if (pair.second->active) {
+            ids.push_back(pair.first);
+        }
+    }
+
+    return ids;
 }
 
 float MarioManager::GetMarioX(int id) const {
@@ -238,8 +283,8 @@ SM64MarioGeometryBuffers& MarioManager::GetMarioGeom(int id) {
 const SM64MarioGeometryBuffers& MarioManager::GetMarioGeom(int id) const {
   const auto* inst = GetMario(id);
   if (inst) return inst->geom;
-  //static const SM64MarioGeometryBuffers dummy;  // Fallback
-  //return dummy;
+  static const SM64MarioGeometryBuffers zero = {};  // zero-initialized
+  return zero;
 }
 
 SM64MarioInputs& MarioManager::GetMarioInputs(int id) {
@@ -252,41 +297,35 @@ SM64MarioInputs& MarioManager::GetMarioInputs(int id) {
 const SM64MarioInputs& MarioManager::GetMarioInputs(int id) const {
   const auto* inst = GetMario(id);
   if (inst) return inst->inputs;
-  //static const SM64MarioInputs dummy;  // Fallback
-  //return dummy;
+  static const SM64MarioInputs zero = {};  // zero-initialized
+  return zero;
 }
 
 void MarioManager::SetMarioCamera(int id, float x, float z) {
   auto& inputs = GetMarioInputs(id);
+  
   inputs.camLookX = x;
   inputs.camLookZ = z;
 }
 
 void MarioManager::SetMarioMusic(int id, uint32_t music_bits) {
-  // Assuming music is global or per-Mario; stub for now
-  // sm64_set_music(music_bits);  // If libsm64 supports
-  (void)id;  // Unused if global
+  // Stubbed
+  (void)id;
+  (void)music_bits;
 }
 
 void MarioManager::SetMarioPosition(int id, float x, float y, float z) {
-  auto& state = GetMario(id)->state;
-  state.position[0] = x;
-  state.position[1] = y;
-  state.position[2] = z;
-  //sm64_mario_set_position(id, x, y, z);  // If libsm64 has setter
+  //sm64_mario_set_position(id, x, y, z);
 }
 
 void MarioManager::SetMarioWaterLevel(int id, float level) {
-  sm64_set_mario_water_level(id,
-                             true ?  //  hardcode this func to always accept true bc we check on the
-                                     //  goal side and only call this func if close to water
-                                 level
-                                  : INT16_MIN);
+ // sm64_mario_set_water_level(id, level);
 }
 
 void MarioManager::ChangeMarioState(int id, uint32_t act) {
-  auto& state = GetMario(id)->state;
-  state.action = act;
+  // Stubbed
+  (void)id;
+  (void)act;
 }
 
 void MarioManager::HealMario(int id) {
@@ -302,7 +341,9 @@ void MarioManager::DamageMario(int id) {
 }
 
 void MarioManager::Tick() {
-  auto& self = Get();
+  MarioManager* self = Get();
+  if (!self) return;
+
   using clock = std::chrono::steady_clock;
   auto now = clock::now();
 
@@ -313,23 +354,15 @@ void MarioManager::Tick() {
 
   double frame_dt = std::chrono::duration<double>(now - g_last_tick_time).count();
   g_last_tick_time = now;
-  g_tick_accumulator += frame_dt; 
-
-  // Assuming inputs already contain raw values from GOAL (per-Mario)
+  g_tick_accumulator += frame_dt;
 
   while (g_tick_accumulator >= MARIO_FIXED_DT) {
-    //jak1::call_goal_function_by_name("update-sm64-camera-from-goal");  // Global? Adjust if per-Mario
-
-    // Tick all active Marios
-    for (auto& pair : self.m_marios) {
+    for (auto& pair : self->m_marios) {
       if (pair.second->active) {
         jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
-        self.TickMario(pair.first);
+        self->TickMario(pair.first);
       }
     }
-
-    // self.UpdateCollideGlobal();  // Shared dynamic updates
-    // self.MaybeReloadSurfacesGlobal();
 
     g_tick_accumulator -= MARIO_FIXED_DT;
   }
@@ -339,25 +372,17 @@ void MarioManager::TickMario(int id) {
   auto* inst = GetMario(id);
   if (!inst || !inst->active) return;
 
-  jak1::call_goal_function_by_name("update-mario-water-height-from-goal");  // Per-Mario? Stub
+  //jak1::call_goal_function_by_name("update-mario-water-height-from-goal");
 
   sm64_mario_tick(inst->id, &inst->inputs, &inst->state, &inst->geom);
-
-//   UpdateCollide(id);
-//   MaybeReloadSurfaces(id);
 }
 
 void MarioManager::UpdateCollide(int id) {
-  // Dynamic object updates (stub per-Mario)
-  // Main collision is in sm64_mario_tick
   (void)id;
 }
 
 void MarioManager::UpdateCollideGlobal() {
-  // Shared dynamic updates (e.g., active_debug_objects)
-  // for (auto& obj : g_active_debug_objects) {
-  //   sm64_surface_object_update(obj.id, ...);
-  // }
+  // Stub
 }
 
 void MarioManager::UpdatePlatformInfo(u32 platform_info_ptr) {
@@ -373,23 +398,15 @@ void MarioManager::UpdatePlatformInfo(u32 platform_info_ptr) {
 
 void MarioManager::UpdateMovingPlatform() {
   if (!m_platform_info_valid) return;
-
-  // Example: convert u32 bits → float (shared for now)
-  float x = *reinterpret_cast<const float*>(&m_platform_info.x_pos);
-  float y = *reinterpret_cast<const float*>(&m_platform_info.y_pos);
-  float z = *reinterpret_cast<const float*>(&m_platform_info.z_pos);
-
-  // TODO: apply to shared SM64 moving platform objects
+  // Stub
 }
 
 void MarioManager::UpdatePseudoFloor(int id) {
-  // Optional: flat floor under this Mario for safety
-  // sm64_static_surfaces_load(psuedo_floor_surfaces, 2);
   (void)id;
 }
 
 void MarioManager::MaybeReloadSurfaces(int id) {
-  const auto* inst = GetMario(id);
+  auto* inst = GetMario(id);
   if (!inst) return;
 
   float dx = inst->state.position[0] - g_cylinder_center[0];
@@ -398,18 +415,14 @@ void MarioManager::MaybeReloadSurfaces(int id) {
 
   float reload_threshold_sq = (CYLINDER_RADIUS - CYLINDER_BUFFER) * (CYLINDER_RADIUS - CYLINDER_BUFFER);
   if (dist_sq > reload_threshold_sq) {
-    // Update global center or per-Mario? For simplicity, update global to this Mario
     g_cylinder_center[0] = inst->state.position[0];
     g_cylinder_center[1] = inst->state.position[1];
     g_cylinder_center[2] = inst->state.position[2];
-
-    //load_surfaces_near(g_cylinder_center[0], g_cylinder_center[1], g_cylinder_center[2]);
   }
 }
 
 void MarioManager::MaybeReloadSurfacesGlobal() {
-  // If multiple Marios, could average positions or use a union cylinder
-  // For now, stub - per-Mario handles it
+  // Stub
 }
 
 void MarioManager::Shutdown() {
@@ -417,15 +430,9 @@ void MarioManager::Shutdown() {
   sm64_global_terminate();
   delete sInstance;
   sInstance = nullptr;
+  g_debug_mario_mgr = nullptr;
 }
 
-std::vector<int> MarioManager::GetActiveMarioIds() const {
-  std::vector<int> ids;
-  for (const auto& pair : m_marios) {
-    if (pair.second->active) ids.push_back(pair.first);
-  }
-  return ids;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Surface loading helpers (shared)
@@ -448,53 +455,24 @@ void load_combined_static_surfaces(const SM64Surface* s1, int c1, const SM64Surf
   sm64_static_surfaces_load(g_combined_surfaces, total);
 }
 
-int load_surfaces_near(float x, float y, float z) {
-  if (g_combined_surfaces_count == 0) return 0;
-
-  SM64Surface* filtered = new SM64Surface[g_combined_surfaces_count];
-  int count = 0;
-
-  for (int i = 0; i < g_combined_surfaces_count; ++i) {
-    const SM64Surface& s = g_combined_surfaces[i];
-    bool include = false;
-
-    for (int v = 0; v < 3; ++v) {
-      float dx = static_cast<float>(s.vertices[v][0]) - x;
-      float dz = static_cast<float>(s.vertices[v][2]) - z;
-      if (dx * dx + dz * dz <= CYLINDER_RADIUS_SQ) {
-        include = true;
-        break;
-      }
-    }
-
-    if (include) filtered[count++] = s;
-  }
-
-  sm64_static_surfaces_load(filtered, count);
-  delete[] filtered;
-
-  printf("[libsm64] Reloaded %d surfaces near (%.1f, %.1f, %.1f)\n", count, x, y, z);
-  return count;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// pc_ wrapper functions (updated for ID)
+// pc_ wrapper functions (all now use pointer)
 // ─────────────────────────────────────────────────────────────────────────────
 
-uint64_t pc_get_mario_x(int id)       { float v = MarioManager::Get().GetMarioX(id);       uint64_t b; memcpy(&b, &v, 4); return b; }
-uint64_t pc_get_mario_y(int id)       { float v = MarioManager::Get().GetMarioY(id);       uint64_t b; memcpy(&b, &v, 4); return b; }
-uint64_t pc_get_mario_z(int id)       { float v = MarioManager::Get().GetMarioZ(id);       uint64_t b; memcpy(&b, &v, 4); return b; }
-uint64_t pc_get_mario_action(int id)  { return MarioManager::Get().GetMarioAction(id); }
+uint64_t pc_get_mario_x(int id)       { float v = MarioManager::Get()->GetMarioX(id);       uint64_t b; memcpy(&b, &v, 4); return b; }
+uint64_t pc_get_mario_y(int id)       { float v = MarioManager::Get()->GetMarioY(id);       uint64_t b; memcpy(&b, &v, 4); return b; }
+uint64_t pc_get_mario_z(int id)       { float v = MarioManager::Get()->GetMarioZ(id);       uint64_t b; memcpy(&b, &v, 4); return b; }
+uint64_t pc_get_mario_action(int id)  { return MarioManager::Get()->GetMarioAction(id); }
 
 void pc_set_mario_camera(uint32_t x, uint32_t z) {
-    float fx, fz;
-    memcpy(&fx, &x, 4);
-    memcpy(&fz, &z, 4);
-    MarioManager::Get().SetMarioCamera(0, fx, fz);
+  float fx, fz;
+  memcpy(&fx, &x, 4);
+  memcpy(&fz, &z, 4);
+  MarioManager::Get()->SetMarioCamera(0, fx, fz);
 }
 
 void pc_set_mario_music_from_goal(int id, uint32_t music_bits) {
-  MarioManager::Get().SetMarioMusic(id, music_bits);
+  MarioManager::Get()->SetMarioMusic(id, music_bits);
 }
 
 void pc_set_mario_position_from_goal(int id, uint32_t x, uint32_t y, uint32_t z) {
@@ -505,34 +483,34 @@ void pc_set_mario_position_from_goal(int id, uint32_t x, uint32_t y, uint32_t z)
   fx *= METERS_TO_UNITS;
   fy *= METERS_TO_UNITS;
   fz *= METERS_TO_UNITS;
-  MarioManager::Get().SetMarioPosition(id, fx, fy, fz);
+  MarioManager::Get()->SetMarioPosition(id, fx, fy, fz);
 }
 
 void pc_set_mario_water_level_from_goal(int id, uint32_t level_bits) {
   float f;
   memcpy(&f, &level_bits, 4);
   f *= METERS_TO_UNITS;
-  MarioManager::Get().SetMarioWaterLevel(id, f);
+  MarioManager::Get()->SetMarioWaterLevel(id, f);
 }
 
 void pc_change_mario_state(int id, uint32_t act_bits) {
-  MarioManager::Get().ChangeMarioState(id, act_bits);
+  MarioManager::Get()->ChangeMarioState(id, act_bits);
 }
 
 void update_platform_info_from_goal(u32 ptr) {
-  MarioManager::Get().UpdatePlatformInfo(ptr);
+  MarioManager::Get()->UpdatePlatformInfo(ptr);
 }
 
 void update_moving_platform() {
-  MarioManager::Get().UpdateMovingPlatform();
+  MarioManager::Get()->UpdateMovingPlatform();
 }
 
 void update_psuedo_floor_under_mario(int id) {
-  MarioManager::Get().UpdatePseudoFloor(id);
+  MarioManager::Get()->UpdatePseudoFloor(id);
 }
 
-void pc_heal_mario(int id)   { MarioManager::Get().HealMario(id); }
-void pc_damage_mario(int id) { MarioManager::Get().DamageMario(id); }
+void pc_heal_mario(int id)   { MarioManager::Get()->HealMario(id); }
+void pc_damage_mario(int id) { MarioManager::Get()->DamageMario(id); }
 
 void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32_t z_bits) {
   float x, z;
@@ -548,7 +526,7 @@ void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32
   };
 
   static const std::unordered_map<int, SurfaceEntry> surface_map = {
-     {1,  {training_surfaces,   training_surfaces_count}},
+    {1,  {training_surfaces,   training_surfaces_count}},
     {2,  {village1_surfaces,   village1_surfaces_count}},
     {3,  {beach_surfaces,      beach_surfaces_count}},
     {4,  {jungle_surfaces,     jungle_surfaces_count}},
@@ -584,11 +562,11 @@ void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32
   }
 
   load_combined_static_surfaces(s1, c1, s2, c2);
-  MarioManager::Get().MaybeReloadSurfacesGlobal();
+  MarioManager::Get()->MaybeReloadSurfacesGlobal();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Remaining stubs (updated for multi-Mario)
+// Remaining stubs
 // ─────────────────────────────────────────────────────────────────────────────
 
 void pc_add_tris_to_surface(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t) {}
@@ -596,8 +574,8 @@ void pc_spawn_mario_test_collide(int id, uint32_t) { (void)id; }
 void pc_mario_says_so_long_gay_bowsa(int id, uint32_t) { (void)id; }
 
 bool run_and_render_mario(int id) {
-  return MarioManager::Get().GetMario(id) != nullptr;
+  return MarioManager::Get()->GetMario(id) != nullptr;
 }
 
 bool has_blue_eco()          { return false; /* TODO */ }
-bool should_render_mario(int id)   { return MarioManager::Get().GetMario(id) != nullptr; }
+bool should_render_mario(int id)   { return MarioManager::Get()->GetMario(id) != nullptr; }

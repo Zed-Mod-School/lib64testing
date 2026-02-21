@@ -126,7 +126,7 @@ void GameController::process_event(const SDL_Event& event,
                                    const CommandBindingGroups& commands,
                                    std::shared_ptr<PadData> data,
                                    std::optional<InputBindAssignmentMeta>& bind_assignment) {
-                                    auto& inputs = MarioManager::Get().GetMarioInputs(0);
+                                    auto& inputs = MarioManager::Get()->GetMarioInputs(0);
                                     //static SM64MarioInputs inputs;a
   if (event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION && event.gaxis.which == m_sdl_instance_id) {
     // https://wiki.libsdl.org/SDL3/SDL_GamepadAxis

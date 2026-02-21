@@ -13,6 +13,8 @@
 // Constants
 constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 
+
+
 // Individual Mario instance state
 struct MarioInstance {
   int id = -1;
@@ -31,7 +33,7 @@ struct MarioInstance {
   bool active = false;
 };
 
-//Structures
+// Structures
 struct PlatformInfo {
   u32 x_pos;
   u32 y_pos;
@@ -42,11 +44,24 @@ struct PlatformInfo {
   u32 rot_w;
 };
 
+struct ActorInfo {
+  std::string name;
+  float pos[3];
+  float euler_rot[3];
+  SM64Surface* mesh = nullptr;
+  int num_surfaces = 0;
+  bool is_spawned = false;
+  uint32_t sm64_id = 0;
+  bool is_platform = false;
+  uint32_t mesh_hash = 0;
+};
+
+extern bool g_mario_enabled;
 // MarioManager class to encapsulate multiple Mario instances and shared logic
 class MarioManager {
  private:
-  static MarioManager* sInstance;  // Singleton for the manager itself (shared state)
-  static uint8_t* s_shared_texture;  // Shared ROM texture across all Marios
+  static MarioManager* sInstance;         // Singleton pointer (heap-allocated)
+  static uint8_t* s_shared_texture;       // Shared ROM texture across all Marios
 
   std::unordered_map<int, std::unique_ptr<MarioInstance>> m_marios;  // Keyed by ID
   std::unordered_map<std::string, uint32_t> m_actor_surface_objects;
@@ -60,8 +75,8 @@ class MarioManager {
   ~MarioManager();
 
  public:
-  // Singleton access
-  static MarioManager& Get();
+  // Singleton access — returns pointer (nullptr if disabled/not initialized)
+  static MarioManager* Get();
 
   // Initialization (global setup, formerly load_and_init_mario)
   static void Initialize();
@@ -77,6 +92,13 @@ class MarioManager {
 
   // Update for a specific Mario
   void TickMario(int id);
+
+  void UpdateActorCollisions();
+
+  void AddTestActors();
+
+  std::unordered_map<std::string, ActorInfo> m_actor_infos;
+  bool m_run_collide = true;
 
   // Getters for state (used in pc_ functions) - require ID
   MarioInstance* GetMario(int id);
@@ -110,7 +132,6 @@ class MarioManager {
   void UpdatePseudoFloor(int id);
   void MaybeReloadSurfaces(int id);  // Per-Mario position-based
 
-
   // Global methods
   void UpdateCollideGlobal();  // For shared dynamic objects
   void MaybeReloadSurfacesGlobal();
@@ -119,16 +140,15 @@ class MarioManager {
   static void Shutdown();
 
   // Query active Marios
-  size_t GetActiveMarioCount() const { return m_marios.size(); }
-  std::vector<int> GetActiveMarioIds() const;
+  static size_t GetActiveMarioCount();
+  static std::vector<int> GetActiveMarioIds();
 };
 
-  void pc_set_mario_camera(uint32_t x, uint32_t z);
-  void pc_set_mario_position_from_goal(int id, uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
-  void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32_t z_bits);
-  void pc_set_mario_water_level_from_goal(int id, uint32_t level_bits);
-  uint64_t pc_get_mario_x(int id);
-  uint64_t pc_get_mario_y(int id);
-  uint64_t pc_get_mario_z(int id);
-
-
+// pc_ wrapper function declarations (unchanged, but will call pointer version of Get())
+void pc_set_mario_camera(uint32_t x, uint32_t z);
+void pc_set_mario_position_from_goal(int id, uint32_t x_bits, uint32_t y_bits, uint32_t z_bits);
+void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32_t z_bits);
+void pc_set_mario_water_level_from_goal(int id, uint32_t level_bits);
+uint64_t pc_get_mario_x(int id);
+uint64_t pc_get_mario_y(int id);
+uint64_t pc_get_mario_z(int id);

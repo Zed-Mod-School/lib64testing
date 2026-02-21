@@ -26,7 +26,7 @@
 #include "game/sce/libscf.h"
 
 #include "Mario1.h"
-
+bool g_mario_enabled = false;
 using namespace ee;
 
 namespace jak1 {
@@ -115,14 +115,15 @@ void KernelCheckAndDispatch() {
     // Automatically spawn two Marios at startup (good for testing libsm64 in Jak and Daxter)
     // ---------------------------------------------------------------
     // Mario 1: Original spawn position (village1 debug spot)
-    int mario1 = MarioManager::Get().CreateMario(
+   g_mario_enabled = true;
+    int mario1 = MarioManager::Get()->CreateMario(
         -7541.8f,  // x
         3688.475f, // y
         9237.5f    // z
     );
 
     // Mario 2: Offset slightly so they don't clip into each other immediately
-    // int mario2 = MarioManager::Get().CreateMario(
+    // int mario2 = MarioManager::Get()->CreateMario(
     //     -7541.8f + 0.0f,  // x offset
     //     3688.475f,          // y
     //     9237.5f + 0.0f    // z offset
@@ -131,26 +132,27 @@ void KernelCheckAndDispatch() {
     // Optional: Give them different initial inputs for chaotic fun
     // (e.g., Mario1 goes right, Mario2 goes left)
     // if (mario1 != -1) {
-    //   auto& inputs1 = MarioManager::Get().GetMarioInputs(mario1);
+    //   auto& inputs1 = MarioManager::Get()->GetMarioInputs(mario1);
     //   inputs1.stickX = 20.0f;   // slight right bias
     // }
     // if (mario2 != -1) {
-    //   auto& inputs2 = MarioManager::Get().GetMarioInputs(mario2);
+    //   auto& inputs2 = MarioManager::Get()->GetMarioInputs(mario2);
     //   inputs2.stickX = -20.0f;  // slight left bias
     // }
 
     // Alternative: Single Mario mode (uncomment for original behavior)
-    // MarioManager::Get().CreateMario(-7541.8f, 3688.475f, 9237.5f);
+    // MarioManager::Get()->CreateMario(-7541.8f, 3688.475f, 9237.5f);
 
     mario_initialized = true;
-    printf("[libsm64 in Jak and Daxter] Initialized %zu Mario instances\n", MarioManager::Get().GetActiveMarioCount());
+    
+    printf("[libsm64 in Jak and Daxter] Initialized %zu Mario instances\n", MarioManager::Get()->GetActiveMarioCount());
   
 
   while (MasterExit == RuntimeExitStatus::RUNNING) {
 
     if (true) //(run_and_render_mario(-1))
      {
-      MarioManager::Get().Tick();  // ticks ALL active Marios (physics/world update)
+      MarioManager::Get()->Tick();  // ticks ALL active Marios (physics/world update)
     }
 
     // try to get a message from the listener, and process it if needed

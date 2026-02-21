@@ -1,0 +1,16 @@
+#|
+This file contains our GOAL defintion for updating actors in the mario universe
+|#
+
+(defun update-mario-loaded-surfaces-2 ()
+  
+  (none))
+
+  (defun mario-actor-collide-main-func ()
+  ;; The first thing we want to do is check if we any existing actors that we need to despawn/clean up on the cpp side
+  ;;(pc-despawn-mario-actor-collides)
+  ;; Now we need to iterate through the loaded processes and fill up 
+  ;; (pc-update-mario-actors-struct)
+  ;; now that the struct has the most up to date info in it we call a function that spawns/moves/collide
+  (none)
+  )
