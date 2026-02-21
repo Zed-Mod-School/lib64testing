@@ -2,7 +2,7 @@
 
 (define *render-mario?* #t)
 
- ;;50.0 is the amount we needed to adjust the collide mesh from blender
+;;50.0 is the amount we needed to adjust the collide mesh from blender
 (define *mario-scale-mult* (/ (meters 1.0) 50.0))
 
 ;;used in the level collision system

@@ -3,19 +3,17 @@
 
 (defun update-sm64-camera-from-goal ()
   ;; update cam-look x and z
-    (let* ((cam-look-x 0.0)
-         (cam-look-z 0.0)
-         )
-  (set! cam-look-x (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
-  (set! cam-look-z (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
-  (pc-set-mario-look-angles! cam-look-x cam-look-z)
-    )   
-  )
+  (let* ((cam-look-x 0.0)
+         (cam-look-z 0.0))
+    (set! cam-look-x (- (convert-to-mario-units (-> (target-pos 0) x)) (convert-to-mario-units (-> (camera-pos) x))))
+    (set! cam-look-z (- (convert-to-mario-units (-> (target-pos 0) z)) (convert-to-mario-units (-> (camera-pos) z))))
+    (pc-set-mario-look-angles! cam-look-x cam-look-z)))
 
 (defun get-mario-state ()
-'fake
-)
-  (defun mario-main-GOAL ()
+  'fake)
+
+(defun mario-main-GOAL ()
   (mario-glue-main-func)
+  (mario-actor-collide-main-func)
   (mario-level-collide-main-func)
   (none))

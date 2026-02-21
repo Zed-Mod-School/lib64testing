@@ -1,7 +1,11 @@
 (define *last-target-in-water* 0)
+
 (defconstant LOWEST_WATER_HEIGHT -3000000.0)
+
 (defconstant EXIT_GRACE_FRAMES (* 60.0 0.6)) ;; how many frames after leaving water before we reset the water height, this is to prevent rapid toggling if the target is near the water surface
+
 (define *last-water-height* LOWEST_WATER_HEIGHT)
+
 (define *water-exit-frames* 0)
 
 (defun mario-water-level-override ()

@@ -2110,6 +2110,7 @@
  "mods/mario/mario-water.gc"
  "mods/mario/mario-glue.gc"
  "mods/mario/mario-level-collide.gc"
+ "mods/mario/mario-actor-collide.gc"
  "mods/mario/mario.gc"
 )
 

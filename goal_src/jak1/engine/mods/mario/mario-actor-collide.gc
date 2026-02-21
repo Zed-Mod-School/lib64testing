@@ -1,16 +1,252 @@
-#|
-This file contains our GOAL defintion for updating actors in the mario universe
-|#
+#| This file contains our GOAL defintion for updating actors in the mario universe |#
 
-(defun update-mario-loaded-surfaces-2 ()
-  
+(deftype platform-info (structure)
+  ((x-pos float) ;; GOAL units
+   (y-pos float)
+   (z-pos float)
+   (rot-x float) ;; degrees
+   (rot-y float)
+   (rot-z float)
+   (rot-w float)))
+
+(defun update-platform-from-goal ((process process-drawable))
+  "Update the moving platform in C++ using current position/rotation of citb-plat-15"
+  (let* ((plat process))
+    (when (and plat
+               (type-type? (-> plat type) process-drawable)
+               (nonzero? (-> (the-as collide-shape (-> plat root)) riders num-riders)))
+      (let ((info (new 'stack 'platform-info)))
+        (set! (-> info x-pos) (-> (the process-drawable plat) root trans x))
+        (set! (-> info y-pos) (+ (-> (the process-drawable plat) root trans y) (meters 0.0)))
+        (set! (-> info z-pos) (-> (the process-drawable plat) root trans z))
+        (set! (-> info rot-x) (-> (the process-drawable plat) root rot x))
+        (set! (-> info rot-y) (-> (the process-drawable plat) root rot y))
+        (set! (-> info rot-z) (-> (the process-drawable plat) root rot z))
+        (format 0
+                "GOAL sending LIVE: pos ~M ~M ~M   quat ~f ~%"
+                (-> info x-pos)
+                (-> info y-pos)
+                (-> info z-pos)
+                (-> info rot-x))
+        (set! (-> info rot-w) (-> (the process-drawable plat) root quat w))
+        ;;(pc-update-platform-info-from-goal info)
+        (format 0
+                " : pos(~M ~M ~M) rot(~f ~f ~f)~%"
+                (-> info x-pos)
+                (-> info y-pos)
+                (-> info z-pos)
+                (-> info rot-x)
+                (-> info rot-y)
+                (-> info rot-z))))
+    ;;(set! *last-sent-platform-x* (-> (the process-drawable plat) root trans x))
+    )
+  ;;(debug-draw-plat-mario process)
   (none))
 
-  (defun mario-actor-collide-main-func ()
+(defmethod parse-collide-tris-for-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
+  "Draw a collide-mesh."
+  (rlet ((acc :class vf)
+         (vf0 :class vf)
+         (vf1 :class vf)
+         (vf2 :class vf)
+         (vf3 :class vf)
+         (vf4 :class vf)
+         (vf5 :class vf)
+         (vf6 :class vf)
+         (vf7 :class vf))
+    (init-vf0-vector)
+    (let* ((total-tris (-> this num-tris))
+           (s5-0 (the-as object (-> this tris)))         ;; current tri pointer
+           (s4-0 (-> arg0 node-list data arg1 bone transform))
+           (current-idx 0))
+
+    (let ((s5-0 (the-as object (-> this tris)))
+          (s4-0 (-> arg0 node-list data arg1 bone transform)))
+      (countdown (s3-0 (-> this num-tris))
+        (let ((a2-1 (new 'stack-no-clear 'vector))
+              (a3-0 (new 'stack-no-clear 'vector))
+              (t0-0 (new 'stack-no-clear 'vector)))
+          (.lvf vf4 (&-> s4-0 vector 0 quad))
+          (.lvf vf5 (&-> s4-0 vector 1 quad))
+          (.lvf vf6 (&-> s4-0 vector 2 quad))
+          (.lvf vf7 (&-> s4-0 vector 3 quad))
+          (.lvf vf1 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 0)) quad))
+          (.lvf vf2 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 1)) quad))
+          (.lvf vf3 (&-> (-> this vertex-data (-> (the-as collide-mesh-tri s5-0) vertex-index 2)) quad))
+          (let ((t1-0 (copy-and-set-field (-> *pat-mode-info* (-> (the-as collide-mesh-tri s5-0) pat mode) color) a 16)))
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf1 acc)
+            (.add.mul.y.vf acc vf5 vf1 acc)
+            (.add.mul.z.vf vf1 vf6 vf1 acc)
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf2 acc)
+            (.add.mul.y.vf acc vf5 vf2 acc)
+            (.add.mul.z.vf vf2 vf6 vf2 acc)
+            (.mul.w.vf acc vf7 vf0)
+            (.add.mul.x.vf acc vf4 vf3 acc)
+            (.add.mul.y.vf acc vf5 vf3 acc)
+            (.add.mul.z.vf vf3 vf6 vf3 acc)
+            (.svf (&-> a2-1 quad) vf1)
+            (.svf (&-> a3-0 quad) vf2)
+            (.svf (&-> t0-0 quad) vf3)
+            (when (or (< current-idx 2)
+                      (>= current-idx (- total-tris 2)))
+            (format 0 "[Mario Collide] Processing Actor ~S ~%tris ~D of ~D~%~D ~D ~D~%" (-> arg0 name) (- (-> this num-tris) s3-0 ) (-> this num-tris) a2-1 a3-0 t0-0 )
+            )
+          
+            (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)))
+        (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))
+        (+! current-idx 1)
+        )))
+    0
+    (none)))
+
+(declare-type rigid-body-platform process-drawable)
+
+(declare-type citb-arm process-drawable)
+
+(declare-type citb-arm-section process-drawable)
+
+(declare-type citb-arm-shoulder process-drawable)
+
+(define *count-close-actors* 0)
+
+(define we-are-on-platform #f)
+
+(defun update-mario-actors-struct ()
+  (format 0 "[Mario Collide] Starting collide GOAL side check ~%")
+  (when (not (movie?))
+        (not (paused?))
+    ;; (when (process-by-ename "citb-plat-15")
+    ;; (update-moving-platform-collide (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans x) (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans y) (-> (the process-drawable (process-by-ename "citb-plat-15")) root trans z) 0.0 0.0 0.0)
+    ;; )
+    (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+      (set-width! fnt 1440)
+      (set-height! fnt 1380)
+      (set-scale! fnt 0.2)
+      (set-flags! fnt (font-flags kerning large))
+      ;;(print-game-text-scaled (string-format "LAST SEND X: ~D~%" *last-sent-platform-x*) 1.0 fnt 128)
+      )
+    (iterate-process-tree *active-pool*
+                          (lambda ((proc process))
+                            (let* ((p (the process-drawable proc))
+                                   (e (the entity-actor (-> p entity)))
+                                   (type-target process-drawable)
+                                   (distance (meters 50))) ;;30 too small
+                                   ;;This is our first check to see if the we should even consider the process.
+                              (when (and p
+                                         e
+                                         (nonzero? (-> p root))
+                                         (type-type? (-> e etype) type-target)
+                                         (type-type? (-> e etype) crate)
+                                         ;;more conditionals here
+                                         (or (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
+                                             ;; checks here are to ignore the distance limit and always load the collide
+                                             (type-type? (-> e etype) citb-arm)
+                                             (type-type? (-> e etype) citb-arm-section)
+                                             (type-type? (-> e etype) citb-arm-shoulder))
+                                         (type-type? (-> p root type) collide-shape))
+                                (format 0 "[Mario Collide] Found Actor ~S ~%" (-> p name))
+                                (let ((root (the collide-shape (-> p root))))
+                                ;;Here we add checks on things we WANT to skip 
+                                  (when (or (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
+                                            (= (-> e etype symbol) 'periscope)
+                                            (= p (process-by-ename "citb-disc-d-2")))
+                                    (format 0 "[Mario Collide] Skipping Collide Actor ~S ~%" (-> p name))
+                                    (return 0))
+                                    ;; Now we have 2 different branches, We check if it is or isnt a platform so we know how to update it on the mario side
+                                    ;; Im hopeful that we can just remove this for now, we dont use the  platform branch and are focused on main collision
+                                    ;; the #f here was added to force skip this branch for the time being
+                                  (when (and #f (type-type? (-> p root type) collide-shape) (-> root riders) (nonzero? (-> root riders num-riders)))
+                                    ;; if the ator has a rider, then we need to update it properly, if a platform has no rider its postion is till
+                                    ;; updated from the normal spawn every tris and delete every tris in a single group approach
+                                    (format 0 "[Mario Collide] Actor ~S has riders! Lets update it in GOAL ~%" (-> p name))
+                                    (format 0 "[Mario Collide] Also we are going down special platform collide branch ~%" (-> p name))
+                                    (update-platform-from-goal p)
+                                    ;; check if the root prim is a prim group
+                                    (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                      ;; if so, we loop through all of its prims and check for prim meshes
+                                      (let ((group (the collide-shape-prim-group (-> root root-prim))))
+                                        (1+! *count-close-actors*)
+                                        (dotimes (i (-> group num-prims))
+                                          (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                            ;; if it is indeed a mesh, we draw it
+                                            (format 0
+                                                    "[Mario Collide] Found a mesh-group for Actor ~S doing mesh ~D of ~D~%"
+                                                    (-> p name)
+                                                    i
+                                                    (- (-> group num-prims) 1))
+                                            ;;(debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index))
+                                            )))
+                                      ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                      (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                        (format 0 "[Mario Collide] Found a prim-mesh for Actor ~S~%" (-> p name))
+                                        ;; (debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
+                                        ;;                        p
+                                        ;;                        (-> root root-prim transform-index))
+                                        (1+! *count-close-actors*)))
+                                    (return 0))
+
+                                  ;; This was a old hack to make sure the current platform we were on was updated
+                                  ;; (when we-are-on-platform
+                                  ;;       (let ((info (new 'stack 'platform-info)))
+                                  ;;         (set! (-> info x-pos) 0.0)
+                                  ;;         (set! (-> info y-pos) 0.0)
+                                  ;;         (set! (-> info z-pos) 0.0)
+                                  ;;         (set! (-> info rot-x) 0.0)
+                                  ;;         (set! (-> info rot-y) 0.0)
+                                  ;;         (set! (-> info rot-z) 0.0)
+                                  ;;         (set! (-> info rot-w) 1.0)
+                                  ;;         (pc-update-platform-info-from-goal info)
+                                  ;;         (set! we-are-on-platform #f)
+                                  ;;       )
+                                  ;; )
+
+                                  ;; check if the root prim is a prim group
+                                  ;; Ok we are finally on the "main" actor collides here
+                                  (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                    ;; if so, we loop through all of its prims and check for prim meshes
+                                    (let ((group (the collide-shape-prim-group (-> root root-prim))))
+                                      (1+! *count-close-actors*)
+                                      (dotimes (i (-> group num-prims))
+                                        (format 0
+                                                "[Mario Collide] Found a mesh-group for Actor ~S doing mesh ~D of ~D~%"
+                                                (-> p name)
+                                                i
+                                                (- (-> group num-prims) 1))
+                                        (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                          ;; if it is indeed a mesh, we draw it
+                                          ;;(debug-draw-tris-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index))
+                                          )))
+                                    ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                    (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                      (format 0 "[Mario Collide] Found a prim-mesh for Actor ~S~%" (-> p name))
+                                      (parse-collide-tris-for-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
+                                                             p
+                                                             (-> root root-prim transform-index))
+                                      (1+! *count-close-actors*)))))))
+                          *null-kernel-context*)
+    ;;(add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
+    ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
+    (when (and (< 0 *count-close-actors*) *target*)
+      (let ((fnt (new 'stack 'font-context *font-default-matrix* 10 150 0.0 (font-color default) (font-flags shadow kerning))))
+        (set-width! fnt 1440)
+        (set-height! fnt 1380)
+        (set-scale! fnt 0.2)
+        (set-flags! fnt (font-flags kerning large))
+        (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
+    ;; (when *target*
+    ;;   (pc-spawn-mario-test-collide "fart"))
+    (format 0 "[Mario Collide] Exiting collide GOAL side check~%")
+    (set! *count-close-actors* 0)))
+
+(defun mario-actor-collide-main-func ()
   ;; The first thing we want to do is check if we any existing actors that we need to despawn/clean up on the cpp side
   ;;(pc-despawn-mario-actor-collides)
   ;; Now we need to iterate through the loaded processes and fill up 
-  ;; (pc-update-mario-actors-struct)
+    (when (and (not (movie?))
+        (not (paused?)))
+   (update-mario-actors-struct)
+    )
   ;; now that the struct has the most up to date info in it we call a function that spawns/moves/collide
-  (none)
-  )
+  (none))

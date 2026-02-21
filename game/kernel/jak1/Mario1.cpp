@@ -360,6 +360,7 @@ void MarioManager::Tick() {
     for (auto& pair : self->m_marios) {
       if (pair.second->active) {
         jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
+        self->UpdateActorCollisions();
         self->TickMario(pair.first);
       }
     }

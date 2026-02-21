@@ -1,4 +1,3 @@
-
 (defun update-mario-loaded-surfaces ()
   (dotimes (i 2)
     (let ((lvl-name (-> *load-state* want i name)))
@@ -30,7 +29,6 @@
     (set! last-arg1-mario-lvl arg1-mario-lvl)
     (set! last-arg2-mario-lvl arg2-mario-lvl)))
 
-  (defun mario-level-collide-main-func ()
+(defun mario-level-collide-main-func ()
   (update-mario-loaded-surfaces)
-  (none)
-  )
+  (none))

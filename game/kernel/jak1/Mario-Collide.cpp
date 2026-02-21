@@ -1,7 +1,6 @@
 #include "mario1.h"
 
 void MarioManager::UpdateActorCollisions() {
-  return;
   if (!m_run_collide) return;  // Step 1: Pause if not running
 
   // Assume primary Mario ID is the first active one for distance checks
@@ -25,6 +24,7 @@ void MarioManager::UpdateActorCollisions() {
       float dz = info.pos[2] - mario_pos[2];
       float dist_sq = dx * dx + dy * dy + dz * dz;
       if (dist_sq > DIST_THRESHOLD_SQ) {
+
         sm64_surface_object_delete(info.sm64_id);
         delete[] info.mesh;
         info.mesh = nullptr;
