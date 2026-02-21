@@ -155,7 +155,7 @@
       "type": "default",
       "project": "CMakeLists.txt",
       "projectTarget": "gk.exe (bin\\gk.exe)",
-      "name": "Game - Jak 1 - Runtime (boot)",
+      "name": "000 Game - Jak 1 - Runtime (boot)",
       "args": [
         "-v",
         "--game",
@@ -249,6 +249,17 @@
     {
       "type": "default",
       "project": "CMakeLists.txt",
+      "projectTarget": "goalc.exe (bin\\goalc.exe)",
+      "name": "REPL - Jak 3",
+      "args": [
+        "--user-auto",
+        "--game",
+        "jak3"
+      ]
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
       "projectTarget": "decompiler.exe (bin\\decompiler.exe)",
       "name": "Decompiler - Jak 1",
       "args": [
@@ -337,6 +348,32 @@
         "--version",
         "ntsc_v1",
         "--config-override \"{\\\"decompile_code\\\": false, \\\"levels_extract\\\": true, \\\"allowed_objects\\\": []}\""
+      ]
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "decompiler.exe (bin\\decompiler.exe)",
+      "name": "Decompiler - Jak X",
+      "args": [
+        "${workspaceRoot}/decompiler/config/jakx/jakx_config.jsonc",
+        "${workspaceRoot}/iso_data",
+        "${workspaceRoot}/decompiler_out",
+        "--version",
+        "ntsc_v1"
+      ]
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "decompiler.exe (bin\\decompiler.exe)",
+      "name": "Decompiler - Jak X - PAL",
+      "args": [
+        "${workspaceRoot}/decompiler/config/jakx/jakx_config.jsonc",
+        "${workspaceRoot}/iso_data",
+        "${workspaceRoot}/decompiler_out",
+        "--version",
+        "pal"
       ]
     },
     {
