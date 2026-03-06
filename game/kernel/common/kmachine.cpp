@@ -104,6 +104,37 @@ u64 CPadOpen(u64 cpad_info, s32 pad_number) {
   return cpad_info;
 }
 
+
+void pc_print_five_goal_floats(
+    uint32_t float_1,       
+    uint32_t float_2,         
+    uint32_t float_3,        
+    uint32_t float_4, 
+    uint32_t float_5)
+{
+    float f1, f2, f3, f4, f5;
+    memcpy(&f1, &float_1, sizeof(float));
+    memcpy(&f2, &float_2, sizeof(float));
+    memcpy(&f3, &float_3, sizeof(float));
+    memcpy(&f4, &float_4, sizeof(float));
+    memcpy(&f5, &float_5, sizeof(float));
+
+    printf("\n");
+    printf("pc_print_five_goal_floats() called\n");
+    printf("====================================\n");
+
+    printf("float_1   bits = 0x%08X   value = %.6f\n", float_1, f1);
+    printf("float_2   bits = 0x%08X   value = %.6f\n", float_2, f2);
+    printf("float_3   bits = 0x%08X   value = %.6f\n", float_3, f3);
+    printf("float_4   bits = 0x%08X   value = %.6f\n", float_4, f4);
+    printf("float_5   bits = 0x%08X   value = %.6f\n", float_5, f5);
+
+    printf("====================================\n");
+    printf("finished printing arguments\n");
+    printf("\n");
+}
+
+
 /*!
  * Not checked super carefully for jak 2, but looks the same
  */
@@ -1112,6 +1143,8 @@ void init_common_pc_port_functions(
 
   // discord rich presence
   make_func_symbol_func("pc-discord-rpc-set", (void*)set_discord_rpc);
+  
+   make_func_symbol_func("pc-print-five-goal-floats", (void*)pc_print_five_goal_floats);
 
   // profiler
   make_func_symbol_func("pc-prof", (void*)pc_prof);

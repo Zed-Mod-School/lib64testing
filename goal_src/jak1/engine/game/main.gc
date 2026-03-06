@@ -74,9 +74,24 @@
           (or (= *master-mode* 'pause)
               (or (and *progress-process* (not (hidden? (-> *progress-process* 0)))) (= *master-mode* 'menu)))))
 
+(defun call-print-five-goal-floats ()
+  (let* ((a 1.0)
+         (b 2.0)
+         (c 3.0)
+         (d 4.0)
+         (e 5.0))
+    (format t "Calling pc_print_five_goal_floats from Lisp with arguments ~F ~F ~F ~F ~F.~%"
+            a b c d e)
+    (pc-print-five-goal-floats a b c d e)
+    )(none))
+
 (defun movie? ()
   "Are we in a movie?"
-  (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie)))
+  (when (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie))
+  (call-print-five-goal-floats)
+  )
+   (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie))
+  )
 
 (defun set-master-mode ((new-mode symbol))
   "Update pause masks for the given mode, and set *master-mode*"
