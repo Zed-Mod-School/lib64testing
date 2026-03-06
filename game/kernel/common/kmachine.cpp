@@ -36,6 +36,16 @@ u32 modsrc;
 // Reboot IOP with IOP kernel from DVD/CD on boot
 u32 reboot_iop;
 
+extern "C" void pc_add_or_update_tris_to_temp(const char* name_ptr,
+    uint32_t x, uint32_t y, uint32_t z,
+    uint32_t count_raw)
+{
+    if (auto mgr = MarioManager::Get()) {
+      lg::info("Initializing CD drive. This may take a while...");
+        mgr->AddOrUpdateTrisToTempBuffer(name_ptr, x, y, z, count_raw);
+    }
+}
+
 const char* init_types[] = {"fakeiso", "deviso", "iso_cd"};
 u8 pad_dma_buf[2 * SCE_PAD_DMA_BUFFER_SIZE];
 
@@ -1095,6 +1105,9 @@ void init_common_pc_port_functions(
   make_func_symbol_func("update-mario-water-height", (void*)pc_set_mario_water_level_from_goal);
 
   make_func_symbol_func("pc-update-mario-level-collide", (void*)pc_call_load_combined_static_surfaces_from_game_idx);
+
+  
+ make_func_symbol_func("pc-add-or-update-tris-to-temp", (void*)pc_add_or_update_tris_to_temp);
 
   // graphics things
   make_func_symbol_func("pc-set-vsync", (void*)pc_set_vsync);

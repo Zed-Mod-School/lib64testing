@@ -43,7 +43,7 @@ struct PlatformInfo {
   u32 rot_z;
   u32 rot_w;
 };
-
+static constexpr float EPS_POSITION = 0.05f;
 struct ActorInfo {
   std::string name;
   float pos[3];
@@ -54,6 +54,8 @@ struct ActorInfo {
   uint32_t sm64_id = 0;
   bool is_platform = false;
   uint32_t mesh_hash = 0;
+  std::vector<float>       vertex_accum;  
+  std::vector<SM64Surface> temp_tris;     
 };
 
 extern bool g_mario_enabled;
@@ -93,13 +95,15 @@ class MarioManager {
   // Update for a specific Mario
   void TickMario(int id);
 
-  void UpdateActorCollisions();
+  void CleanupDistantActorCollide();
 
   void AddTestActors();
 
   std::unordered_map<std::string, ActorInfo> m_actor_infos;
-  bool m_run_collide = true;
+  bool m_run_collide = false;
 
+  void AddOrUpdateActor(const char* name, float x, float y, float z);
+  void AddOrUpdateTrisToTempBuffer(const char* name_ptr, uint32_t x, uint32_t y, uint32_t z, uint32_t count);  // ← Add this line
   // Getters for state (used in pc_ functions) - require ID
   MarioInstance* GetMario(int id);
   const MarioInstance* GetMario(int id) const;

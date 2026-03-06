@@ -9,6 +9,17 @@
    (rot-z float)
    (rot-w float)))
 
+(deftype sm64-goal-surface (structure)
+  ((name string)
+   (type    int16)     
+   (force   int16)     
+   (terrain uint16)  
+   (v0      vector3s :inline)  
+   (v1      vector3s :inline)
+   (v2      vector3s :inline)
+   )
+  )
+
 (defun update-platform-from-goal ((process process-drawable))
   "Update the moving platform in C++ using current position/rotation of citb-plat-15"
   (let* ((plat process))
@@ -93,7 +104,21 @@
                       (>= current-idx (- total-tris 2)))
             (format 0 "[Mario Collide] Processing Actor ~S ~%tris ~D of ~D~%~D ~D ~D~%" (-> arg0 name) (- (-> this num-tris) s3-0 ) (-> this num-tris) a2-1 a3-0 t0-0 )
             )
-          
+            #|
+                        ;; (pc-add-tris-to-surface (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
+            ;; (pc-add-tris-to-surface (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
+            ;; (pc-add-tris-to-surface (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)|#
+
+;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
+;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
+;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
+;; (pc-add-or-update-tris-to-temp (-> arg0 name) 0.0 0.0 0.0 4.0)
+(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 1.0)
+(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 2.0)
+(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 3.0)
+(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 4.0)
+
+
             (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)))
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))
         (+! current-idx 1)
