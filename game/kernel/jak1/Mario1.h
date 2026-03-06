@@ -103,7 +103,7 @@ class MarioManager {
   bool m_run_collide = false;
 
   void AddOrUpdateActor(const char* name, float x, float y, float z);
-  void AddOrUpdateTrisToTempBuffer(const char* name_ptr, uint32_t x, uint32_t y, uint32_t z, uint32_t count);  // ← Add this line
+  void AddOrUpdateTrisToTempBuffer( uint32_t x, uint32_t y, uint32_t z, uint32_t count, u32 name_bits);  
   // Getters for state (used in pc_ functions) - require ID
   MarioInstance* GetMario(int id);
   const MarioInstance* GetMario(int id) const;

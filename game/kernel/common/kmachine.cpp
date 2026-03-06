@@ -36,14 +36,56 @@ u32 modsrc;
 // Reboot IOP with IOP kernel from DVD/CD on boot
 u32 reboot_iop;
 
-extern "C" void pc_add_or_update_tris_to_temp(const char* name_ptr,
-    uint32_t x, uint32_t y, uint32_t z,
-    uint32_t count_raw)
+void pc_add_or_update_tris_to_temp(
+    uint32_t x,         // expected: x coordinate bits
+    uint32_t y,         // expected: y coordinate bits
+    uint32_t z,         // expected: z coordinate bits
+    uint32_t count_raw, // expected: vert index or count bits
+    u32 name_bits)      // expected: pointer to symbol/string/name
 {
-    if (auto mgr = MarioManager::Get()) {
-      lg::info("Initializing CD drive. This may take a while...");
-        mgr->AddOrUpdateTrisToTempBuffer(name_ptr, x, y, z, count_raw);
+    // ─────────────────────────────────────────────────────────────
+    // Print EVERYTHING that arrived from GOAL
+    // ─────────────────────────────────────────────────────────────
+    printf("\n[pc_add_tris] =============================================\n");
+    printf("[pc_add_tris] Called with 5 args:\n");
+    printf("  name_bits  = 0x%08X\n", name_bits);
+    printf("  x_bits     = 0x%08X\n", x);
+    printf("  y_bits     = 0x%08X\n", y);
+    printf("  z_bits     = 0x%08X\n", z);
+    printf("  count_raw  = 0x%08X\n", count_raw);
+    printf("  name_bits  = 0x%08X\n", name_bits);
+
+    // Quick float decoding so you see real values right away
+    float xf = 0, yf = 0, zf = 0, cf = 0, namef = 0;
+    memcpy(&xf, &x, sizeof(float));
+    memcpy(&yf, &y, sizeof(float));
+    memcpy(&zf, &z, sizeof(float));
+    memcpy(&cf, &count_raw, sizeof(float));
+    memcpy(&namef, &name_bits, sizeof(float));
+
+
+    printf("  as floats:  x=%.3f   y=%.3f   z=%.3f   count/idx=%.3f name as float=%.3f\n",
+           xf, yf, zf, cf, namef);
+
+    // Optional: if you suspect name_bits is a pointer, try to peek at it
+    // (only uncomment if safe — crashes if invalid pointer)
+    /*
+    if (name_bits != 0) {
+        const char* maybe_name = (const char*)name_bits;
+        if (maybe_name && maybe_name[0] >= 32 && maybe_name[0] <= 126) {
+            printf("  name_bits as C-string hint: \"%s\"\n", maybe_name);
+        } else {
+            printf("  name_bits as pointer looks invalid or not string\n");
+        }
     }
+    */
+
+    if (auto mgr = MarioManager::Get()) {
+        mgr->AddOrUpdateTrisToTempBuffer(x, y, z, count_raw, name_bits);
+    }
+
+    printf("[pc_add_tris] forwarded to MarioManager\n");
+    printf("[pc_add_tris] =============================================\n\n");
 }
 
 const char* init_types[] = {"fakeiso", "deviso", "iso_cd"};

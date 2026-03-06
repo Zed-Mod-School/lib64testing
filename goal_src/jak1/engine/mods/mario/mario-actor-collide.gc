@@ -53,6 +53,7 @@
     )
   ;;(debug-draw-plat-mario process)
   (none))
+(define *curr-actor-name-str* (the string #f))
 
 (defmethod parse-collide-tris-for-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
   "Draw a collide-mesh."
@@ -113,10 +114,17 @@
 ;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
 ;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
 ;; (pc-add-or-update-tris-to-temp (-> arg0 name) 0.0 0.0 0.0 4.0)
-(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 1.0)
-(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 2.0)
-(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 3.0)
-(pc-add-or-update-tris-to-temp "test" 0.0 0.0 0.0 4.0)
+;;(set! *curr-actor-name-str* "test-1")
+(pc-add-or-update-tris-to-temp  10.0  20.0  30.0  1.0  4.0)
+
+;;(set! *curr-actor-name-str* "test-2")
+(pc-add-or-update-tris-to-temp  11.0  21.0  31.0  2.0  5.0)
+
+;;(set! *curr-actor-name-str* "test-3")
+(pc-add-or-update-tris-to-temp  12.0  22.0  32.0  3.0  6.0)
+
+;;(set! *curr-actor-name-str* "test-4")
+(pc-add-or-update-tris-to-temp  13.0  23.0  33.0  4.0  7.0)
 
 
             (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)))

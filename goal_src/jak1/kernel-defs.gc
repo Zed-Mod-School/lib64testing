@@ -562,7 +562,7 @@
 
 (define-extern update-mario-water-height (function int float none))
 
-(define-extern pc-add-or-update-tris-to-temp (function basic float float float float none))
+(define-extern pc-add-or-update-tris-to-temp (function float float float float float none))
 
 (define-extern pc-discord-rpc-set (function int none))
 
