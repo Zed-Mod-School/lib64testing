@@ -80,16 +80,14 @@
          (c 3.0)
          (d 4.0)
          (e 5.0))
-    (format t "Calling pc_print_five_goal_floats from Lisp with arguments ~F ~F ~F ~F ~F.~%"
+    (format #t "Calling pc_print_five_goal_floats from Lisp with arguments ~F ~F ~F ~F ~F.~%"
             a b c d e)
     (pc-print-five-goal-floats a b c d e)
     )(none))
 
 (defun movie? ()
   "Are we in a movie?"
-  (when (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie))
-  (call-print-five-goal-floats)
-  )
+
    (logtest? (-> *kernel-context* prevent-from-run) (process-mask movie))
   )
 
@@ -260,6 +258,9 @@
              (or *cheat-mode* (= *kernel-boot-message* 'play)) ;; not in demo
              )
     ;; cheat mode
+     
+  (call-print-five-goal-floats)
+  
     (check-cheat-code (-> *cheat-temp* 0)
                       0
                       (up up down down left right left right x x square circle square circle)
