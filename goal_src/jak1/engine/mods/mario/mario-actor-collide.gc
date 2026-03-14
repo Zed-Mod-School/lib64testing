@@ -56,14 +56,15 @@
 (define *curr-actor-name-str* (the string #f))
 
 (deftype triangle-package (structure)
-  ((tri-index uint)
-     (tris vector 3 :inline )
-    (tri-count uint)
+  ((tri-index uint32)
+    (tris vector 3 :inline )
+    (tri-count uint32)
+    (actor-name string)
 
    )
   )
 ;; (define *triangle-package* (the triangle-package #f))
-(define-once *triangle-package* (new 'global 'triangle-package))
+(define *triangle-package* (new 'global 'triangle-package))
 (defmethod parse-collide-tris-for-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
   "Draw a collide-mesh."
   (rlet ((acc :class vf)
@@ -127,6 +128,9 @@
 (format 0 "[Mario Collide] PACKAGE BUILDING LETS GO~%" )
 (set! (-> *triangle-package* tri-index) (- (-> this num-tris) s3-0 ))
 (set! (-> *triangle-package* tri-count) (-> this num-tris))
+ (set! (-> *triangle-package* actor-name) (the string (-> arg0 name)))
+;; (set! (-> *triangle-package* actor-name) 32)
+;;(set! (-> *triangle-package* actor-name) (-> this num-tris))
 ;; (set! (-> *triangle-package* tris 0 x) (-> a2-1 x))
 ;; (set! (-> *triangle-package* tris 0 y) (-> a2-1 y))
 ;; (set! (-> *triangle-package* tris 0 z) (-> a2-1 z))
@@ -145,7 +149,7 @@
 (vector-copy! (-> *triangle-package* tris 0) a2-1)
 (vector-copy! (-> *triangle-package* tris 1) a3-0)
 (vector-copy! (-> *triangle-package* tris 2) t0-0)
-
+;; (format 0 "[Mario Collide] EY YO THIS BITCH IS NAMED ~S~%" (-> *triangle-package* actor-name))
 (pc-add-or-update-tris-to-temp *triangle-package*)
 
 ;; (vector-copy! (-> *triangle-package* tris 0) a2-1)

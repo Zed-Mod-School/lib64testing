@@ -2,6 +2,7 @@
 #pragma once
 #include "libsm64.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <cstdint>
 #include <cstdlib>
@@ -22,8 +23,9 @@ struct alignas(16) Vector {
 
 struct alignas(16) triangle_package {
   int tri_index;
-    Vector tris[3];
-   int tri_count;
+  Vector tris[3];
+  int tri_count;
+  int actor_name;
 };
 
 
@@ -67,7 +69,8 @@ struct ActorInfo {
   bool is_platform = false;
   uint32_t mesh_hash = 0;
   std::vector<float>       vertex_accum;  
-  std::vector<SM64Surface> temp_tris;     
+  std::vector<SM64Surface> temp_tris;  
+  std::unordered_set<uintptr_t> processed_packages;
 };
 
 extern bool g_mario_enabled;

@@ -121,75 +121,95 @@ void MarioManager::AddTestActors()
 
 
 
-void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg)
-{
-    if (!pkg)
-    {
-        printf("[MarioMgr] ERROR: null package pointer\n");
-        return;
+void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
+  if (!pkg) {
+    printf("[MarioMgr] ERROR: null package pointer\n");
+    return;
+  }
+
+  // Get actor name from GOAL pointer (assuming Ptr<String> is your safe GOAL string accessor)
+  std::string actor_name = Ptr<String>(pkg->actor_name).c()->data();
+  if (actor_name.empty()) {
+    printf("[MarioMgr] ERROR: empty actor name in package\n");
+    return;
+  }
+
+  // Find or create actor entry
+  auto [actor_it, inserted] = m_actor_infos.try_emplace(actor_name);
+  ActorInfo& info = actor_it->second;
+
+  if (inserted) {
+    info.name = actor_name;
+    printf("[MarioMgr] Created new temp actor: %s\n", actor_name.c_str());
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Early-out: if we already have all (or more) triangles expected
+  //            then skip this entire package
+  // ─────────────────────────────────────────────────────────────
+  const size_t expected_tris = static_cast<size_t>(pkg->tri_count);
+  if (info.temp_tris.size() >= expected_tris) {
+    // printf("[MarioMgr] Skipping package for %s — already have %zu / %zu tris\n",
+    //        actor_name.c_str(), info.temp_tris.size(), expected_tris);
+    return;
+  }
+
+  printf("\n[MarioMgr] Processing package for %s (tris so far: %zu / expected %zu)\n",
+         actor_name.c_str(), info.temp_tris.size(), expected_tris);
+
+  // Debug print vertices
+  printf("[MarioMgr] Triangle vertices:\n");
+  for (int v = 0; v < 3; ++v) {
+    const Vector& vec = pkg->tris[v];
+    printf(" v%d: x=%.4f y=%.4f z=%.4f w=%.4f\n", v, vec.x, vec.y, vec.z, vec.w);
+  }
+
+  // Prepare surface
+  SM64Surface surf{};
+  surf.type = SURFACE_DEFAULT;
+  surf.force = 0;
+  surf.terrain = TERRAIN_STONE;
+
+  bool valid = true;
+
+  for (int v = 0; v < 3; ++v) {
+    const auto& vec = pkg->tris[v];
+
+    if (!std::isfinite(vec.x) || !std::isfinite(vec.y) || !std::isfinite(vec.z)) {
+      valid = false;
+      printf("[MarioMgr] Invalid vertex %d: (%.3f, %.3f, %.3f) in %s\n", v, vec.x, vec.y, vec.z,
+             actor_name.c_str());
+      break;
     }
 
-    printf("\n[MarioMgr] AddOrUpdateTrisToTempBuffer received valid pointer: 0x%p\n", pkg);
+    float xf = vec.x * METERS_TO_UNITS;
+    float yf = vec.y * METERS_TO_UNITS;
+    float zf = vec.z * METERS_TO_UNITS;
 
-    // Print vertices to verify (should match what pc_add_or_update_tris_to_temp printed)
-    printf("[MarioMgr] Triangle vertices:\n");
-    for (int v = 0; v < 3; ++v)
-    {
-        const Vector& vec = pkg->tris[v];
-        printf(" v%d: x=%.4f y=%.4f z=%.4f w=%.4f\n", v, vec.x, vec.y, vec.z, vec.w);
-    }
+    surf.vertices[v][0] = static_cast<int32_t>(std::round(xf));
+    surf.vertices[v][1] = static_cast<int32_t>(std::round(yf));
+    surf.vertices[v][2] = static_cast<int32_t>(std::round(zf));
+  }
 
-    std::string actor_name = "debug-triangle-actor";
+  if (valid) {
+    info.temp_tris.push_back(surf);
+    printf("[MarioMgr] Added temp tri #%zu for %s → v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
+           info.temp_tris.size(), actor_name.c_str(), surf.vertices[0][0], surf.vertices[0][1],
+           surf.vertices[0][2], surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
+           surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
+  } else {
+    printf("[MarioMgr] Ignored invalid/NaN triangle for %s\n", actor_name.c_str());
+  }
 
-    auto [it, inserted] = m_actor_infos.try_emplace(actor_name);
-    ActorInfo& info = it->second;
-
-    if (inserted)
-    {
-        info.name = actor_name;
-        printf("[MarioMgr] Created temp actor: %s\n", actor_name.c_str());
-    }
-
-    SM64Surface surf{};
-    surf.type    = SURFACE_DEFAULT;
-    surf.force   = 0;
-    surf.terrain = TERRAIN_STONE;
-
-    bool valid = true;
-
-    for (int v = 0; v < 3; ++v)
-    {
-        const auto& vec = pkg->tris[v];
-
-        if (!std::isfinite(vec.x) || !std::isfinite(vec.y) || !std::isfinite(vec.z))
-        {
-            valid = false;
-            printf("[MarioMgr] Invalid vertex %d: (%.3f, %.3f, %.3f)\n", v, vec.x, vec.y, vec.z);
-            break;
-        }
-
-        float xf = vec.x * METERS_TO_UNITS;
-        float yf = vec.y * METERS_TO_UNITS;
-        float zf = vec.z * METERS_TO_UNITS;
-
-        surf.vertices[v][0] = static_cast<int32_t>(std::round(xf));
-        surf.vertices[v][1] = static_cast<int32_t>(std::round(yf));
-        surf.vertices[v][2] = static_cast<int32_t>(std::round(zf));
-    }
-
-    if (valid)
-    {
-        info.temp_tris.push_back(surf);
-        printf("[MarioMgr] Added temp tri #%zu for %s → v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
-               info.temp_tris.size(), actor_name.c_str(),
-               surf.vertices[0][0], surf.vertices[0][1], surf.vertices[0][2],
-               surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
-               surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
-    }
-    else
-    {
-        printf("[MarioMgr] Ignored invalid/NaN triangle from %s\n", actor_name.c_str());
-    }
+  // ─────────────────────────────────────────────────────────────
+  // Completion check — only log when we think we're done
+  // ─────────────────────────────────────────────────────────────
+  if (pkg->tri_count == pkg->tri_index || info.temp_tris.size() >= expected_tris) {
+    printf(
+        "[MarioMgr] Completed triangle set for %s — total tris in temp buffer: %zu (expected "
+        "%zu)\n",
+        actor_name.c_str(), info.temp_tris.size(), expected_tris);
+  }
 }
 
 
