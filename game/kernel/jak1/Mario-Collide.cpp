@@ -119,116 +119,187 @@ void MarioManager::AddTestActors()
     printf("[Mario Collide] Test actors added. Total in map = %zu\n", m_actor_infos.size());
 }
 
-void MarioManager::AddOrUpdateTrisToTempBuffer(
-    uint32_t x_bits,
-    uint32_t y_bits,
-    uint32_t z_bits,
-    uint32_t vert_index_bits,
-    uint32_t name_bits)
+
+
+void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg)
 {
-
-  
-    // char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
-    //char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
-    // Optional: see what GOAL is actually sending
-    //  printf("[AddTris] name=%s   bits: x=%08x y=%08x z=%08x idx=%08x\n",
-    //         name ? name : "(null)", x_bits, y_bits, z_bits, vert_index_bits);
-    
-    // ─────────────────────────────────────────────────────────────
-    // Decode bit-packed floats (same as your working version)
-    // ─────────────────────────────────────────────────────────────
-    float x_f, y_f, z_f, vert_index_f, name_f;
-    memcpy(&x_f, &x_bits, sizeof(float));
-    memcpy(&y_f, &y_bits, sizeof(float));
-    memcpy(&z_f, &z_bits, sizeof(float));
-    memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
-
-    memcpy(&name_f, &name_bits, sizeof(float));
-
-
-
-    x_f *= METERS_TO_UNITS;
-    y_f *= METERS_TO_UNITS;
-    z_f *= METERS_TO_UNITS;
-
-    int vert_index = static_cast<int>(vert_index_f + 0.5f);
-
-    if (vert_index < 1 || vert_index > 3) {
-        // printf("[MarioMgr] ERROR: invalid vert_index %d (must be 1-3) for '%s'\n",
-        //        vert_index, name ? name : "?");
+    if (!pkg)
+    {
+        printf("[MarioMgr] ERROR: null package pointer\n");
         return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Find or create actor
-    // ─────────────────────────────────────────────────────────────
-    std::string actor_name = "shithead";//name;  // name_ptr ? name_ptr : "unnamed";
+    printf("\n[MarioMgr] AddOrUpdateTrisToTempBuffer received valid pointer: 0x%p\n", pkg);
+
+    // Print vertices to verify (should match what pc_add_or_update_tris_to_temp printed)
+    printf("[MarioMgr] Triangle vertices:\n");
+    for (int v = 0; v < 3; ++v)
+    {
+        const Vector& vec = pkg->tris[v];
+        printf(" v%d: x=%.4f y=%.4f z=%.4f w=%.4f\n", v, vec.x, vec.y, vec.z, vec.w);
+    }
+
+    std::string actor_name = "debug-triangle-actor";
 
     auto [it, inserted] = m_actor_infos.try_emplace(actor_name);
     ActorInfo& info = it->second;
 
-    if (inserted) {
-        info.name         = actor_name;
-        info.pos[0]       = 0.0f;
-        info.pos[1]       = 0.0f;
-        info.pos[2]       = 0.0f;
-        info.euler_rot[0] = 0.0f;
-        info.euler_rot[1] = 0.0f;
-        info.euler_rot[2] = 0.0f;
-        info.is_platform  = false;
-        info.is_spawned   = false;
-        info.sm64_id      = 0;
-        info.mesh         = nullptr;
-        info.num_surfaces = 0;
-        info.mesh_hash    = 0;
-        // vectors are already empty
-        printf("[MarioMgr] New actor created: '%s'\n", actor_name.c_str());
+    if (inserted)
+    {
+        info.name = actor_name;
+        printf("[MarioMgr] Created temp actor: %s\n", actor_name.c_str());
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Append the new vertex (x,y,z as floats)
-    // ─────────────────────────────────────────────────────────────
-    info.vertex_accum.push_back(x_f);
-    info.vertex_accum.push_back(y_f);
-    info.vertex_accum.push_back(z_f);
+    SM64Surface surf{};
+    surf.type    = SURFACE_DEFAULT;
+    surf.force   = 0;
+    surf.terrain = TERRAIN_STONE;
 
-    // printf("[MarioMgr] Added vertex %d → accum size now %zu\n",
-    //        vert_index, info.vertex_accum.size());
+    bool valid = true;
 
-    // ─────────────────────────────────────────────────────────────
-    // If we have at least 9 floats (3 full vertices), try to commit
-    // ─────────────────────────────────────────────────────────────
-    size_t n = info.vertex_accum.size();
-    if (n >= 9) {
-        // Take the last 9 floats (last 3 vertices)
-        size_t base = n - 9;
+    for (int v = 0; v < 3; ++v)
+    {
+        const auto& vec = pkg->tris[v];
 
-        SM64Surface surf{};
-        surf.type    = SURFACE_DEFAULT;   // or your preferred default
-        surf.force   = 0;
-        surf.terrain = TERRAIN_STONE;
-
-        // Convert last 3 vertices to int32_t
-        for (int v = 0; v < 3; ++v) {
-            size_t off = base + v * 3;
-            surf.vertices[v][0] = static_cast<int32_t>(std::round(info.vertex_accum[off + 0]));
-            surf.vertices[v][1] = static_cast<int32_t>(std::round(info.vertex_accum[off + 1]));
-            surf.vertices[v][2] = static_cast<int32_t>(std::round(info.vertex_accum[off + 2]));
+        if (!std::isfinite(vec.x) || !std::isfinite(vec.y) || !std::isfinite(vec.z))
+        {
+            valid = false;
+            printf("[MarioMgr] Invalid vertex %d: (%.3f, %.3f, %.3f)\n", v, vec.x, vec.y, vec.z);
+            break;
         }
 
-        info.temp_tris.push_back(surf);
+        float xf = vec.x * METERS_TO_UNITS;
+        float yf = vec.y * METERS_TO_UNITS;
+        float zf = vec.z * METERS_TO_UNITS;
 
-        printf("[MarioMgr] Committed tri #%zu for '%s'   v0=(%d,%d,%d) v1=(%d,%d,%d) v2=(%d,%d,%d)\n",
-               info.temp_tris.size(),
-               actor_name.c_str(),
+        surf.vertices[v][0] = static_cast<int32_t>(std::round(xf));
+        surf.vertices[v][1] = static_cast<int32_t>(std::round(yf));
+        surf.vertices[v][2] = static_cast<int32_t>(std::round(zf));
+    }
+
+    if (valid)
+    {
+        info.temp_tris.push_back(surf);
+        printf("[MarioMgr] Added temp tri #%zu for %s → v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
+               info.temp_tris.size(), actor_name.c_str(),
                surf.vertices[0][0], surf.vertices[0][1], surf.vertices[0][2],
                surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
                surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
-
-        // Remove the committed 9 floats so accum stays clean for next triangle
-        info.vertex_accum.erase(info.vertex_accum.begin(), info.vertex_accum.begin() + base + 9);
+    }
+    else
+    {
+        printf("[MarioMgr] Ignored invalid/NaN triangle from %s\n", actor_name.c_str());
     }
 }
+
+
+
+// void MarioManager::AddOrUpdateTrisToTempBuffer(
+//     uint32_t triangle_package_pointer)
+// {
+
+  
+//     // char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
+//     //char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
+//     // Optional: see what GOAL is actually sending
+//     //  printf("[AddTris] name=%s   bits: x=%08x y=%08x z=%08x idx=%08x\n",
+//     //         name ? name : "(null)", x_bits, y_bits, z_bits, vert_index_bits);
+    
+//     // ─────────────────────────────────────────────────────────────
+//     // Decode bit-packed floats (same as your working version)
+//     // ─────────────────────────────────────────────────────────────
+//     float x_f, y_f, z_f, vert_index_f, name_f;
+//     memcpy(&x_f, &x_bits, sizeof(float));
+//     memcpy(&y_f, &y_bits, sizeof(float));
+//     memcpy(&z_f, &z_bits, sizeof(float));
+//     memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
+
+//     memcpy(&name_f, &name_bits, sizeof(float));
+
+
+
+//     x_f *= METERS_TO_UNITS;
+//     y_f *= METERS_TO_UNITS;
+//     z_f *= METERS_TO_UNITS;
+
+//     int vert_index = static_cast<int>(vert_index_f + 0.5f);
+
+//     if (vert_index < 1 || vert_index > 3) {
+//         // printf("[MarioMgr] ERROR: invalid vert_index %d (must be 1-3) for '%s'\n",
+//         //        vert_index, name ? name : "?");
+//         return;
+//     }
+
+//     // ─────────────────────────────────────────────────────────────
+//     // Find or create actor
+//     // ─────────────────────────────────────────────────────────────
+//     std::string actor_name = "shithead";//name;  // name_ptr ? name_ptr : "unnamed";
+
+//     auto [it, inserted] = m_actor_infos.try_emplace(actor_name);
+//     ActorInfo& info = it->second;
+
+//     if (inserted) {
+//         info.name         = actor_name;
+//         info.pos[0]       = 0.0f;
+//         info.pos[1]       = 0.0f;
+//         info.pos[2]       = 0.0f;
+//         info.euler_rot[0] = 0.0f;
+//         info.euler_rot[1] = 0.0f;
+//         info.euler_rot[2] = 0.0f;
+//         info.is_platform  = false;
+//         info.is_spawned   = false;
+//         info.sm64_id      = 0;
+//         info.mesh         = nullptr;
+//         info.num_surfaces = 0;
+//         info.mesh_hash    = 0;
+//         // vectors are already empty
+//         printf("[MarioMgr] New actor created: '%s'\n", actor_name.c_str());
+//     }
+
+//     // ─────────────────────────────────────────────────────────────
+//     // Append the new vertex (x,y,z as floats)
+//     // ─────────────────────────────────────────────────────────────
+//     info.vertex_accum.push_back(x_f);
+//     info.vertex_accum.push_back(y_f);
+//     info.vertex_accum.push_back(z_f);
+
+//     // printf("[MarioMgr] Added vertex %d → accum size now %zu\n",
+//     //        vert_index, info.vertex_accum.size());
+
+//     // ─────────────────────────────────────────────────────────────
+//     // If we have at least 9 floats (3 full vertices), try to commit
+//     // ─────────────────────────────────────────────────────────────
+//     size_t n = info.vertex_accum.size();
+//     if (n >= 9) {
+//         // Take the last 9 floats (last 3 vertices)
+//         size_t base = n - 9;
+
+//         SM64Surface surf{};
+//         surf.type    = SURFACE_DEFAULT;   // or your preferred default
+//         surf.force   = 0;
+//         surf.terrain = TERRAIN_STONE;
+
+//         // Convert last 3 vertices to int32_t
+//         for (int v = 0; v < 3; ++v) {
+//             size_t off = base + v * 3;
+//             surf.vertices[v][0] = static_cast<int32_t>(std::round(info.vertex_accum[off + 0]));
+//             surf.vertices[v][1] = static_cast<int32_t>(std::round(info.vertex_accum[off + 1]));
+//             surf.vertices[v][2] = static_cast<int32_t>(std::round(info.vertex_accum[off + 2]));
+//         }
+
+//         info.temp_tris.push_back(surf);
+
+//         printf("[MarioMgr] Committed tri #%zu for '%s'   v0=(%d,%d,%d) v1=(%d,%d,%d) v2=(%d,%d,%d)\n",
+//                info.temp_tris.size(),
+//                actor_name.c_str(),
+//                surf.vertices[0][0], surf.vertices[0][1], surf.vertices[0][2],
+//                surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
+//                surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
+
+//         // Remove the committed 9 floats so accum stays clean for next triangle
+//         info.vertex_accum.erase(info.vertex_accum.begin(), info.vertex_accum.begin() + base + 9);
+//     }
+// }
 
 
 void MarioManager::AddOrUpdateActor(const char* name, float x, float y, float z)

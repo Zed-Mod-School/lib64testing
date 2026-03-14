@@ -55,6 +55,15 @@
   (none))
 (define *curr-actor-name-str* (the string #f))
 
+(deftype triangle-package (structure)
+  ((tri-index uint)
+     (tris vector 3 :inline )
+    (tri-count uint)
+
+   )
+  )
+;; (define *triangle-package* (the triangle-package #f))
+(define-once *triangle-package* (new 'global 'triangle-package))
 (defmethod parse-collide-tris-for-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
   "Draw a collide-mesh."
   (rlet ((acc :class vf)
@@ -77,7 +86,8 @@
       (countdown (s3-0 (-> this num-tris))
         (let ((a2-1 (new 'stack-no-clear 'vector))
               (a3-0 (new 'stack-no-clear 'vector))
-              (t0-0 (new 'stack-no-clear 'vector)))
+              (t0-0 (new 'stack-no-clear 'vector))
+              (vec1-test (new 'static 'vector :x -1589248.0 :y 43417.6 :z -1933312.0 :w -0.6427)))
           (.lvf vf4 (&-> s4-0 vector 0 quad))
           (.lvf vf5 (&-> s4-0 vector 1 quad))
           (.lvf vf6 (&-> s4-0 vector 2 quad))
@@ -113,23 +123,47 @@
 ;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> a2-1 x) (-> a2-1 y) (-> a2-1 z) 1.0)
 ;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> a3-0 x) (-> a3-0 y) (-> a3-0 z) 2.0)
 ;; (pc-add-or-update-tris-to-temp (-> arg0 name) (-> t0-0 x) (-> t0-0 y) (-> t0-0 z) 3.0)
-;; (pc-add-or-update-tris-to-temp (-> arg0 name) 0.0 0.0 0.0 4.0)
-;;(set! *curr-actor-name-str* "test-1")
-(pc-add-or-update-tris-to-temp  10.0  20.0  30.0  1.0  4.0)
+;; Vertex 0 / first point
+(format 0 "[Mario Collide] PACKAGE BUILDING LETS GO~%" )
+(set! (-> *triangle-package* tri-index) (- (-> this num-tris) s3-0 ))
+(set! (-> *triangle-package* tri-count) (-> this num-tris))
+;; (set! (-> *triangle-package* tris 0 x) (-> a2-1 x))
+;; (set! (-> *triangle-package* tris 0 y) (-> a2-1 y))
+;; (set! (-> *triangle-package* tris 0 z) (-> a2-1 z))
+;; ;;(vector-copy! (-> *triangle-package* tris 0) vec1-test )
 
-;;(set! *curr-actor-name-str* "test-2")
-(pc-add-or-update-tris-to-temp  11.0  21.0  31.0  2.0  5.0)
 
-;;(set! *curr-actor-name-str* "test-3")
-(pc-add-or-update-tris-to-temp  12.0  22.0  32.0  3.0  6.0)
+;; (set! (-> *triangle-package* tris 1 x) (-> a3-0 x))
+;; (set! (-> *triangle-package* tris 1 y) (-> a3-0 y))
+;; (set! (-> *triangle-package* tris 1 z) (-> a3-0 z))
 
-;;(set! *curr-actor-name-str* "test-4")
-(pc-add-or-update-tris-to-temp  13.0  23.0  33.0  4.0  7.0)
+
+;; (set! (-> *triangle-package* tris 2 x) (-> t0-0 x))
+;; (set! (-> *triangle-package* tris 2 y) (-> t0-0 y))
+;; (set! (-> *triangle-package* tris 2 z) (-> t0-0 z))
+
+(vector-copy! (-> *triangle-package* tris 0) a2-1)
+(vector-copy! (-> *triangle-package* tris 1) a3-0)
+(vector-copy! (-> *triangle-package* tris 2) t0-0)
+
+(pc-add-or-update-tris-to-temp *triangle-package*)
+
+;; (vector-copy! (-> *triangle-package* tris 0) a2-1)
+;; (set! (-> *triangle-package* tris 0 w) 1.0)
+
+;; (vector-copy! (-> *triangle-package* tris 1) a3-0)
+;; (set! (-> *triangle-package* tris 1 w) 1.0)
+
+;; (vector-copy! (-> *triangle-package* tris 2) t0-0)
+;; (set! (-> *triangle-package* tris 2 w) 1.0)
+
 
 
             (add-debug-flat-triangle #t (bucket-id debug-no-zbuf) a2-1 a3-0 t0-0 t1-0)))
         (set! s5-0 (-> (the-as (inline-array collide-mesh-tri) s5-0) 1))
         (+! current-idx 1)
+       (format 0 "[Mario Collide] COUNTDOWN EXIT~%" )
+       
         )))
     0
     (none)))
@@ -147,7 +181,7 @@
 (define we-are-on-platform #f)
 
 (defun update-mario-actors-struct ()
-  (format 0 "[Mario Collide] Starting collide GOAL side check ~%")
+  ;;(format 0 "[Mario Collide] Starting collide GOAL side check ~%")
   (when (not (movie?))
         (not (paused?))
     ;; (when (process-by-ename "citb-plat-15")
@@ -257,7 +291,8 @@
                                       (parse-collide-tris-for-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
                                                              p
                                                              (-> root root-prim transform-index))
-                                      (1+! *count-close-actors*)))))))
+                                      (1+! *count-close-actors*)))))
+                                      ))
                           *null-kernel-context*)
     ;;(add-debug-sphere #t (bucket-id debug) (target-pos 0) (meters 50) (static-rgba 0 #xff 0 #x40))
     ;; moving the text drawing outside of the lambda prevents it being run multiple times per frame
@@ -270,7 +305,7 @@
         (print-game-text-scaled (string-format "NUMBER OF ACTOR COLLIDES TO UPDATE: ~D~%" *count-close-actors*) 1.0 fnt 128)))
     ;; (when *target*
     ;;   (pc-spawn-mario-test-collide "fart"))
-    (format 0 "[Mario Collide] Exiting collide GOAL side check~%")
+    ;;(format 0 "[Mario Collide] Exiting collide GOAL side check~%")
     (set! *count-close-actors* 0)))
 
 (defun mario-actor-collide-main-func ()

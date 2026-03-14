@@ -561,8 +561,8 @@
 (define-extern pc-update-mario-level-collide (function float float none))
 
 (define-extern update-mario-water-height (function int float none))
-
-(define-extern pc-add-or-update-tris-to-temp (function float float float float float none))
+(declare-type triangle-package structure)
+(define-extern pc-add-or-update-tris-to-temp (function triangle-package none))
 
 (define-extern pc-discord-rpc-set (function int none))
 

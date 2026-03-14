@@ -36,55 +36,54 @@ u32 modsrc;
 // Reboot IOP with IOP kernel from DVD/CD on boot
 u32 reboot_iop;
 
-void pc_add_or_update_tris_to_temp(
-    uint32_t x,         // expected: x coordinate bits
-    uint32_t y,         // expected: y coordinate bits
-    uint32_t z,         // expected: z coordinate bits
-    uint32_t count_raw, // expected: vert index or count bits
-    u32 name_bits)      // expected: pointer to symbol/string/name
+extern "C" void pc_add_or_update_tris_to_temp(uint32_t triangle_package_offset)
 {
-    // ─────────────────────────────────────────────────────────────
-    // Print EVERYTHING that arrived from GOAL
-    // ─────────────────────────────────────────────────────────────
+    // This global comes from the OpenGOAL runtime (game/runtime.cpp or kmachine.cpp)
+ 
+
     printf("\n[pc_add_tris] =============================================\n");
-    printf("[pc_add_tris] Called with 5 args:\n");
-    printf("  name_bits  = 0x%08X\n", name_bits);
-    printf("  x_bits     = 0x%08X\n", x);
-    printf("  y_bits     = 0x%08X\n", y);
-    printf("  z_bits     = 0x%08X\n", z);
-    printf("  count_raw  = 0x%08X\n", count_raw);
-    printf("  name_bits  = 0x%08X\n", name_bits);
+    printf("[pc_add_tris] Received GOAL offset: 0x%08X (%u decimal)\n", 
+           triangle_package_offset, triangle_package_offset);
 
-    // Quick float decoding so you see real values right away
-    float xf = 0, yf = 0, zf = 0, cf = 0, namef = 0;
-    memcpy(&xf, &x, sizeof(float));
-    memcpy(&yf, &y, sizeof(float));
-    memcpy(&zf, &z, sizeof(float));
-    memcpy(&cf, &count_raw, sizeof(float));
-    memcpy(&namef, &name_bits, sizeof(float));
-
-
-    printf("  as floats:  x=%.3f   y=%.3f   z=%.3f   count/idx=%.3f name as float=%.3f\n",
-           xf, yf, zf, cf, namef);
-
-    // Optional: if you suspect name_bits is a pointer, try to peek at it
-    // (only uncomment if safe — crashes if invalid pointer)
-    /*
-    if (name_bits != 0) {
-        const char* maybe_name = (const char*)name_bits;
-        if (maybe_name && maybe_name[0] >= 32 && maybe_name[0] <= 126) {
-            printf("  name_bits as C-string hint: \"%s\"\n", maybe_name);
-        } else {
-            printf("  name_bits as pointer looks invalid or not string\n");
-        }
-    }
-    */
-
-    if (auto mgr = MarioManager::Get()) {
-        mgr->AddOrUpdateTrisToTempBuffer(x, y, z, count_raw, name_bits);
+    if (triangle_package_offset == 0)
+    {
+        printf("[pc_add_tris] ERROR: null offset\n");
+        return;
     }
 
-    printf("[pc_add_tris] forwarded to MarioManager\n");
+    // Convert GOAL offset → absolute C++ pointer
+    const triangle_package* pkg = 
+        reinterpret_cast<const triangle_package*>(g_ee_main_mem + triangle_package_offset);
+
+    // Quick sanity check on the resulting address
+    uintptr_t abs_addr = reinterpret_cast<uintptr_t>(pkg);
+    printf("[pc_add_tris] Absolute address: 0x%016llX\n", abs_addr);
+
+    if (abs_addr < 0x10000000ULL || abs_addr > 0xFFFFFFFFFFFFFFFFULL - 0x1000000ULL)
+    {
+        printf("[pc_add_tris] WARNING: suspicious absolute address → possible wrong base?\n");
+        return;
+    }
+
+    // Try to safely read one value to confirm
+    float first_x = pkg->tris[0].x;
+    printf("[pc_add_tris] First test read successful: tris[0].x = %.4f\n", first_x);
+
+    // Now print full triangle
+    printf("[pc_add_tris] Triangle contents:\n");
+    for (int i = 0; i < 3; ++i)
+    {
+        const auto& v = pkg->tris[i];
+        printf("  v%d:  x=%9.4f  y=%9.4f  z=%9.4f  w=%7.4f\n",
+               i, v.x, v.y, v.z, v.w);
+    }
+
+    // Forward to your manager
+if (auto mgr = MarioManager::Get())
+{
+    mgr->AddOrUpdateTrisToTempBuffer(pkg);  // pass u32 directly
+}
+
     printf("[pc_add_tris] =============================================\n\n");
 }
 

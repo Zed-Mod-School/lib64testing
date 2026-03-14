@@ -67,6 +67,16 @@ tasks:
     cmds:
       - "{{.GK_BIN_RELEASE_DIR}}/gk -v --game {{.GAME}} -- -fakeiso -debug"
   # DEVELOPMENT
+  mod-base-info:
+    desc: "Show the most recent shared commit with OG-Mod-Base upstream + mod base info banner"
+    preconditions:
+      - sh: test -f ./goal_src/jak1/engine/mods/mario/test.py
+        msg: "Couldn't find the shared-commit script at ./goal_src/jak1/engine/mods/mario/test.py"
+    cmds:
+      - '{{.PYTHON}} ./goal_src/jak1/engine/mods/mario/test.py'
+    sources:
+      - ./goal_src/jak1/engine/mods/mario/test.py
+
   gen-cmake:
     desc: "Generate the CMake"
     cmds:

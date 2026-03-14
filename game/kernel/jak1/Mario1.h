@@ -14,6 +14,18 @@
 constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
 
 
+#pragma once
+
+struct alignas(16) Vector {
+    float x, y, z, w;
+};
+
+struct alignas(16) triangle_package {
+  int tri_index;
+    Vector tris[3];
+   int tri_count;
+};
+
 
 // Individual Mario instance state
 struct MarioInstance {
@@ -103,7 +115,7 @@ class MarioManager {
   bool m_run_collide = false;
 
   void AddOrUpdateActor(const char* name, float x, float y, float z);
-  void AddOrUpdateTrisToTempBuffer( uint32_t x, uint32_t y, uint32_t z, uint32_t count, u32 name_bits);  
+  void AddOrUpdateTrisToTempBuffer(const triangle_package* pkg);
   // Getters for state (used in pc_ functions) - require ID
   MarioInstance* GetMario(int id);
   const MarioInstance* GetMario(int id) const;
