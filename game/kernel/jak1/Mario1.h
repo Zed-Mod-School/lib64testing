@@ -118,6 +118,7 @@ class MarioManager {
   bool m_run_collide = false;
 
   void AddOrUpdateActor(const char* name, float x, float y, float z);
+  void SpawnActorMesh(const std::string& actor_name);
   void AddOrUpdateTrisToTempBuffer(const triangle_package* pkg);
   // Getters for state (used in pc_ functions) - require ID
   MarioInstance* GetMario(int id);

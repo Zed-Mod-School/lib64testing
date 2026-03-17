@@ -121,16 +121,86 @@ void MarioManager::AddTestActors()
 
 
 
+void MarioManager::SpawnActorMesh(const std::string& actor_name) {
+  // Look up the actor in our map
+  auto it = m_actor_infos.find(actor_name);
+  if (it == m_actor_infos.end()) {
+    printf("[MarioMgr] Spawn failed: Actor '%s' not found in m_actor_infos\n",
+           actor_name.c_str());
+    return;
+  }
+
+  ActorInfo& info = it->second;
+
+  // Skip if already spawned
+  if (info.is_spawned) {
+    printf("[MarioMgr] Spawn skipped: Actor '%s' already spawned (ID %u)\n",
+           actor_name.c_str(), info.sm64_id);
+    return;
+  }
+
+  // Safety: no triangles = nothing to spawn
+  if (info.temp_tris.empty()) {
+    printf("[MarioMgr] Spawn skipped: Actor '%s' has no triangles in temp_tris\n",
+           actor_name.c_str());
+    return;
+  }
+
+  // Build the SM64SurfaceObject struct that libsm64 expects
+  SM64SurfaceObject obj{};
+
+  // Position (already in SM64 units / meters)
+  obj.transform.position[0] = info.pos[0];
+  obj.transform.position[1] = info.pos[1];
+  obj.transform.position[2] = info.pos[2];
+
+  // Rotation (assuming your euler_rot is in radians — if degrees, convert here)
+  obj.transform.eulerRotation[0] = info.euler_rot[0];
+  obj.transform.eulerRotation[1] = info.euler_rot[1];
+  obj.transform.eulerRotation[2] = info.euler_rot[2];
+
+  // Triangle data — directly from temp_tris
+  obj.surfaces     = info.temp_tris.data();
+  obj.surfaceCount = static_cast<uint32_t>(info.temp_tris.size());
+
+  printf("[MarioMgr] Spawning '%s' — %u triangles at pos (%.1f, %.1f, %.1f)\n",
+         actor_name.c_str(), obj.surfaceCount,
+         obj.transform.position[0], obj.transform.position[1], obj.transform.position[2]);
+
+  // Create the surface object in libsm64
+  uint32_t sm64_id = sm64_surface_object_create(&obj);
+
+  if (sm64_id != 0) {
+    info.sm64_id = sm64_id;
+    info.is_spawned = true;
+    printf("[MarioMgr] SUCCESS: Spawned sm64 object ID %u for '%s' (%u tris)\n",
+           sm64_id, actor_name.c_str(), obj.surfaceCount);
+
+    // Optional: free temp memory now that it's spawned
+    // info.temp_tris.clear();
+    // info.temp_tris.shrink_to_fit();
+  } else {
+    info.is_spawned = false;
+    printf("[MarioMgr] FAILED to spawn sm64 object for '%s' — check libsm64\n",
+           actor_name.c_str());
+  }
+}
+
 void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
+  // This takes in a point from the GOAL side that we just updated, and processes the data so we can store it on the cpp side
+
+  //First lets make sure the pointer is valid, no idea if this works and dont care because maybe it works
   if (!pkg) {
     printf("[MarioMgr] ERROR: null package pointer\n");
     return;
   }
 
+
   // Get actor name from GOAL pointer (assuming Ptr<String> is your safe GOAL string accessor)
   std::string actor_name = Ptr<String>(pkg->actor_name).c()->data();
   if (actor_name.empty()) {
     printf("[MarioMgr] ERROR: empty actor name in package\n");
+    std::abort();
     return;
   }
 
@@ -149,6 +219,7 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   // ─────────────────────────────────────────────────────────────
   const size_t expected_tris = static_cast<size_t>(pkg->tri_count);
   if (info.temp_tris.size() >= expected_tris) {
+    // We should print when this happens but not doing it to avoid lag, we need to revist this at some point, at the moment we just "skip" any actor that we have seen all the triangles for, but thats not really going to work for ever.
     // printf("[MarioMgr] Skipping package for %s — already have %zu / %zu tris\n",
     //        actor_name.c_str(), info.temp_tris.size(), expected_tris);
     return;
@@ -157,12 +228,6 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   printf("\n[MarioMgr] Processing package for %s (tris so far: %zu / expected %zu)\n",
          actor_name.c_str(), info.temp_tris.size(), expected_tris);
 
-  // Debug print vertices
-  printf("[MarioMgr] Triangle vertices:\n");
-  for (int v = 0; v < 3; ++v) {
-    const Vector& vec = pkg->tris[v];
-    printf(" v%d: x=%.4f y=%.4f z=%.4f w=%.4f\n", v, vec.x, vec.y, vec.z, vec.w);
-  }
 
   // Prepare surface
   SM64Surface surf{};
@@ -179,9 +244,11 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
       valid = false;
       printf("[MarioMgr] Invalid vertex %d: (%.3f, %.3f, %.3f) in %s\n", v, vec.x, vec.y, vec.z,
              actor_name.c_str());
+             std::abort();
       break;
     }
 
+    // here we adjust the units from jak cords to mario cords this is untested and hopefully the meshes just work rn but if they dont invesitgate this more
     float xf = vec.x * METERS_TO_UNITS;
     float yf = vec.y * METERS_TO_UNITS;
     float zf = vec.z * METERS_TO_UNITS;
@@ -204,15 +271,37 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   // ─────────────────────────────────────────────────────────────
   // Completion check — only log when we think we're done
   // ─────────────────────────────────────────────────────────────
-  if (pkg->tri_count == pkg->tri_index || info.temp_tris.size() >= expected_tris) {
+  bool is_complete = (pkg->tri_count == pkg->tri_index) ||
+                     (info.temp_tris.size() >= expected_tris);
+
+  if (is_complete) {
     printf(
-        "[MarioMgr] Completed triangle set for %s — total tris in temp buffer: %zu (expected "
-        "%zu)\n",
+        "[MarioMgr] Completed triangle set for %s — total tris in temp buffer: %zu (expected %zu)\n",
         actor_name.c_str(), info.temp_tris.size(), expected_tris);
+
+    // Only spawn if we haven't already done it
+    if (info.is_spawned) {
+      printf("[MarioMgr] Actor %s already spawned — skipping duplicate spawn\n",
+             actor_name.c_str());
+    } else {
+      // Mark as spawned
+      
+
+      // Call the spawn function (placeholder — implement this!)
+      SpawnActorMesh(actor_name);
+      info.is_spawned = true;
+
+      printf("[MarioMgr] Spawned mesh for actor %s (ID: %u, %zu tris)\n", actor_name.c_str(),
+             info.sm64_id, info.temp_tris.size());
+      printf("[MarioMgr] Spawned mesh for actor %s (ID: %u, %zu tris)\n", actor_name.c_str(),
+             info.sm64_id, info.temp_tris.size());
+
+      // Optional: clear temp data after successful spawn to save memory
+      // info.temp_tris.clear();
+      // info.temp_tris.shrink_to_fit();
+    }
   }
 }
-
-
 
 // void MarioManager::AddOrUpdateTrisToTempBuffer(
 //     uint32_t triangle_package_pointer)
