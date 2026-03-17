@@ -315,7 +315,7 @@ void MarioManager::SetMarioMusic(int id, uint32_t music_bits) {
 }
 
 void MarioManager::SetMarioPosition(int id, float x, float y, float z) {
-  //sm64_mario_set_position(id, x, y, z);
+  sm64_set_mario_position(id, x, y, z);
 }
 
 void MarioManager::SetMarioWaterLevel(int id, float level) {
@@ -329,8 +329,8 @@ void MarioManager::ChangeMarioState(int id, uint32_t act) {
 }
 
 void MarioManager::HealMario(int id) {
-  // Stub: heal logic
-  (void)id;
+  sm64_set_mario_health(id, 256*8);
+  sm64_set_mario_action(id, 0x0C400201); // ACT_IDLE
 }
 
 void MarioManager::DamageMario(int id) {

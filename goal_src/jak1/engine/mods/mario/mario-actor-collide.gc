@@ -69,7 +69,7 @@
   )
 ;; (define *triangle-package* (the triangle-package #f))
 (define *triangle-package* (new 'global 'triangle-package))
-(defmethod parse-collide-tris-for-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int))
+(defmethod parse-collide-tris-for-mario ((this collide-mesh) (arg0 process-drawable) (arg1 int) (arg2 int))
   "Draw a collide-mesh."
   (rlet ((acc :class vf)
          (vf0 :class vf)
@@ -132,7 +132,11 @@
 (hint-debug (format 0 "[Mario Collide] PACKAGE BUILDING LETS GO~%" ))
 (set! (-> *triangle-package* tri-index) (- (-> this num-tris) s3-0 ))
 (set! (-> *triangle-package* tri-count) (-> this num-tris))
- (set! (-> *triangle-package* actor-name) (the string (-> arg0 name)))
+
+;; avoid actor-name-0
+(if (nonzero? arg2) (set! (-> *triangle-package* actor-name) (the string (string-format "~S-~D" (-> arg0 name)arg2))) 
+  (set! (-> *triangle-package* actor-name) (the string (-> arg0 name))))
+
 ;; (set! (-> *triangle-package* actor-name) 32)
 ;;(set! (-> *triangle-package* actor-name) (-> this num-tris))
 ;; (set! (-> *triangle-package* tris 0 x) (-> a2-1 x))
@@ -281,14 +285,15 @@
                                                 (- (-> group num-prims) 1)))
                                         (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
                                           ;; if it is indeed a mesh, we draw it
-                                          (parse-collide-tris-for-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index))
+                                          (parse-collide-tris-for-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index) i)
                                           )))
                                     ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
                                     (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
                                       (hint-debug (format 0 "[Mario Collide] Found a prim-mesh for Actor ~S~%" (-> p name)))
                                       (parse-collide-tris-for-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
                                                              p
-                                                             (-> root root-prim transform-index))
+                                                             (-> root root-prim transform-index)
+                                                             0)
                                       (1+! *count-close-actors*)))))
                                       ))
                           *null-kernel-context*)
