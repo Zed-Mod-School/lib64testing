@@ -41,13 +41,13 @@ extern "C" void pc_add_or_update_tris_to_temp(uint32_t triangle_package_offset)
     // This global comes from the OpenGOAL runtime (game/runtime.cpp or kmachine.cpp)
  
 
-    printf("\n[pc_add_tris] =============================================\n");
-    printf("[pc_add_tris] Received GOAL offset: 0x%08X (%u decimal)\n", 
-           triangle_package_offset, triangle_package_offset);
+    // printf("\n[pc_add_tris] =============================================\n");
+    // printf("[pc_add_tris] Received GOAL offset: 0x%08X (%u decimal)\n", 
+    //       triangle_package_offset, triangle_package_offset);
 
     if (triangle_package_offset == 0)
     {
-        printf("[pc_add_tris] ERROR: null offset\n");
+        // printf("[pc_add_tris] ERROR: null offset\n");
         return;
     }
 
@@ -57,7 +57,7 @@ extern "C" void pc_add_or_update_tris_to_temp(uint32_t triangle_package_offset)
 
     // Quick sanity check on the resulting address
     uintptr_t abs_addr = reinterpret_cast<uintptr_t>(pkg);
-    printf("[pc_add_tris] Absolute address: 0x%016llX\n", abs_addr);
+    //printf("[pc_add_tris] Absolute address: 0x%016llX\n", abs_addr);
 
     if (abs_addr < 0x10000000ULL || abs_addr > 0xFFFFFFFFFFFFFFFFULL - 0x1000000ULL)
     {
@@ -67,15 +67,15 @@ extern "C" void pc_add_or_update_tris_to_temp(uint32_t triangle_package_offset)
 
     // Try to safely read one value to confirm
     float first_x = pkg->tris[0].x;
-    printf("[pc_add_tris] First test read successful: tris[0].x = %.4f\n", first_x);
+    //printf("[pc_add_tris] First test read successful: tris[0].x = %.4f\n", first_x);
 
     // Now print full triangle
-    printf("[pc_add_tris] Triangle contents:\n");
+    //printf("[pc_add_tris] Triangle contents:\n");
     for (int i = 0; i < 3; ++i)
     {
         const auto& v = pkg->tris[i];
-        printf("  v%d:  x=%9.4f  y=%9.4f  z=%9.4f  w=%7.4f\n",
-               i, v.x, v.y, v.z, v.w);
+        // printf("  v%d:  x=%9.4f  y=%9.4f  z=%9.4f  w=%7.4f\n",
+        //        i, v.x, v.y, v.z, v.w);
     }
 
     // Forward to your manager
@@ -84,7 +84,7 @@ if (auto mgr = MarioManager::Get())
     mgr->AddOrUpdateTrisToTempBuffer(pkg);  // pass u32 directly
 }
 
-    printf("[pc_add_tris] =============================================\n\n");
+   // printf("[pc_add_tris] =============================================\n\n");
 }
 
 const char* init_types[] = {"fakeiso", "deviso", "iso_cd"};
