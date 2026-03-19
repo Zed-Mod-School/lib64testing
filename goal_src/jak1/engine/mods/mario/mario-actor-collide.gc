@@ -63,6 +63,7 @@
   ((tri-index uint32)
     (tris vector 3 :inline )
     (origin-point vector 3 :inline)
+    (euler-rot vector 3 :inline)
     (tri-count uint32)
     (actor-name string)
 
@@ -158,6 +159,7 @@
 (vector-copy! (-> *triangle-package* origin-point 0) a2-1)
 (vector-copy! (-> *triangle-package* origin-point 1) a2-1)
 (vector-copy! (-> *triangle-package* origin-point 2) a2-1)
+(vector-copy! (-> *triangle-package* euler-rot 0) (-> arg0 root rot))
 )
 
 (vector-copy! (-> *triangle-package* tris 0) a2-1)
@@ -229,7 +231,7 @@
                                          (nonzero? (-> p root))
                                          (type-type? (-> e etype) type-target)
                                          ;;(type-type? (-> e etype) crate)
-                                         ;;(= p (process-by-ename "plat-eco-54"))
+                                        ;;  (= p (process-by-ename "citb-disc-d-2"))
                                          (not (paused?))
                                          ;;more conditionals here
                                          (or (<= (vector-vector-distance (-> p root trans) (target-pos 0)) distance)
@@ -243,41 +245,42 @@
                                 ;;Here we add checks on things we WANT to skip 
                                   (when (or (and (= (-> root root-prim collide-with) (collide-kind)) (= (-> root root-prim prim-core collide-as) (collide-kind)))
                                             (= (-> e etype symbol) 'periscope)
-                                            (= p (process-by-ename "citb-disc-d-2")))
+                                            (>= (-> *game-info* blackout-time) (current-time))
+                                            )
                                     (hint-debug (format 0 "[Mario Collide] Skipping Collide Actor ~S ~%" (-> p name)))
                                     (return 0))
                                     ;; Now we have 2 different branches, We check if it is or isnt a platform so we know how to update it on the mario side
                                     ;; Im hopeful that we can just remove this for now, we dont use the  platform branch and are focused on main collision
                                     ;; the #f here was added to force skip this branch for the time being
-                                  (when (and #f (type-type? (-> p root type) collide-shape) (-> root riders) (nonzero? (-> root riders num-riders)))
-                                    ;; if the ator has a rider, then we need to update it properly, if a platform has no rider its postion is till
-                                    ;; updated from the normal spawn every tris and delete every tris in a single group approach
-                                    (hint-debug (format 0 "[Mario Collide] Actor ~S has riders! Lets update it in GOAL ~%" (-> p name)))
-                                    (hint-debug (format 0 "[Mario Collide] Also we are going down special platform collide branch ~%" (-> p name)))
-                                    (update-platform-from-goal p)
-                                    ;; check if the root prim is a prim group
-                                    (if (type-type? (-> root root-prim type) collide-shape-prim-group)
-                                      ;; if so, we loop through all of its prims and check for prim meshes
-                                      (let ((group (the collide-shape-prim-group (-> root root-prim))))
-                                        (1+! *count-close-actors*)
-                                        (dotimes (i (-> group num-prims))
-                                          (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
-                                            ;; if it is indeed a mesh, we draw it
-                                           (hint-debug (format 0
-                                                    "[Mario Collide] Found a mesh-group for Actor ~S doing mesh ~D of ~D~%"
-                                                    (-> p name)
-                                                    i
-                                                    (- (-> group num-prims) 1)))
-                                            ;;(debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index))
-                                            )))
-                                      ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
-                                      (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
-                                        (hint-debug (format 0 "[Mario Collide] Found a prim-mesh for Actor ~S~%" (-> p name)))
-                                        ;; (debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
-                                        ;;                        p
-                                        ;;                        (-> root root-prim transform-index))
-                                        (1+! *count-close-actors*)))
-                                    (return 0))
+                                  ;; (when (and #f (type-type? (-> p root type) collide-shape) (-> root riders) (nonzero? (-> root riders num-riders)))
+                                  ;;   ;; if the ator has a rider, then we need to update it properly, if a platform has no rider its postion is till
+                                  ;;   ;; updated from the normal spawn every tris and delete every tris in a single group approach
+                                  ;;   (hint-debug (format 0 "[Mario Collide] Actor ~S has riders! Lets update it in GOAL ~%" (-> p name)))
+                                  ;;   (hint-debug (format 0 "[Mario Collide] Also we are going down special platform collide branch ~%" (-> p name)))
+                                  ;;   (update-platform-from-goal p)
+                                  ;;   ;; check if the root prim is a prim group
+                                  ;;   (if (type-type? (-> root root-prim type) collide-shape-prim-group)
+                                  ;;     ;; if so, we loop through all of its prims and check for prim meshes
+                                  ;;     (let ((group (the collide-shape-prim-group (-> root root-prim))))
+                                  ;;       (1+! *count-close-actors*)
+                                  ;;       (dotimes (i (-> group num-prims))
+                                  ;;         (when (type-type? (-> group prims i type) collide-shape-prim-mesh)
+                                  ;;           ;; if it is indeed a mesh, we draw it
+                                  ;;          (hint-debug (format 0
+                                  ;;                   "[Mario Collide] Found a mesh-group for Actor ~S doing mesh ~D of ~D~%"
+                                  ;;                   (-> p name)
+                                  ;;                   i
+                                  ;;                   (- (-> group num-prims) 1)))
+                                  ;;           ;;(debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> group prims i)) mesh) p (-> group prims i transform-index))
+                                  ;;           )))
+                                  ;;     ;; if it's not a prim group, we just check if the root prim is a mesh and then draw it
+                                  ;;     (when (type-type? (-> root root-prim type) collide-shape-prim-mesh)
+                                  ;;       (hint-debug (format 0 "[Mario Collide] Found a prim-mesh for Actor ~S~%" (-> p name)))
+                                  ;;       ;; (debug-draw-plat-mario (-> (the collide-shape-prim-mesh (-> root root-prim)) mesh)
+                                  ;;       ;;                        p
+                                  ;;       ;;                        (-> root root-prim transform-index))
+                                  ;;       (1+! *count-close-actors*)))
+                                  ;;   (return 0))
 
                                   ;; check if the root prim is a prim group
                                   ;; Ok we are finally on the "main" actor collides here

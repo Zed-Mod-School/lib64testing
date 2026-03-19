@@ -40,7 +40,10 @@ extern "C" {
     extern const struct SM64Surface finalboss_surfaces[];
     extern const int finalboss_surfaces_count;
 
-    // Dark Cave, Misty, Sunken, etc.
+    // Main Cave, Dark Cave, Misty, Sunken, etc.
+    extern const struct SM64Surface maincave_surfaces[];
+    extern const int maincave_surfaces_count;
+
     extern const struct SM64Surface darkcave_surfaces[];
     extern const int darkcave_surfaces_count;
 

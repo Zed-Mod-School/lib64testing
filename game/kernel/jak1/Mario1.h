@@ -25,6 +25,7 @@ struct alignas(16) triangle_package {
   int tri_index;
   Vector tris[3];
   Vector origin[3];
+  Vector euler_rot[3];
   int tri_count;
   int actor_name;
 };

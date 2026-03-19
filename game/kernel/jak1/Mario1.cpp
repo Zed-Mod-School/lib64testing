@@ -369,6 +369,8 @@ void MarioManager::Tick() {
   }
 }
 
+const float M_PI = 3.14159265358979323846f;
+
 void MarioManager::TickMario(int id) {
   auto* inst = GetMario(id);
   if (!inst || !inst->active) return;
@@ -383,9 +385,9 @@ void MarioManager::TickMario(int id) {
         xf.position[0] = info.pos[0] * METERS_TO_UNITS;
         xf.position[1] = info.pos[1] * METERS_TO_UNITS;
         xf.position[2] = info.pos[2] * METERS_TO_UNITS;
-        xf.eulerRotation[0] = info.euler_rot[0];
-        xf.eulerRotation[1] = info.euler_rot[1];
-        xf.eulerRotation[2] = info.euler_rot[2];
+        xf.eulerRotation[0] = info.euler_rot[0] * (M_PI / 180.0f); // Convert degrees to radians
+        xf.eulerRotation[1] = info.euler_rot[1] * (M_PI / 180.0f); // Convert degrees to radians
+        xf.eulerRotation[2] = info.euler_rot[2] * (M_PI / 180.0f); // Convert degrees to radians
 
         sm64_surface_object_move(info.sm64_id, &xf);
     }
@@ -558,7 +560,7 @@ void pc_call_load_combined_static_surfaces_from_game_idx(uint32_t x_bits, uint32
     {13, {ogre_surfaces,       ogre_surfaces_count}},
     {14, {village3_surfaces,   village3_surfaces_count}},
     {15, {snow_surfaces,       snow_surfaces_count}},
-    {16, {darkcave_surfaces,   darkcave_surfaces_count}},
+    {16, {maincave_surfaces,   maincave_surfaces_count}},
     {17, {darkcave_surfaces,   darkcave_surfaces_count}},
     {18, {robocave_surfaces,   robocave_surfaces_count}},
     {19, {lavatube_surfaces,   lavatube_surfaces_count}},

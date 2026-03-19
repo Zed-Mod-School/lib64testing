@@ -1,22 +1,26 @@
-#include "mario1.h"
-#include "../common/Ptr.h"
 #include "../common/Kscheme.h"
+#include "../common/Ptr.h"
 #include "game/kernel/jak1/kscheme.h"
+#include "mario1.h"
 void MarioManager::CleanupDistantActorCollide() {
-  if (!m_run_collide) return;  // Step 1: Pause if not running
+  if (!m_run_collide)
+    return;  // Step 1: Pause if not running
 
   // Assume primary Mario ID is the first active one for distance checks
   auto active_ids = GetActiveMarioIds();
-  if (active_ids.empty()) return;
+  if (active_ids.empty())
+    return;
   int main_mario_id = active_ids[0];
   MarioInstance* mario = GetMario(main_mario_id);
-  if (!mario) return;
+  if (!mario)
+    return;
 
-  float mario_pos[3] = {mario->state.position[0], mario->state.position[1], mario->state.position[2]};
+  float mario_pos[3] = {mario->state.position[0], mario->state.position[1],
+                        mario->state.position[2]};
 
   constexpr float DIST_THRESHOLD = 10000.f;  // Adjustable threshold
   constexpr float DIST_THRESHOLD_SQ = DIST_THRESHOLD * DIST_THRESHOLD;
- // printf("[Mario Collide] Checking for actors to clean...\n");
+  // printf("[Mario Collide] Checking for actors to clean...\n");
   // Step 2: Cull far actors
   for (auto it = m_actor_infos.begin(); it != m_actor_infos.end(); ++it) {
     auto& info = it->second;
@@ -26,7 +30,6 @@ void MarioManager::CleanupDistantActorCollide() {
       float dz = info.pos[2] - mario_pos[2];
       float dist_sq = dx * dx + dy * dy + dz * dz;
       if (dist_sq > DIST_THRESHOLD_SQ) {
-
         sm64_surface_object_delete(info.sm64_id);
         delete[] info.mesh;
         info.mesh = nullptr;
@@ -37,96 +40,92 @@ void MarioManager::CleanupDistantActorCollide() {
   }
 }
 
-void MarioManager::AddTestActors()
-{
-    // Clear existing test data first (optional - comment out if you want to keep real data)
-    // m_actor_infos.clear();
+void MarioManager::AddTestActors() {
+  // Clear existing test data first (optional - comment out if you want to keep real data)
+  // m_actor_infos.clear();
 
-    printf("[Mario Collide] Adding test actors for debugging...\n");
+  printf("[Mario Collide] Adding test actors for debugging...\n");
 
-    // ─────────────────────────────────────────────────────────────
-    // Test Actor 1: A simple static crate near origin
-    // ─────────────────────────────────────────────────────────────
-    {
-        ActorInfo test;
-        test.name         = "test_crate_01";
-        test.pos[0]       = 0.0f;     // already in Mario units (meters)
-        test.pos[1]       = 2.0f;
-        test.pos[2]       = 5.0f;
-        test.euler_rot[0] = 0.0f;
-        test.euler_rot[1] = 45.0f;    // 45° yaw
-        test.euler_rot[2] = 0.0f;
-        test.is_platform  = false;
-        test.is_spawned   = false;    // we'll pretend it needs spawning
-        test.num_surfaces = 12;       // fake triangle count
-        test.mesh_hash    = 0xDEADBEEF;
-        test.sm64_id      = 0;
+  // ─────────────────────────────────────────────────────────────
+  // Test Actor 1: A simple static crate near origin
+  // ─────────────────────────────────────────────────────────────
+  {
+    ActorInfo test;
+    test.name = "test_crate_01";
+    test.pos[0] = 0.0f;  // already in Mario units (meters)
+    test.pos[1] = 2.0f;
+    test.pos[2] = 5.0f;
+    test.euler_rot[0] = 0.0f;
+    test.euler_rot[1] = 45.0f;  // 45° yaw
+    test.euler_rot[2] = 0.0f;
+    test.is_platform = false;
+    test.is_spawned = false;  // we'll pretend it needs spawning
+    test.num_surfaces = 12;   // fake triangle count
+    test.mesh_hash = 0xDEADBEEF;
+    test.sm64_id = 0;
 
-        // Optional: fake a tiny mesh (just for testing hash/change detection)
-        // You can leave mesh = nullptr for pure position testing
-        test.mesh = nullptr;
+    // Optional: fake a tiny mesh (just for testing hash/change detection)
+    // You can leave mesh = nullptr for pure position testing
+    test.mesh = nullptr;
 
-        m_actor_infos[test.name] = test;
-        printf("[Test] Added %s at (%.1f, %.1f, %.1f)\n", 
-               test.name.c_str(), test.pos[0], test.pos[1], test.pos[2]);
-    }
+    m_actor_infos[test.name] = test;
+    printf("[Test] Added %s at (%.1f, %.1f, %.1f)\n", test.name.c_str(), test.pos[0], test.pos[1],
+           test.pos[2]);
+  }
 
-    // ─────────────────────────────────────────────────────────────
-    // Test Actor 2: A moving platform far away (should get culled)
-    // ─────────────────────────────────────────────────────────────
-    {
-        ActorInfo test;
-        test.name         = "test_moving_plat_99";
-        test.pos[0]       = 15000.0f;   // way outside 10k threshold
-        test.pos[1]       = 0.0f;
-        test.pos[2]       = 20000.0f;
-        test.euler_rot[0] = 0.0f;
-        test.euler_rot[1] = 0.0f;
-        test.euler_rot[2] = 0.0f;
-        test.is_platform  = true;
-        test.is_spawned   = true;       // pretend it's already active
-        test.num_surfaces = 2;
-        test.mesh_hash    = 0x12345678;
-        test.sm64_id      = 999;        // fake libsm64 ID
+  // ─────────────────────────────────────────────────────────────
+  // Test Actor 2: A moving platform far away (should get culled)
+  // ─────────────────────────────────────────────────────────────
+  {
+    ActorInfo test;
+    test.name = "test_moving_plat_99";
+    test.pos[0] = 15000.0f;  // way outside 10k threshold
+    test.pos[1] = 0.0f;
+    test.pos[2] = 20000.0f;
+    test.euler_rot[0] = 0.0f;
+    test.euler_rot[1] = 0.0f;
+    test.euler_rot[2] = 0.0f;
+    test.is_platform = true;
+    test.is_spawned = true;  // pretend it's already active
+    test.num_surfaces = 2;
+    test.mesh_hash = 0x12345678;
+    test.sm64_id = 999;  // fake libsm64 ID
 
-        m_actor_infos[test.name] = test;
-        printf("[Test] Added far-away %s at (%.1f, %.1f, %.1f) → should be culled\n", 
-               test.name.c_str(), test.pos[0], test.pos[1], test.pos[2]);
-    }
+    m_actor_infos[test.name] = test;
+    printf("[Test] Added far-away %s at (%.1f, %.1f, %.1f) → should be culled\n", test.name.c_str(),
+           test.pos[0], test.pos[1], test.pos[2]);
+  }
 
-    // ─────────────────────────────────────────────────────────────
-    // Test Actor 3: Something close that should stay
-    // ─────────────────────────────────────────────────────────────
-    {
-        ActorInfo test;
-        test.name         = "test_barrel_near";
-        test.pos[0]       = 3.0f;
-        test.pos[1]       = 1.5f;
-        test.pos[2]       = -4.0f;
-        test.euler_rot[0] = 10.0f;
-        test.euler_rot[1] = -20.0f;
-        test.euler_rot[2] = 5.0f;
-        test.is_platform  = false;
-        test.is_spawned   = false;
-        test.num_surfaces = 8;
-        test.mesh_hash    = 0xCAFEBABE;
+  // ─────────────────────────────────────────────────────────────
+  // Test Actor 3: Something close that should stay
+  // ─────────────────────────────────────────────────────────────
+  {
+    ActorInfo test;
+    test.name = "test_barrel_near";
+    test.pos[0] = 3.0f;
+    test.pos[1] = 1.5f;
+    test.pos[2] = -4.0f;
+    test.euler_rot[0] = 10.0f;
+    test.euler_rot[1] = -20.0f;
+    test.euler_rot[2] = 5.0f;
+    test.is_platform = false;
+    test.is_spawned = false;
+    test.num_surfaces = 8;
+    test.mesh_hash = 0xCAFEBABE;
 
-        m_actor_infos[test.name] = test;
-        printf("[Test] Added close %s at (%.1f, %.1f, %.1f)\n", 
-               test.name.c_str(), test.pos[0], test.pos[1], test.pos[2]);
-    }
+    m_actor_infos[test.name] = test;
+    printf("[Test] Added close %s at (%.1f, %.1f, %.1f)\n", test.name.c_str(), test.pos[0],
+           test.pos[1], test.pos[2]);
+  }
 
-    printf("[Mario Collide] Test actors added. Total in map = %zu\n", m_actor_infos.size());
+  printf("[Mario Collide] Test actors added. Total in map = %zu\n", m_actor_infos.size());
 }
-
-
 
 void MarioManager::SpawnActorMesh(const std::string& actor_name) {
   // Look up the actor in our map
   auto it = m_actor_infos.find(actor_name);
-  if (it == m_actor_infos.end()) {  
-    printf("[MarioMgr] Spawn failed: Actor '%s' not found in m_actor_infos\n",
-           actor_name.c_str());
+  if (it == m_actor_infos.end()) {
+    printf("[MarioMgr] Spawn failed: Actor '%s' not found in m_actor_infos\n", actor_name.c_str());
     return;
   }
 
@@ -134,8 +133,8 @@ void MarioManager::SpawnActorMesh(const std::string& actor_name) {
 
   // Skip if already spawned
   if (info.is_spawned) {
-    printf("[MarioMgr] Spawn skipped: Actor '%s' already spawned (ID %u)\n",
-           actor_name.c_str(), info.sm64_id);
+    printf("[MarioMgr] Spawn skipped: Actor '%s' already spawned (ID %u)\n", actor_name.c_str(),
+           info.sm64_id);
     return;
   }
 
@@ -160,12 +159,12 @@ void MarioManager::SpawnActorMesh(const std::string& actor_name) {
   obj.transform.eulerRotation[2] = info.euler_rot[2];
 
   // Triangle data — directly from temp_tris
-  obj.surfaces     = info.temp_tris.data();
+  obj.surfaces = info.temp_tris.data();
   obj.surfaceCount = static_cast<uint32_t>(info.temp_tris.size());
 
-  printf("[MarioMgr] Spawning '%s' — %u triangles at pos (%.1f, %.1f, %.1f)\n",
-         actor_name.c_str(), obj.surfaceCount,
-         obj.transform.position[0], obj.transform.position[1], obj.transform.position[2]);
+  printf("[MarioMgr] Spawning '%s' — %u triangles at pos (%.1f, %.1f, %.1f)\n", actor_name.c_str(),
+         obj.surfaceCount, obj.transform.position[0], obj.transform.position[1],
+         obj.transform.position[2]);
 
   // Create the surface object in libsm64
   uint32_t sm64_id = sm64_surface_object_create(&obj);
@@ -173,16 +172,15 @@ void MarioManager::SpawnActorMesh(const std::string& actor_name) {
   if (sm64_id != -1) {
     info.sm64_id = sm64_id;
     info.is_spawned = true;
-    printf("[MarioMgr] SUCCESS: Spawned sm64 object ID %u for '%s' (%u tris)\n",
-           sm64_id, actor_name.c_str(), obj.surfaceCount);
+    printf("[MarioMgr] SUCCESS: Spawned sm64 object ID %u for '%s' (%u tris)\n", sm64_id,
+           actor_name.c_str(), obj.surfaceCount);
 
     // Optional: free temp memory now that it's spawned
     // info.temp_tris.clear();
     // info.temp_tris.shrink_to_fit();
   } else {
     info.is_spawned = false;
-    printf("[MarioMgr] FAILED to spawn sm64 object for '%s' — check libsm64\n",
-           actor_name.c_str());
+    printf("[MarioMgr] FAILED to spawn sm64 object for '%s' — check libsm64\n", actor_name.c_str());
   }
 }
 
@@ -201,7 +199,7 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   std::string actor_name = Ptr<String>(pkg->actor_name).c()->data();
   if (actor_name.empty()) {
     printf("[MarioMgr] ERROR: empty actor name in package\n");
-    std::abort();
+    /*std::abort();*/
     return;
   }
 
@@ -220,7 +218,7 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   // Early-out: if we already have all (or more) triangles expected
   //            then skip this entire package
   // ─────────────────────────────────────────────────────────────
-  
+
   if (info.temp_tris.size() >= expected_tris) {
     // We should print when this happens but not doing it to avoid lag, we need to revist this at
     // some point, at the moment we just "skip" any actor that we have seen all the triangles for,
@@ -239,14 +237,14 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 
   const Vector& current_first_vertex = pkg->origin[0];  // assuming origin[0] is the reference point
 
-  //printf("[MarioDbg] Current pkg origin[0] = (%.6f, %.6f, %.6f)\n", current_first_vertex.x,
-  //       current_first_vertex.y, current_first_vertex.z);
+  // printf("[MarioDbg] Current pkg origin[0] = (%.6f, %.6f, %.6f)\n", current_first_vertex.x,
+  //        current_first_vertex.y, current_first_vertex.z);
 
   if (!info.has_reference_origin) {
     info.reference_origin = current_first_vertex;
     info.has_reference_origin = true;
-    //printf("[MarioMgr] Set reference origin for %s: (%.3f, %.3f, %.3f)\n", actor_name.c_str(),
-    //       info.reference_origin.x, info.reference_origin.y, info.reference_origin.z);
+    // printf("[MarioMgr] Set reference origin for %s: (%.3f, %.3f, %.3f)\n", actor_name.c_str(),
+    //        info.reference_origin.x, info.reference_origin.y, info.reference_origin.z);
   }
 
   // Compute how much the actor has moved since the reference point
@@ -254,13 +252,20 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
                 current_first_vertex.y - info.reference_origin.y,
                 current_first_vertex.z - info.reference_origin.z};
 
- //if (is_complete) {
- //   printf("[MarioDbg] Computed offset = (%.6f, %.6f, %.6f)\n", offset.x, offset.y, offset.z);
- // };
+  // if (is_complete) {
+  //    printf("[MarioDbg] Computed offset = (%.6f, %.6f, %.6f)\n", offset.x, offset.y, offset.z);
+  //  };
 
- info.pos[0] = offset.x;
-info.pos[1] = offset.y;
-info.pos[2] = offset.z;
+  info.pos[0] = offset.x;
+  info.pos[1] = offset.y;
+  info.pos[2] = offset.z;
+  // set the euler rotation to 0 for now because we dont have any rotation data yet, this is
+  // something we will need
+  const auto& vec_rot = pkg->euler_rot[0];
+  info.euler_rot[0] = vec_rot.x;
+  info.euler_rot[1] = vec_rot.y;
+  info.euler_rot[2] = vec_rot.z;
+
   // ─── If already spawned → update position in libsm64 ───────────────────
   if (info.is_spawned && info.sm64_id != 3) {
     SM64ObjectTransform transform{};
@@ -276,26 +281,25 @@ info.pos[2] = offset.z;
     transform.eulerRotation[2] = info.euler_rot[2];
 
     // Actually move the object
-    //sm64_surface_object_move(info.sm64_id, &transform);
+    // sm64_surface_object_move(info.sm64_id, &transform);
 
     bool position_changed =
         !info.has_last_position || (fabs(transform.position[0] - info.last_position[0]) > 0.001f ||
                                     fabs(transform.position[1] - info.last_position[1]) > 0.001f ||
                                     fabs(transform.position[2] - info.last_position[2]) > 0.001f);
 
-    if (position_changed) {
-      printf(
-          "[MarioDbg] Position CHANGED for %s (ID %u) → new=(%.6f, %.6f, %.6f)  "
-          "%.6f)\n",
-          actor_name.c_str(), info.sm64_id, transform.position[0], transform.position[1],
-          transform.position[2]);
-    }
+    // if (position_changed) {
+    //   printf(
+    //       "[MarioDbg] Position CHANGED for %s (ID %u) → new=(%.6f, %.6f, %.6f)  "
+    //       "%.6f)\n",
+    //       actor_name.c_str(), info.sm64_id, transform.position[0], transform.position[1],
+    //       transform.position[2]);
+    // }
     // Update stored last position
     info.last_position[0] = transform.position[0];
     info.last_position[1] = transform.position[1];
     info.last_position[2] = transform.position[2];
     info.has_last_position = true;
-   
 
     // Optional logging (can be spammy — comment out in release)
     // printf("[MarioMgr] Moved %s (ID %u) to (%.1f, %.1f, %.1f)\n",
@@ -357,7 +361,6 @@ info.pos[2] = offset.z;
   // ─────────────────────────────────────────────────────────────
   // Completion check — only log when we think we're done
   // ─────────────────────────────────────────────────────────────
-  
 
   if (is_complete) {
     printf(
@@ -390,13 +393,12 @@ info.pos[2] = offset.z;
 //     uint32_t triangle_package_pointer)
 // {
 
-  
 //     // char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
 //     //char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
 //     // Optional: see what GOAL is actually sending
 //     //  printf("[AddTris] name=%s   bits: x=%08x y=%08x z=%08x idx=%08x\n",
 //     //         name ? name : "(null)", x_bits, y_bits, z_bits, vert_index_bits);
-    
+
 //     // ─────────────────────────────────────────────────────────────
 //     // Decode bit-packed floats (same as your working version)
 //     // ─────────────────────────────────────────────────────────────
@@ -407,8 +409,6 @@ info.pos[2] = offset.z;
 //     memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
 
 //     memcpy(&name_f, &name_bits, sizeof(float));
-
-
 
 //     x_f *= METERS_TO_UNITS;
 //     y_f *= METERS_TO_UNITS;
@@ -481,7 +481,8 @@ info.pos[2] = offset.z;
 
 //         info.temp_tris.push_back(surf);
 
-//         printf("[MarioMgr] Committed tri #%zu for '%s'   v0=(%d,%d,%d) v1=(%d,%d,%d) v2=(%d,%d,%d)\n",
+//         printf("[MarioMgr] Committed tri #%zu for '%s'   v0=(%d,%d,%d) v1=(%d,%d,%d)
+//         v2=(%d,%d,%d)\n",
 //                info.temp_tris.size(),
 //                actor_name.c_str(),
 //                surf.vertices[0][0], surf.vertices[0][1], surf.vertices[0][2],
@@ -493,69 +494,61 @@ info.pos[2] = offset.z;
 //     }
 // }
 
+void MarioManager::AddOrUpdateActor(const char* name, float x, float y, float z) {
+  if (!name || name[0] == '\0') {
+    printf("[actor] ERROR: empty name passed - ignored\n");
+    return;
+  }
 
-void MarioManager::AddOrUpdateActor(const char* name, float x, float y, float z)
-{
-    if (!name || name[0] == '\0')
-    {
-        printf("[actor] ERROR: empty name passed - ignored\n");
-        return;
+  std::string key = name;
+
+  auto it = m_actor_infos.find(key);
+  ActorInfo* info = nullptr;
+
+  if (it != m_actor_infos.end()) {
+    info = &it->second;
+
+    if (std::fabs(info->pos[0] - x) < EPS_POSITION && std::fabs(info->pos[1] - y) < EPS_POSITION &&
+        std::fabs(info->pos[2] - z) < EPS_POSITION) {
+      return;
     }
 
-    std::string key = name;
+    printf("[actor] Updating '%s' → (%.2f, %.2f, %.2f)\n", name, x, y, z);
+  } else {
+    ActorInfo new_info{};
+    new_info.name = key;
+    new_info.pos[0] = x;
+    new_info.pos[1] = y;
+    new_info.pos[2] = z;
+    new_info.euler_rot[0] = 1.f;
+    new_info.euler_rot[1] = 1.f;
+    new_info.euler_rot[2] = 1.f;
+    new_info.is_platform = false;
+    new_info.is_spawned = false;
+    new_info.sm64_id = -1;
+    new_info.mesh = nullptr;
+    new_info.num_surfaces = 0;
+    new_info.mesh_hash = 0;
 
-    auto it = m_actor_infos.find(key);
-    ActorInfo* info = nullptr;
-
-    if (it != m_actor_infos.end())
-    {
-        info = &it->second;
-
-        if (std::fabs(info->pos[0] - x) < EPS_POSITION &&
-            std::fabs(info->pos[1] - y) < EPS_POSITION &&
-            std::fabs(info->pos[2] - z) < EPS_POSITION)
-        {
-            return;
-        }
-
-        printf("[actor] Updating '%s' → (%.2f, %.2f, %.2f)\n", name, x, y, z);
-    }
-    else
-    {
-        ActorInfo new_info{};
-        new_info.name         = key;
-        new_info.pos[0]       = x;
-        new_info.pos[1]       = y;
-        new_info.pos[2]       = z;
-        new_info.euler_rot[0] = 0.f;
-        new_info.euler_rot[1] = 0.f;
-        new_info.euler_rot[2] = 0.f;
-        new_info.is_platform  = false;
-        new_info.is_spawned   = false;
-        new_info.sm64_id      = -1;
-        new_info.mesh         = nullptr;
-        new_info.num_surfaces = 0;
-        new_info.mesh_hash    = 0;
-
-        auto [ins_it, inserted] = m_actor_infos.emplace(key, std::move(new_info));
-        if (!inserted) {
-            printf("[actor] emplace failed for '%s'\n", name);
-            return;
-        }
-
-        info = &ins_it->second;
-        printf("[actor] New actor '%s' at (%.2f, %.2f, %.2f)\n", name, x, y, z);
+    auto [ins_it, inserted] = m_actor_infos.emplace(key, std::move(new_info));
+    if (!inserted) {
+      printf("[actor] emplace failed for '%s'\n", name);
+      return;
     }
 
-    // Update position
-    info->pos[0] = x;
-    info->pos[1] = y;
-    info->pos[2] = z;
+    info = &ins_it->second;
+    printf("[actor] New actor '%s' at (%.2f, %.2f, %.2f)\n", name, x, y, z);
+  }
 
-    // When actor is created/updated → reset temporary mesh building state
-    info->temp_tris.clear();
-    info->vertex_accum.clear();
+  // Update position
+  info->pos[0] = x;
+  info->pos[1] = y;
+  info->pos[2] = z;
 
-    // If you want to spawn immediately when mesh is ready, do it in a separate function
-    // (recommended: distance check + !is_spawned + !temp_tris.empty())
+  // When actor is created/updated → reset temporary mesh building state
+  info->temp_tris.clear();
+  info->vertex_accum.clear();
+
+  // If you want to spawn immediately when mesh is ready, do it in a separate function
+  // (recommended: distance check + !is_spawned + !temp_tris.empty())
 }

@@ -61,7 +61,7 @@ extern "C" void pc_add_or_update_tris_to_temp(uint32_t triangle_package_offset)
 
     if (abs_addr < 0x10000000ULL || abs_addr > 0xFFFFFFFFFFFFFFFFULL - 0x1000000ULL)
     {
-        printf("[pc_add_tris] WARNING: suspicious absolute address → possible wrong base?\n");
+        printf("[pc_add_tris] WARNING: suspicious absolute address -> possible wrong base?\n");
         return;
     }
 
