@@ -122,7 +122,7 @@ void MarioManager::Initialize() {
   g_cylinder_center[2] = 0.0f;
   printf("[MIO0] Decoded bytes...\n");
 
-  if (sInstance) sInstance->AddTestActors();
+  // if (sInstance) sInstance->AddTestActors();
 }
 
 int MarioManager::CreateMario(float x, float y, float z) {
@@ -360,7 +360,7 @@ void MarioManager::Tick() {
     for (auto& pair : self->m_marios) {
       if (pair.second->active) {
         jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
-        self->CleanupDistantActorCollide();
+        //self->CleanupDistantActorCollide();
         self->TickMario(pair.first);
       }
     }
@@ -374,6 +374,22 @@ void MarioManager::TickMario(int id) {
   if (!inst || !inst->active) return;
 
   //jak1::call_goal_function_by_name("update-mario-water-height-from-goal");
+
+  for (auto& [name, info] : m_actor_infos)
+{
+    if (info.is_spawned )
+    {
+        SM64ObjectTransform xf{};
+        xf.position[0] = info.pos[0] * METERS_TO_UNITS;
+        xf.position[1] = info.pos[1] * METERS_TO_UNITS;
+        xf.position[2] = info.pos[2] * METERS_TO_UNITS;
+        xf.eulerRotation[0] = info.euler_rot[0];
+        xf.eulerRotation[1] = info.euler_rot[1];
+        xf.eulerRotation[2] = info.euler_rot[2];
+
+        sm64_surface_object_move(info.sm64_id, &xf);
+    }
+}
 
   sm64_mario_tick(inst->id, &inst->inputs, &inst->state, &inst->geom);
 }

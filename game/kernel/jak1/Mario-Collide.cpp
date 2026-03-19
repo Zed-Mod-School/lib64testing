@@ -1,26 +1,22 @@
-#include "../common/Kscheme.h"
-#include "../common/Ptr.h"
-#include "game/kernel/jak1/kscheme.h"
 #include "mario1.h"
+#include "../common/Ptr.h"
+#include "../common/Kscheme.h"
+#include "game/kernel/jak1/kscheme.h"
 void MarioManager::CleanupDistantActorCollide() {
-  if (!m_run_collide)
-    return;  // Step 1: Pause if not running
+  if (!m_run_collide) return;  // Step 1: Pause if not running
 
   // Assume primary Mario ID is the first active one for distance checks
   auto active_ids = GetActiveMarioIds();
-  if (active_ids.empty())
-    return;
+  if (active_ids.empty()) return;
   int main_mario_id = active_ids[0];
   MarioInstance* mario = GetMario(main_mario_id);
-  if (!mario)
-    return;
+  if (!mario) return;
 
-  float mario_pos[3] = {mario->state.position[0], mario->state.position[1],
-                        mario->state.position[2]};
+  float mario_pos[3] = {mario->state.position[0], mario->state.position[1], mario->state.position[2]};
 
   constexpr float DIST_THRESHOLD = 10000.f;  // Adjustable threshold
   constexpr float DIST_THRESHOLD_SQ = DIST_THRESHOLD * DIST_THRESHOLD;
-  // printf("[Mario Collide] Checking for actors to clean...\n");
+ // printf("[Mario Collide] Checking for actors to clean...\n");
   // Step 2: Cull far actors
   for (auto it = m_actor_infos.begin(); it != m_actor_infos.end(); ++it) {
     auto& info = it->second;
@@ -30,6 +26,7 @@ void MarioManager::CleanupDistantActorCollide() {
       float dz = info.pos[2] - mario_pos[2];
       float dist_sq = dx * dx + dy * dy + dz * dz;
       if (dist_sq > DIST_THRESHOLD_SQ) {
+
         sm64_surface_object_delete(info.sm64_id);
         delete[] info.mesh;
         info.mesh = nullptr;
@@ -40,92 +37,96 @@ void MarioManager::CleanupDistantActorCollide() {
   }
 }
 
-void MarioManager::AddTestActors() {
-  // Clear existing test data first (optional - comment out if you want to keep real data)
-  // m_actor_infos.clear();
+void MarioManager::AddTestActors()
+{
+    // Clear existing test data first (optional - comment out if you want to keep real data)
+    // m_actor_infos.clear();
 
-  printf("[Mario Collide] Adding test actors for debugging...\n");
+    printf("[Mario Collide] Adding test actors for debugging...\n");
 
-  // ─────────────────────────────────────────────────────────────
-  // Test Actor 1: A simple static crate near origin
-  // ─────────────────────────────────────────────────────────────
-  {
-    ActorInfo test;
-    test.name = "test_crate_01";
-    test.pos[0] = 0.0f;  // already in Mario units (meters)
-    test.pos[1] = 2.0f;
-    test.pos[2] = 5.0f;
-    test.euler_rot[0] = 0.0f;
-    test.euler_rot[1] = 45.0f;  // 45° yaw
-    test.euler_rot[2] = 0.0f;
-    test.is_platform = false;
-    test.is_spawned = false;  // we'll pretend it needs spawning
-    test.num_surfaces = 12;   // fake triangle count
-    test.mesh_hash = 0xDEADBEEF;
-    test.sm64_id = 0;
+    // ─────────────────────────────────────────────────────────────
+    // Test Actor 1: A simple static crate near origin
+    // ─────────────────────────────────────────────────────────────
+    {
+        ActorInfo test;
+        test.name         = "test_crate_01";
+        test.pos[0]       = 0.0f;     // already in Mario units (meters)
+        test.pos[1]       = 2.0f;
+        test.pos[2]       = 5.0f;
+        test.euler_rot[0] = 0.0f;
+        test.euler_rot[1] = 45.0f;    // 45° yaw
+        test.euler_rot[2] = 0.0f;
+        test.is_platform  = false;
+        test.is_spawned   = false;    // we'll pretend it needs spawning
+        test.num_surfaces = 12;       // fake triangle count
+        test.mesh_hash    = 0xDEADBEEF;
+        test.sm64_id      = 0;
 
-    // Optional: fake a tiny mesh (just for testing hash/change detection)
-    // You can leave mesh = nullptr for pure position testing
-    test.mesh = nullptr;
+        // Optional: fake a tiny mesh (just for testing hash/change detection)
+        // You can leave mesh = nullptr for pure position testing
+        test.mesh = nullptr;
 
-    m_actor_infos[test.name] = test;
-    printf("[Test] Added %s at (%.1f, %.1f, %.1f)\n", test.name.c_str(), test.pos[0], test.pos[1],
-           test.pos[2]);
-  }
+        m_actor_infos[test.name] = test;
+        printf("[Test] Added %s at (%.1f, %.1f, %.1f)\n", 
+               test.name.c_str(), test.pos[0], test.pos[1], test.pos[2]);
+    }
 
-  // ─────────────────────────────────────────────────────────────
-  // Test Actor 2: A moving platform far away (should get culled)
-  // ─────────────────────────────────────────────────────────────
-  {
-    ActorInfo test;
-    test.name = "test_moving_plat_99";
-    test.pos[0] = 15000.0f;  // way outside 10k threshold
-    test.pos[1] = 0.0f;
-    test.pos[2] = 20000.0f;
-    test.euler_rot[0] = 0.0f;
-    test.euler_rot[1] = 0.0f;
-    test.euler_rot[2] = 0.0f;
-    test.is_platform = true;
-    test.is_spawned = true;  // pretend it's already active
-    test.num_surfaces = 2;
-    test.mesh_hash = 0x12345678;
-    test.sm64_id = 999;  // fake libsm64 ID
+    // ─────────────────────────────────────────────────────────────
+    // Test Actor 2: A moving platform far away (should get culled)
+    // ─────────────────────────────────────────────────────────────
+    {
+        ActorInfo test;
+        test.name         = "test_moving_plat_99";
+        test.pos[0]       = 15000.0f;   // way outside 10k threshold
+        test.pos[1]       = 0.0f;
+        test.pos[2]       = 20000.0f;
+        test.euler_rot[0] = 0.0f;
+        test.euler_rot[1] = 0.0f;
+        test.euler_rot[2] = 0.0f;
+        test.is_platform  = true;
+        test.is_spawned   = true;       // pretend it's already active
+        test.num_surfaces = 2;
+        test.mesh_hash    = 0x12345678;
+        test.sm64_id      = 999;        // fake libsm64 ID
 
-    m_actor_infos[test.name] = test;
-    printf("[Test] Added far-away %s at (%.1f, %.1f, %.1f) → should be culled\n", test.name.c_str(),
-           test.pos[0], test.pos[1], test.pos[2]);
-  }
+        m_actor_infos[test.name] = test;
+        printf("[Test] Added far-away %s at (%.1f, %.1f, %.1f) → should be culled\n", 
+               test.name.c_str(), test.pos[0], test.pos[1], test.pos[2]);
+    }
 
-  // ─────────────────────────────────────────────────────────────
-  // Test Actor 3: Something close that should stay
-  // ─────────────────────────────────────────────────────────────
-  {
-    ActorInfo test;
-    test.name = "test_barrel_near";
-    test.pos[0] = 3.0f;
-    test.pos[1] = 1.5f;
-    test.pos[2] = -4.0f;
-    test.euler_rot[0] = 10.0f;
-    test.euler_rot[1] = -20.0f;
-    test.euler_rot[2] = 5.0f;
-    test.is_platform = false;
-    test.is_spawned = false;
-    test.num_surfaces = 8;
-    test.mesh_hash = 0xCAFEBABE;
+    // ─────────────────────────────────────────────────────────────
+    // Test Actor 3: Something close that should stay
+    // ─────────────────────────────────────────────────────────────
+    {
+        ActorInfo test;
+        test.name         = "test_barrel_near";
+        test.pos[0]       = 3.0f;
+        test.pos[1]       = 1.5f;
+        test.pos[2]       = -4.0f;
+        test.euler_rot[0] = 10.0f;
+        test.euler_rot[1] = -20.0f;
+        test.euler_rot[2] = 5.0f;
+        test.is_platform  = false;
+        test.is_spawned   = false;
+        test.num_surfaces = 8;
+        test.mesh_hash    = 0xCAFEBABE;
 
-    m_actor_infos[test.name] = test;
-    printf("[Test] Added close %s at (%.1f, %.1f, %.1f)\n", test.name.c_str(), test.pos[0],
-           test.pos[1], test.pos[2]);
-  }
+        m_actor_infos[test.name] = test;
+        printf("[Test] Added close %s at (%.1f, %.1f, %.1f)\n", 
+               test.name.c_str(), test.pos[0], test.pos[1], test.pos[2]);
+    }
 
-  printf("[Mario Collide] Test actors added. Total in map = %zu\n", m_actor_infos.size());
+    printf("[Mario Collide] Test actors added. Total in map = %zu\n", m_actor_infos.size());
 }
+
+
 
 void MarioManager::SpawnActorMesh(const std::string& actor_name) {
   // Look up the actor in our map
   auto it = m_actor_infos.find(actor_name);
-  if (it == m_actor_infos.end()) {
-    printf("[MarioMgr] Spawn failed: Actor '%s' not found in m_actor_infos\n", actor_name.c_str());
+  if (it == m_actor_infos.end()) {  
+    printf("[MarioMgr] Spawn failed: Actor '%s' not found in m_actor_infos\n",
+           actor_name.c_str());
     return;
   }
 
@@ -133,8 +134,8 @@ void MarioManager::SpawnActorMesh(const std::string& actor_name) {
 
   // Skip if already spawned
   if (info.is_spawned) {
-    printf("[MarioMgr] Spawn skipped: Actor '%s' already spawned (ID %u)\n", actor_name.c_str(),
-           info.sm64_id);
+    printf("[MarioMgr] Spawn skipped: Actor '%s' already spawned (ID %u)\n",
+           actor_name.c_str(), info.sm64_id);
     return;
   }
 
@@ -159,28 +160,29 @@ void MarioManager::SpawnActorMesh(const std::string& actor_name) {
   obj.transform.eulerRotation[2] = info.euler_rot[2];
 
   // Triangle data — directly from temp_tris
-  obj.surfaces = info.temp_tris.data();
+  obj.surfaces     = info.temp_tris.data();
   obj.surfaceCount = static_cast<uint32_t>(info.temp_tris.size());
 
-  printf("[MarioMgr] Spawning '%s' — %u triangles at pos (%.1f, %.1f, %.1f)\n", actor_name.c_str(),
-         obj.surfaceCount, obj.transform.position[0], obj.transform.position[1],
-         obj.transform.position[2]);
+  printf("[MarioMgr] Spawning '%s' — %u triangles at pos (%.1f, %.1f, %.1f)\n",
+         actor_name.c_str(), obj.surfaceCount,
+         obj.transform.position[0], obj.transform.position[1], obj.transform.position[2]);
 
   // Create the surface object in libsm64
   uint32_t sm64_id = sm64_surface_object_create(&obj);
 
-  if (sm64_id != 0) {
+  if (sm64_id != -1) {
     info.sm64_id = sm64_id;
     info.is_spawned = true;
-    printf("[MarioMgr] SUCCESS: Spawned sm64 object ID %u for '%s' (%u tris)\n", sm64_id,
-           actor_name.c_str(), obj.surfaceCount);
+    printf("[MarioMgr] SUCCESS: Spawned sm64 object ID %u for '%s' (%u tris)\n",
+           sm64_id, actor_name.c_str(), obj.surfaceCount);
 
     // Optional: free temp memory now that it's spawned
     // info.temp_tris.clear();
     // info.temp_tris.shrink_to_fit();
   } else {
     info.is_spawned = false;
-    printf("[MarioMgr] FAILED to spawn sm64 object for '%s' — check libsm64\n", actor_name.c_str());
+    printf("[MarioMgr] FAILED to spawn sm64 object for '%s' — check libsm64\n",
+           actor_name.c_str());
   }
 }
 
@@ -206,6 +208,8 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   // Find or create actor entry
   auto [actor_it, inserted] = m_actor_infos.try_emplace(actor_name);
   ActorInfo& info = actor_it->second;
+  const size_t expected_tris = static_cast<size_t>(pkg->tri_count);
+  bool is_complete = (pkg->tri_count == pkg->tri_index) || (info.temp_tris.size() >= expected_tris);
 
   if (inserted) {
     info.name = actor_name;
@@ -213,28 +217,101 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // For spawned actors, re-accumulate collision data each frame
-  // For unspawned actors, accumulate until we have all triangles
-  // ─────────────────────────────────────────────────────────────
-  const size_t expected_tris = static_cast<size_t>(pkg->tri_count);
-
-  // DON'T clear yet - we might not get all triangles in one call
-  // Reserve capacity to prevent reallocations during push_back
-  // (critical because libsm64 may hold pointers to the surface data)
-  if (info.temp_tris.capacity() < expected_tris) {
-    info.temp_tris.reserve(expected_tris);
-  }
-
   // Early-out: if we already have all (or more) triangles expected
-  //            then skip this entire package (only for new, unspawned actors)
+  //            then skip this entire package
   // ─────────────────────────────────────────────────────────────
+  
+  if (info.temp_tris.size() >= expected_tris) {
+    // We should print when this happens but not doing it to avoid lag, we need to revist this at
+    // some point, at the moment we just "skip" any actor that we have seen all the triangles for,
+    // but thats not really going to work for ever. printf("[MarioMgr] Skipping package for %s —
+    // already have %zu / %zu tris\n",
+    //        actor_name.c_str(), info.temp_tris.size(), expected_tris);
+  }
 
   // printf("\n[MarioMgr] Processing package for %s (tris so far: %zu / expected %zu)\n",
   //        actor_name.c_str(), info.temp_tris.size(), expected_tris);
 
+  // ─── Handle reference origin tracking ─────────────────────────────────
+  // We use the first vertex of the very first package as the reference point
+  // All subsequent packages get their vertices offset so the mesh stays consistent
+  // even if the actor has moved in the world since we started streaming it.
+
+  const Vector& current_first_vertex = pkg->origin[0];  // assuming origin[0] is the reference point
+
+  //printf("[MarioDbg] Current pkg origin[0] = (%.6f, %.6f, %.6f)\n", current_first_vertex.x,
+  //       current_first_vertex.y, current_first_vertex.z);
+
+  if (!info.has_reference_origin) {
+    info.reference_origin = current_first_vertex;
+    info.has_reference_origin = true;
+    //printf("[MarioMgr] Set reference origin for %s: (%.3f, %.3f, %.3f)\n", actor_name.c_str(),
+    //       info.reference_origin.x, info.reference_origin.y, info.reference_origin.z);
+  }
+
+  // Compute how much the actor has moved since the reference point
+  Vector offset{current_first_vertex.x - info.reference_origin.x,
+                current_first_vertex.y - info.reference_origin.y,
+                current_first_vertex.z - info.reference_origin.z};
+
+ //if (is_complete) {
+ //   printf("[MarioDbg] Computed offset = (%.6f, %.6f, %.6f)\n", offset.x, offset.y, offset.z);
+ // };
+
+ info.pos[0] = offset.x;
+info.pos[1] = offset.y;
+info.pos[2] = offset.z;
+  // ─── If already spawned → update position in libsm64 ───────────────────
+  if (info.is_spawned && info.sm64_id != 3) {
+    SM64ObjectTransform transform{};
+
+    // Base position + current offset (in SM64 units)
+    transform.position[0] = info.pos[0] + offset.x * METERS_TO_UNITS;
+    transform.position[1] = info.pos[1] + offset.y * METERS_TO_UNITS;
+    transform.position[2] = info.pos[2] + offset.z * METERS_TO_UNITS;
+
+    // Rotation — fill from stored values (assuming radians; convert if needed)
+    transform.eulerRotation[0] = info.euler_rot[0];
+    transform.eulerRotation[1] = info.euler_rot[1];
+    transform.eulerRotation[2] = info.euler_rot[2];
+
+    // Actually move the object
+    //sm64_surface_object_move(info.sm64_id, &transform);
+
+    bool position_changed =
+        !info.has_last_position || (fabs(transform.position[0] - info.last_position[0]) > 0.001f ||
+                                    fabs(transform.position[1] - info.last_position[1]) > 0.001f ||
+                                    fabs(transform.position[2] - info.last_position[2]) > 0.001f);
+
+    if (position_changed) {
+      printf(
+          "[MarioDbg] Position CHANGED for %s (ID %u) → new=(%.6f, %.6f, %.6f)  "
+          "%.6f)\n",
+          actor_name.c_str(), info.sm64_id, transform.position[0], transform.position[1],
+          transform.position[2]);
+    }
+    // Update stored last position
+    info.last_position[0] = transform.position[0];
+    info.last_position[1] = transform.position[1];
+    info.last_position[2] = transform.position[2];
+    info.has_last_position = true;
+   
+
+    // Optional logging (can be spammy — comment out in release)
+    // printf("[MarioMgr] Moved %s (ID %u) to (%.1f, %.1f, %.1f)\n",
+    //        actor_name.c_str(), info.sm64_id,
+    //        transform.position[0], transform.position[1], transform.position[2]);
+  }
+
+  // If we already have enough triangles, skip adding more (but still allow movement above)
+  if (info.temp_tris.size() >= expected_tris) {
+    return;
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // Prepare surface
   SM64Surface surf{};
-  surf.type = SURFACE_DEFAULT;
+  surf.type = SURFACE_NOT_SLIPPERY;
   surf.force = 0;
   surf.terrain = TERRAIN_STONE;
 
@@ -251,11 +328,16 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
       break;
     }
 
+    // Apply offset in Jak coordinates first (so mesh stays relative to reference point)
+    float adjusted_x = vec.x + offset.x;
+    float adjusted_y = vec.y + offset.y;
+    float adjusted_z = vec.z + offset.z;
+
     // here we adjust the units from jak cords to mario cords this is untested and hopefully the
     // meshes just work rn but if they dont invesitgate this more
-    float xf = vec.x * METERS_TO_UNITS;
-    float yf = vec.y * METERS_TO_UNITS;
-    float zf = vec.z * METERS_TO_UNITS;
+    float xf = adjusted_x * METERS_TO_UNITS;
+    float yf = adjusted_y * METERS_TO_UNITS;
+    float zf = adjusted_z * METERS_TO_UNITS;
 
     surf.vertices[v][0] = static_cast<int32_t>(std::round(xf));
     surf.vertices[v][1] = static_cast<int32_t>(std::round(yf));
@@ -264,10 +346,10 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 
   if (valid) {
     info.temp_tris.push_back(surf);
-    // printf("[MarioMgr] Added temp tri #%zu for %s → v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
-    //        info.temp_tris.size(), actor_name.c_str(), surf.vertices[0][0], surf.vertices[0][1],
-    //        surf.vertices[0][2], surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
-    //        surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
+    printf("[MarioMgr] Added temp tri #%zu for %s → v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
+           info.temp_tris.size(), actor_name.c_str(), surf.vertices[0][0], surf.vertices[0][1],
+           surf.vertices[0][2], surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
+           surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
   } else {
     printf("[MarioMgr] Ignored invalid/NaN triangle for %s\n", actor_name.c_str());
   }
@@ -275,15 +357,22 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
   // ─────────────────────────────────────────────────────────────
   // Completion check — only log when we think we're done
   // ─────────────────────────────────────────────────────────────
-  bool is_complete = (pkg->tri_count == pkg->tri_index) || (info.temp_tris.size() >= expected_tris);
+  
 
   if (is_complete) {
-    // printf(
-    //     "[MarioMgr] Completed triangle set for %s — total tris in temp buffer: %zu (expected
-    //     %zu)\n", actor_name.c_str(), info.temp_tris.size(), expected_tris);
+    printf(
+        "[MarioMgr] Completed triangle set for %s — total tris in temp buffer: %zu (expected "
+        "%zu)\n",
+        actor_name.c_str(), info.temp_tris.size(), expected_tris);
 
-    if (!info.is_spawned) {
-      // First time: spawn the actor
+    // Only spawn if we haven't already done it
+    if (info.is_spawned) {
+      printf(
+          "[MarioMgr] Actor %s already spawned (ID %u) — position will be updated on future "
+          "packages\n",
+          actor_name.c_str(), info.sm64_id);
+    } else {
+      // Call the spawn function
       SpawnActorMesh(actor_name);
       info.is_spawned = true;
 
@@ -293,32 +382,6 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
       // Optional: clear temp data after successful spawn to save memory
       // info.temp_tris.clear();
       // info.temp_tris.shrink_to_fit();
-    } else {
-      // Delete old surface object FIRST, THEN create new one immediately
-      sm64_surface_object_delete(info.sm64_id);
-
-      // Rebuild the SM64SurfaceObject struct with updated triangles
-      SM64SurfaceObject obj{};
-      obj.transform.position[0] = info.pos[0];
-      obj.transform.position[1] = info.pos[1];
-      obj.transform.position[2] = info.pos[2];
-      obj.transform.eulerRotation[0] = info.euler_rot[0];
-      obj.transform.eulerRotation[1] = info.euler_rot[1];
-      obj.transform.eulerRotation[2] = info.euler_rot[2];
-      obj.surfaces = info.temp_tris.data();
-      obj.surfaceCount = static_cast<uint32_t>(info.temp_tris.size());
-
-      uint32_t new_sm64_id = sm64_surface_object_create(&obj);
-      if (new_sm64_id != 0) {
-        info.sm64_id = new_sm64_id;
-
-        // Clear old data now that it's been safely replaced
-        info.temp_tris.clear();
-      } else {
-        info.is_spawned = false;
-        printf("[MarioMgr] FAILED to update collision for %s — check libsm64\n",
-               actor_name.c_str());
-      }
     }
   }
 }
@@ -327,12 +390,13 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 //     uint32_t triangle_package_pointer)
 // {
 
+  
 //     // char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
 //     //char* name = Ptr<String>(jak1::intern_from_c("*curr-actor-name-str*")).c()->data();
 //     // Optional: see what GOAL is actually sending
 //     //  printf("[AddTris] name=%s   bits: x=%08x y=%08x z=%08x idx=%08x\n",
 //     //         name ? name : "(null)", x_bits, y_bits, z_bits, vert_index_bits);
-
+    
 //     // ─────────────────────────────────────────────────────────────
 //     // Decode bit-packed floats (same as your working version)
 //     // ─────────────────────────────────────────────────────────────
@@ -343,6 +407,8 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 //     memcpy(&vert_index_f, &vert_index_bits, sizeof(float));
 
 //     memcpy(&name_f, &name_bits, sizeof(float));
+
+
 
 //     x_f *= METERS_TO_UNITS;
 //     y_f *= METERS_TO_UNITS;
@@ -415,8 +481,7 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 
 //         info.temp_tris.push_back(surf);
 
-//         printf("[MarioMgr] Committed tri #%zu for '%s'   v0=(%d,%d,%d) v1=(%d,%d,%d)
-//         v2=(%d,%d,%d)\n",
+//         printf("[MarioMgr] Committed tri #%zu for '%s'   v0=(%d,%d,%d) v1=(%d,%d,%d) v2=(%d,%d,%d)\n",
 //                info.temp_tris.size(),
 //                actor_name.c_str(),
 //                surf.vertices[0][0], surf.vertices[0][1], surf.vertices[0][2],
@@ -428,61 +493,69 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 //     }
 // }
 
-void MarioManager::AddOrUpdateActor(const char* name, float x, float y, float z) {
-  if (!name || name[0] == '\0') {
-    printf("[actor] ERROR: empty name passed - ignored\n");
-    return;
-  }
 
-  std::string key = name;
-
-  auto it = m_actor_infos.find(key);
-  ActorInfo* info = nullptr;
-
-  if (it != m_actor_infos.end()) {
-    info = &it->second;
-
-    if (std::fabs(info->pos[0] - x) < EPS_POSITION && std::fabs(info->pos[1] - y) < EPS_POSITION &&
-        std::fabs(info->pos[2] - z) < EPS_POSITION) {
-      return;
+void MarioManager::AddOrUpdateActor(const char* name, float x, float y, float z)
+{
+    if (!name || name[0] == '\0')
+    {
+        printf("[actor] ERROR: empty name passed - ignored\n");
+        return;
     }
 
-    printf("[actor] Updating '%s' → (%.2f, %.2f, %.2f)\n", name, x, y, z);
-  } else {
-    ActorInfo new_info{};
-    new_info.name = key;
-    new_info.pos[0] = x;
-    new_info.pos[1] = y;
-    new_info.pos[2] = z;
-    new_info.euler_rot[0] = 0.f;
-    new_info.euler_rot[1] = 0.f;
-    new_info.euler_rot[2] = 0.f;
-    new_info.is_platform = false;
-    new_info.is_spawned = false;
-    new_info.sm64_id = 0;
-    new_info.mesh = nullptr;
-    new_info.num_surfaces = 0;
-    new_info.mesh_hash = 0;
+    std::string key = name;
 
-    auto [ins_it, inserted] = m_actor_infos.emplace(key, std::move(new_info));
-    if (!inserted) {
-      printf("[actor] emplace failed for '%s'\n", name);
-      return;
+    auto it = m_actor_infos.find(key);
+    ActorInfo* info = nullptr;
+
+    if (it != m_actor_infos.end())
+    {
+        info = &it->second;
+
+        if (std::fabs(info->pos[0] - x) < EPS_POSITION &&
+            std::fabs(info->pos[1] - y) < EPS_POSITION &&
+            std::fabs(info->pos[2] - z) < EPS_POSITION)
+        {
+            return;
+        }
+
+        printf("[actor] Updating '%s' → (%.2f, %.2f, %.2f)\n", name, x, y, z);
+    }
+    else
+    {
+        ActorInfo new_info{};
+        new_info.name         = key;
+        new_info.pos[0]       = x;
+        new_info.pos[1]       = y;
+        new_info.pos[2]       = z;
+        new_info.euler_rot[0] = 0.f;
+        new_info.euler_rot[1] = 0.f;
+        new_info.euler_rot[2] = 0.f;
+        new_info.is_platform  = false;
+        new_info.is_spawned   = false;
+        new_info.sm64_id      = -1;
+        new_info.mesh         = nullptr;
+        new_info.num_surfaces = 0;
+        new_info.mesh_hash    = 0;
+
+        auto [ins_it, inserted] = m_actor_infos.emplace(key, std::move(new_info));
+        if (!inserted) {
+            printf("[actor] emplace failed for '%s'\n", name);
+            return;
+        }
+
+        info = &ins_it->second;
+        printf("[actor] New actor '%s' at (%.2f, %.2f, %.2f)\n", name, x, y, z);
     }
 
-    info = &ins_it->second;
-    printf("[actor] New actor '%s' at (%.2f, %.2f, %.2f)\n", name, x, y, z);
-  }
+    // Update position
+    info->pos[0] = x;
+    info->pos[1] = y;
+    info->pos[2] = z;
 
-  // Update position
-  info->pos[0] = x;
-  info->pos[1] = y;
-  info->pos[2] = z;
+    // When actor is created/updated → reset temporary mesh building state
+    info->temp_tris.clear();
+    info->vertex_accum.clear();
 
-  // When actor is created/updated → reset temporary mesh building state
-  info->temp_tris.clear();
-  info->vertex_accum.clear();
-
-  // If you want to spawn immediately when mesh is ready, do it in a separate function
-  // (recommended: distance check + !is_spawned + !temp_tris.empty())
+    // If you want to spawn immediately when mesh is ready, do it in a separate function
+    // (recommended: distance check + !is_spawned + !temp_tris.empty())
 }

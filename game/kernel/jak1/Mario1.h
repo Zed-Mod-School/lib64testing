@@ -24,6 +24,7 @@ struct alignas(16) Vector {
 struct alignas(16) triangle_package {
   int tri_index;
   Vector tris[3];
+  Vector origin[3];
   int tri_count;
   int actor_name;
 };
@@ -71,6 +72,10 @@ struct ActorInfo {
   std::vector<float>       vertex_accum;  
   std::vector<SM64Surface> temp_tris;  
   std::unordered_set<uintptr_t> processed_packages;
+  bool has_reference_origin = false;
+  Vector reference_origin{};
+  bool has_last_position = false;
+  float last_position[3] = {0.0f, 0.0f, 0.0f};
 };
 
 extern bool g_mario_enabled;
