@@ -89,7 +89,8 @@
            (current-idx 0))
 
     (let ((s5-0 (the-as object (-> this tris)))
-          (s4-0 (-> arg0 node-list data arg1 bone transform)))
+          (s4-0 (-> arg0 node-list data arg1 bone transform))
+          (s6-7 (-> arg0 node-list data arg1 bone position)))
       (countdown (s3-0 (-> this num-tris))
         (let ((a2-1 (new 'stack-no-clear 'vector))
               (a3-0 (new 'stack-no-clear 'vector))
@@ -155,10 +156,13 @@
 ;; (set! (-> *triangle-package* tris 2 x) (-> t0-0 x))
 ;; (set! (-> *triangle-package* tris 2 y) (-> t0-0 y))
 ;; (set! (-> *triangle-package* tris 2 z) (-> t0-0 z))
+
+
+
 (when (= current-idx 0)
-(vector-copy! (-> *triangle-package* origin-point 0) a2-1)
-(vector-copy! (-> *triangle-package* origin-point 1) a2-1)
-(vector-copy! (-> *triangle-package* origin-point 2) a2-1)
+(vector-copy! (-> *triangle-package* origin-point 0) s6-7)
+(vector-copy! (-> *triangle-package* origin-point 1) s6-7)
+(vector-copy! (-> *triangle-package* origin-point 2) s6-7)
 (vector-copy! (-> *triangle-package* euler-rot 0) (-> arg0 root rot))
 )
 
@@ -230,7 +234,7 @@
                                          e
                                          (nonzero? (-> p root))
                                          (type-type? (-> e etype) type-target)
-                                         ;;(type-type? (-> e etype) crate)
+                                         ;;(type-type? (-> e etype) windmill-one)
                                         ;;  (= p (process-by-ename "citb-disc-d-2"))
                                          (not (paused?))
                                          ;;more conditionals here
