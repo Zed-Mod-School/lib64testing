@@ -13,7 +13,9 @@
 
 // Constants
 constexpr float METERS_TO_UNITS = 50.0f / 4096.0f;
+#ifndef M_PI
 #define M_PI       3.14159265358979323846
+#endif
 
 #pragma once
 

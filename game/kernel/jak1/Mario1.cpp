@@ -39,6 +39,70 @@ static int g_combined_surfaces_count = 0;
 std::vector<SM64SurfaceObject> g_active_debug_objects;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Platform globals
+// ─────────────────────────────────────────────────────────────────────────────
+static uint32_t           gPlatId    = 0;
+static SM64ObjectTransform gPlatXf   = {};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Quaternion to yaw conversion
+// ─────────────────────────────────────────────────────────────────────────────
+float quaternion_to_yaw_degrees(float qx, float qy, float qz, float qw) {
+    float siny_cosp = 2.0f * (qw * qy + qz * qx);
+    float cosy_cosp = 1.0f - 2.0f * (qy * qy + qz * qz);
+    float yaw_rad = atan2f(siny_cosp, cosy_cosp);
+    float yaw_deg = yaw_rad * (180.0f / M_PI);
+    if (yaw_deg > 180.0f)  yaw_deg -= 360.0f;
+    if (yaw_deg < -180.0f) yaw_deg += 360.0f;
+    return yaw_deg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spawn a flat platform surface object for libsm64
+// ─────────────────────────────────────────────────────────────────────────────
+static uint32_t spawn_flat_platform(const float* pos, float size) {
+    SM64SurfaceObject obj = {};
+    float half = size / 2.0f;
+    obj.transform.position[0] = pos[0];
+    obj.transform.position[1] = pos[1];
+    obj.transform.position[2] = pos[2];
+    obj.surfaceCount = 2;
+    obj.surfaces = (SM64Surface*)malloc(sizeof(SM64Surface) * 2);
+
+    auto addTri = [&](int i, float ax, float ay, float az,
+                                float bx, float by, float bz,
+                                float cx, float cy, float cz) {
+        obj.surfaces[i].vertices[0][0] = (int32_t)ax; obj.surfaces[i].vertices[0][1] = (int32_t)ay; obj.surfaces[i].vertices[0][2] = (int32_t)az;
+        obj.surfaces[i].vertices[1][0] = (int32_t)bx; obj.surfaces[i].vertices[1][1] = (int32_t)by; obj.surfaces[i].vertices[1][2] = (int32_t)bz;
+        obj.surfaces[i].vertices[2][0] = (int32_t)cx; obj.surfaces[i].vertices[2][1] = (int32_t)cy; obj.surfaces[i].vertices[2][2] = (int32_t)cz;
+        obj.surfaces[i].type = SURFACE_DEFAULT;
+        obj.surfaces[i].force = 0;
+        obj.surfaces[i].terrain = TERRAIN_STONE;
+    };
+
+    float x0 = -half, x1 = half;
+    float z0 = -half, z1 = half;
+    float y = 0.0f;
+    addTri(0, x0,y,z1, x1,y,z1, x1,y,z0);
+    addTri(1, x1,y,z0, x0,y,z0, x0,y,z1);
+
+    uint32_t id = sm64_surface_object_create(&obj);
+    // Don't free obj.surfaces — libsm64 may still reference it
+
+    if (!id) return 0;
+
+    gPlatXf.position[0] = obj.transform.position[0];
+    gPlatXf.position[1] = obj.transform.position[1];
+    gPlatXf.position[2] = obj.transform.position[2];
+    gPlatXf.eulerRotation[0] = 0.0f;
+    gPlatXf.eulerRotation[1] = 0.0f;
+    gPlatXf.eulerRotation[2] = 0.0f;
+
+    gPlatId = id;
+    return id;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MarioManager Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -361,6 +425,7 @@ void MarioManager::Tick() {
       if (pair.second->active) {
         jak1::call_goal_function_by_name("update-sm64-camera-from-goal");
         //self->CleanupDistantActorCollide();
+        self->UpdateMovingPlatform();
         self->TickMario(pair.first);
       }
     }
@@ -368,8 +433,6 @@ void MarioManager::Tick() {
     g_tick_accumulator -= MARIO_FIXED_DT;
   }
 }
-
-const float M_PI = 3.14159265358979323846f;
 
 void MarioManager::TickMario(int id) {
   auto* inst = GetMario(id);
@@ -416,8 +479,61 @@ void MarioManager::UpdatePlatformInfo(u32 platform_info_ptr) {
 }
 
 void MarioManager::UpdateMovingPlatform() {
+  // If no platform surface object exists yet, spawn one under the first Mario
+  if (!gPlatId) {
+    auto ids = GetActiveMarioIds();
+    if (ids.empty()) return;
+    auto* inst = GetMario(ids[0]);
+    if (!inst) return;
+    float spawnPos[3] = {
+        inst->state.position[0],
+        inst->state.position[1] - 80.0f,
+        inst->state.position[2]
+    };
+    spawn_flat_platform(spawnPos, 2000.0f);
+    return;  // wait for next frame
+  }
+
   if (!m_platform_info_valid) return;
-  // Stub
+
+  // Unpack position from GOAL (stored as raw float bits) → libsm64 units
+  float targetX, targetY, targetZ;
+  memcpy(&targetX, &m_platform_info.x_pos, sizeof(u32));
+  memcpy(&targetY, &m_platform_info.y_pos, sizeof(u32));
+  memcpy(&targetZ, &m_platform_info.z_pos, sizeof(u32));
+  targetX *= METERS_TO_UNITS;
+  targetY *= METERS_TO_UNITS;
+  targetZ *= METERS_TO_UNITS;
+
+  // Unpack quaternion and convert to yaw
+  float qx, qy, qz, qw;
+  memcpy(&qx, &m_platform_info.rot_x, sizeof(u32));
+  memcpy(&qy, &m_platform_info.rot_y, sizeof(u32));
+  memcpy(&qz, &m_platform_info.rot_z, sizeof(u32));
+  memcpy(&qw, &m_platform_info.rot_w, sizeof(u32));
+
+  // Normalize quaternion
+  float mag = sqrtf(qx*qx + qy*qy + qz*qz + qw*qw);
+  if (mag > 0.0001f) {
+    qx /= mag; qy /= mag; qz /= mag; qw /= mag;
+  } else {
+    qw = 1.0f;
+  }
+
+  float yaw_deg = quaternion_to_yaw_degrees(qx, qy, qz, qw);
+
+  printf("[PLATFORM] Applying → pos(%.2f, %.2f, %.2f) yaw=%.1f° (from quat %.4f,%.4f,%.4f,%.4f)\n",
+         targetX, targetY, targetZ, yaw_deg, qx, qy, qz, qw);
+
+  // Apply to libsm64 physics transform
+  gPlatXf.position[0] = targetX;
+  gPlatXf.position[1] = targetY;
+  gPlatXf.position[2] = targetZ;
+  gPlatXf.eulerRotation[0] = 0.0f;
+  gPlatXf.eulerRotation[1] = -yaw_deg;
+  gPlatXf.eulerRotation[2] = 0.0f;
+
+  sm64_surface_object_move(gPlatId, &gPlatXf);
 }
 
 void MarioManager::UpdatePseudoFloor(int id) {
