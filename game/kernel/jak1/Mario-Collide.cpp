@@ -107,7 +107,7 @@ void MarioManager::AddTestActors() {
     test.sm64_id = 999;  // fake libsm64 ID
 
     m_actor_infos[test.name] = test;
-    printf("[Test] Added far-away %s at (%.1f, %.1f, %.1f) → should be culled\n", test.name.c_str(),
+    printf("[Test] Added far-away %s at (%.1f, %.1f, %.1f) -> should be culled\n", test.name.c_str(),
            test.pos[0], test.pos[1], test.pos[2]);
   }
 
@@ -365,7 +365,7 @@ void MarioManager::AddOrUpdateTrisToTempBuffer(const triangle_package* pkg) {
 
   if (valid) {
     info.temp_tris.push_back(surf);
-    printf("[MarioMgr] Added temp tri #%zu for %s → v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
+    printf("[MarioMgr] Added temp tri #%zu for %s -> v0(%d,%d,%d) v1(%d,%d,%d) v2(%d,%d,%d)\n",
            info.temp_tris.size(), actor_name.c_str(), surf.vertices[0][0], surf.vertices[0][1],
            surf.vertices[0][2], surf.vertices[1][0], surf.vertices[1][1], surf.vertices[1][2],
            surf.vertices[2][0], surf.vertices[2][1], surf.vertices[2][2]);
@@ -528,7 +528,7 @@ void MarioManager::AddOrUpdateActor(const char* name, float x, float y, float z)
       return;
     }
 
-    printf("[actor] Updating '%s' → (%.2f, %.2f, %.2f)\n", name, x, y, z);
+    printf("[actor] Updating '%s' -> (%.2f, %.2f, %.2f)\n", name, x, y, z);
   } else {
     ActorInfo new_info{};
     new_info.name = key;

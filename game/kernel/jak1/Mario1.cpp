@@ -180,10 +180,10 @@ int MarioManager::CreateMario(float x, float y, float z) {
     g_cylinder_center[0] = x;
     g_cylinder_center[1] = y;
     g_cylinder_center[2] = z;
-    fprintf(stderr, "[CreateMario] First Mario → cylinder center set to (%.1f, %.1f, %.1f)\n", x, y, z);
+    fprintf(stderr, "[CreateMario] First Mario -> cylinder center set to (%.1f, %.1f, %.1f)\n", x, y, z);
   }
 
-  fprintf(stderr, "[CreateMario] EXITING function → final map size = %zu   map addr = %p\n",
+  fprintf(stderr, "[CreateMario] EXITING function -> final map size = %zu   map addr = %p\n",
           self->m_marios.size(), (void*)&self->m_marios);
 
   fprintf(stderr, "[libsm64] Created Mario %d at (%.1f, %.1f, %.1f)\n", id, x, y, z);
@@ -369,7 +369,7 @@ void MarioManager::Tick() {
   }
 }
 
-const float M_PI = 3.14159265358979323846f;
+//const float M_PI = 3.14159265358979323846f;
 
 void MarioManager::TickMario(int id) {
   auto* inst = GetMario(id);
