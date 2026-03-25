@@ -2,6 +2,21 @@
 #include "../common/Ptr.h"
 #include "game/kernel/jak1/kscheme.h"
 #include "mario1.h"
+
+float quaternion_to_yaw_degrees(float qx, float qy, float qz, float qw) {
+    // Standard quaternion to yaw (only care about Y rotation)
+    float siny_cosp = 2.0f * (qw * qy + qz * qx);
+    float cosy_cosp = 1.0f - 2.0f * (qy * qy + qz * qz);
+    float yaw_rad = atan2f(siny_cosp, cosy_cosp);
+
+    // Convert to degrees and normalize to [-180, 180]
+    float yaw_deg = yaw_rad * (180.0f / M_PI);
+    if (yaw_deg > 180.0f)  yaw_deg -= 360.0f;
+    if (yaw_deg < -180.0f) yaw_deg += 360.0f;
+
+    return yaw_deg;
+}
+
 void MarioManager::CleanupDistantActorCollide() {
   if (!m_run_collide)
     return;  // Step 1: Pause if not running
